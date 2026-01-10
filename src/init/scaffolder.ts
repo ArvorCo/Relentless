@@ -83,11 +83,11 @@ This project uses Relentless for autonomous AI agent orchestration.
 
 \`\`\`bash
 # Run the orchestrator with Claude Code
-./relentless.sh --agent claude
+./relentless/bin/relentless.sh --agent claude
 
 # Or use other agents
-./relentless.sh --agent amp
-./relentless.sh --agent auto  # Smart routing
+./relentless/bin/relentless.sh --agent amp
+./relentless/bin/relentless.sh --agent auto  # Smart routing
 \`\`\`
 
 ## Codebase Patterns
@@ -152,6 +152,24 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
     console.log(`  ${chalk.green("✓")} AGENTS.md -> CLAUDE.md (symlink)`);
   }
 
+  // Copy relentless bin
+  console.log(chalk.dim("\nSetting up relentless scripts..."));
+  const relentlessRoot = dirname(dirname(dirname(import.meta.path)));
+  const relentlessBinDir = join(projectDir, "relentless", "bin");
+
+  if (!existsSync(relentlessBinDir)) {
+    mkdirSync(relentlessBinDir, { recursive: true });
+  }
+
+  const sourceScript = join(relentlessRoot, "bin", "relentless.sh");
+  const destScript = join(relentlessBinDir, "relentless.sh");
+
+  if (existsSync(sourceScript) && !existsSync(destScript)) {
+    await Bun.spawn(["cp", sourceScript, destScript]).exited;
+    await Bun.spawn(["chmod", "+x", destScript]).exited;
+    console.log(`  ${chalk.green("✓")} relentless/bin/relentless.sh`);
+  }
+
   // Copy skills
   console.log(chalk.dim("\nSetting up skills..."));
   const skillsDir = join(projectDir, ".claude", "skills");
@@ -159,7 +177,6 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
     mkdirSync(skillsDir, { recursive: true });
   }
 
-  const relentlessRoot = dirname(dirname(dirname(import.meta.path)));
   const sourceSkillsDir = join(relentlessRoot, "skills");
 
   if (existsSync(sourceSkillsDir)) {
@@ -182,6 +199,6 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   console.log(chalk.dim("\n2. Convert to JSON:"));
   console.log(`   ${chalk.cyan('claude "Load the relentless skill and convert tasks/prd-*.md"')}`);
   console.log(chalk.dim("\n3. Run Relentless:"));
-  console.log(`   ${chalk.cyan("./relentless.sh --agent claude")}`);
+  console.log(`   ${chalk.cyan("./relentless/bin/relentless.sh --agent claude")}`);
   console.log("");
 }
