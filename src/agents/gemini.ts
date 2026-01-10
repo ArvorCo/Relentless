@@ -11,7 +11,7 @@ export const geminiAdapter: AgentAdapter = {
   name: "gemini",
   displayName: "Gemini CLI",
   hasSkillSupport: true, // Uses extension system
-  skillInstallCommand: "gemini extensions install https://github.com/arvor/relentless",
+  skillInstallCommand: "gemini extensions install https://github.com/ArvorCo/Relentless",
 
   async isInstalled(): Promise<boolean> {
     try {

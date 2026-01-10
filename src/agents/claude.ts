@@ -11,7 +11,7 @@ export const claudeAdapter: AgentAdapter = {
   name: "claude",
   displayName: "Claude Code",
   hasSkillSupport: true,
-  skillInstallCommand: "/plugin install github:arvor/relentless",
+  skillInstallCommand: "/plugin install github:ArvorCo/Relentless",
 
   async isInstalled(): Promise<boolean> {
     try {

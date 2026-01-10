@@ -11,7 +11,7 @@ export const ampAdapter: AgentAdapter = {
   name: "amp",
   displayName: "Amp",
   hasSkillSupport: true,
-  skillInstallCommand: "amp skill add github.com/arvor/relentless",
+  skillInstallCommand: "amp skill add github.com/ArvorCo/Relentless",
 
   async isInstalled(): Promise<boolean> {
     try {
