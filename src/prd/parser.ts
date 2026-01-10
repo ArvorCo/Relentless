@@ -7,7 +7,36 @@
 import { PRDSchema, type PRD, type UserStory } from "./types";
 
 /**
+ * Check if a criterion line is valid (not a file path, divider, etc.)
+ */
+function isValidCriterion(text: string): boolean {
+  // Skip if it looks like a file path
+  if (text.match(/^`[^`]+\.(ts|tsx|js|jsx|css|json|md)`$/)) {
+    return false;
+  }
+  // Skip if it's just a section marker
+  if (text.startsWith("**")) {
+    return false;
+  }
+  // Skip if it's empty or too short
+  if (text.length < 3) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Parse a PRD markdown file into structured format
+ *
+ * Supports multiple story formats:
+ * - ### US-001: Title
+ * - ### Story 1: Title
+ * - ### 1. Title
+ *
+ * Supports multiple acceptance criteria formats:
+ * - [ ] Criterion
+ * - [x] Criterion
+ * - Criterion (plain bullet)
  */
 export function parsePRDMarkdown(content: string): Partial<PRD> {
   const lines = content.split("\n");
@@ -18,59 +47,112 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
   let currentSection = "";
   let currentStory: Partial<UserStory> | null = null;
   let storyCount = 0;
+  let inAcceptanceCriteria = false;
+  let descriptionLines: string[] = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
 
-    // Parse title
-    if (trimmed.startsWith("# PRD:") || trimmed.startsWith("# ")) {
+    // Parse title (# PRD: Title or # Title)
+    if (trimmed.startsWith("# ") && !trimmed.startsWith("## ") && !trimmed.startsWith("### ")) {
       prd.project = trimmed.replace(/^#\s*(PRD:\s*)?/, "").trim();
       continue;
     }
 
-    // Parse section headers
+    // Parse section headers (## Section)
     if (trimmed.startsWith("## ")) {
       currentSection = trimmed.replace("## ", "").toLowerCase();
+      inAcceptanceCriteria = false;
       continue;
     }
 
-    // Parse user stories
-    if (trimmed.startsWith("### US-") || trimmed.match(/^###\s+US-\d+/)) {
+    // Parse user stories - multiple formats supported
+    // ### US-001: Title
+    // ### Story 1: Title
+    // ### 1. Title
+    const storyMatch = trimmed.match(/^###\s+(?:US-(\d+)|Story\s+(\d+)|(\d+)\.?)\s*:?\s*(.*)$/i);
+    if (storyMatch) {
       // Save previous story
       if (currentStory && currentStory.id) {
+        if (descriptionLines.length > 0 && !currentStory.description) {
+          currentStory.description = descriptionLines.join(" ").trim();
+        }
         prd.userStories!.push(currentStory as UserStory);
       }
 
       storyCount++;
-      const match = trimmed.match(/###\s+(US-\d+):?\s*(.*)/);
+      const storyNum = storyMatch[1] || storyMatch[2] || storyMatch[3] || String(storyCount);
       currentStory = {
-        id: match?.[1] ?? `US-${String(storyCount).padStart(3, "0")}`,
-        title: match?.[2] ?? "",
+        id: `US-${storyNum.padStart(3, "0")}`,
+        title: storyMatch[4]?.trim() || "",
         description: "",
         acceptanceCriteria: [],
         priority: storyCount,
         passes: false,
         notes: "",
       };
+      inAcceptanceCriteria = false;
+      descriptionLines = [];
       continue;
     }
 
-    // Parse story description
+    // Check for acceptance criteria section header
+    if (currentStory && trimmed.match(/^\*\*Acceptance Criteria:?\*\*$/i)) {
+      inAcceptanceCriteria = true;
+      continue;
+    }
+
+    // Parse story description (single line after **Description:**)
     if (currentStory && trimmed.startsWith("**Description:**")) {
       currentStory.description = trimmed.replace("**Description:**", "").trim();
+      inAcceptanceCriteria = false;
       continue;
     }
 
-    // Parse acceptance criteria
-    if (currentStory && (trimmed.startsWith("- [ ]") || trimmed.startsWith("- [x]"))) {
-      const criterion = trimmed.replace(/^-\s*\[.\]\s*/, "").trim();
-      currentStory.acceptanceCriteria!.push(criterion);
+    // Check for section headers within story that end acceptance criteria
+    if (currentStory && trimmed.match(/^\*\*(Files|Note|Technical|Design)/i)) {
+      inAcceptanceCriteria = false;
       continue;
     }
 
-    // Parse description if in introduction section
-    if (currentSection === "introduction" || currentSection === "overview") {
-      if (trimmed && !prd.description) {
+    // Parse acceptance criteria - multiple formats
+    // - [ ] Criterion
+    // - [x] Criterion
+    // - Criterion (plain bullet, only in acceptance criteria section)
+    if (currentStory && trimmed.startsWith("-")) {
+      // Skip dividers like "---"
+      if (trimmed.match(/^-+$/)) {
+        inAcceptanceCriteria = false;
+        continue;
+      }
+
+      // Checkbox format
+      if (trimmed.match(/^-\s*\[.\]/)) {
+        const criterion = trimmed.replace(/^-\s*\[.\]\s*/, "").trim();
+        if (criterion && isValidCriterion(criterion)) {
+          currentStory.acceptanceCriteria!.push(criterion);
+        }
+        inAcceptanceCriteria = true;
+        continue;
+      }
+      // Plain bullet format (only if we're in acceptance criteria section)
+      if (inAcceptanceCriteria) {
+        const criterion = trimmed.replace(/^-\s*/, "").trim();
+        if (criterion && isValidCriterion(criterion)) {
+          currentStory.acceptanceCriteria!.push(criterion);
+        }
+        continue;
+      }
+    }
+
+    // Collect description lines (paragraphs after story header, before acceptance criteria)
+    if (currentStory && !inAcceptanceCriteria && trimmed && !trimmed.startsWith("**") && !trimmed.startsWith("#")) {
+      descriptionLines.push(trimmed);
+    }
+
+    // Parse description if in introduction/overview section (for PRD description)
+    if ((currentSection === "introduction" || currentSection === "overview") && !currentStory) {
+      if (trimmed && !prd.description && !trimmed.startsWith("**")) {
         prd.description = trimmed;
       }
     }
@@ -78,6 +160,9 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
 
   // Save last story
   if (currentStory && currentStory.id) {
+    if (descriptionLines.length > 0 && !currentStory.description) {
+      currentStory.description = descriptionLines.join(" ").trim();
+    }
     prd.userStories!.push(currentStory as UserStory);
   }
 
