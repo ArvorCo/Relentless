@@ -1,17 +1,17 @@
 ---
-name: ralph
-description: "Convert PRDs to prd.json format for the Ralph autonomous agent system. Use when you have an existing PRD and need to convert it to Ralph's JSON format. Triggers on: convert this prd, turn this into ralph format, create prd.json from this, ralph json."
+name: relentless
+description: "Convert PRDs to prd.json format for the Relentless autonomous agent system. Use when you have an existing PRD and need to convert it to Relentless JSON format. Triggers on: convert this prd, turn this into relentless format, create prd.json from this, relentless json."
 ---
 
-# Ralph PRD Converter
+# Relentless PRD Converter
 
-Converts existing PRDs to the prd.json format that Ralph uses for autonomous execution.
+Converts existing PRDs to the prd.json format that Relentless uses for autonomous execution with any AI coding agent.
 
 ---
 
 ## The Job
 
-Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph directory.
+Take a PRD (markdown file or text) and convert it to `prd.json` in your project directory.
 
 ---
 
@@ -20,7 +20,7 @@ Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph di
 ```json
 {
   "project": "[Project Name]",
-  "branchName": "ralph/[feature-name-kebab-case]",
+  "branchName": "relentless/[feature-name-kebab-case]",
   "description": "[Feature description from PRD title/intro]",
   "userStories": [
     {
@@ -44,9 +44,9 @@ Take a PRD (markdown file or text) and convert it to `prd.json` in your ralph di
 
 ## Story Size: The Number One Rule
 
-**Each story must be completable in ONE Ralph iteration (one context window).**
+**Each story must be completable in ONE Relentless iteration (one context window).**
 
-Ralph spawns a fresh Amp instance per iteration with no memory of previous work. If a story is too big, the LLM runs out of context before finishing and produces broken code.
+Relentless spawns a fresh AI agent instance per iteration with no memory of previous work. If a story is too big, the LLM runs out of context before finishing and produces broken code.
 
 ### Right-sized stories:
 - Add a database column and migration
@@ -81,7 +81,7 @@ Stories execute in priority order. Earlier stories must not depend on later ones
 
 ## Acceptance Criteria: Must Be Verifiable
 
-Each criterion must be something Ralph can CHECK, not something vague.
+Each criterion must be something the agent can CHECK, not something vague.
 
 ### Good criteria (verifiable):
 - "Add `status` column to tasks table with default 'pending'"
@@ -108,10 +108,10 @@ For stories with testable logic, also include:
 
 ### For stories that change UI, also include:
 ```
-"Verify in browser using dev-browser skill"
+"Verify in browser"
 ```
 
-Frontend stories are NOT complete until visually verified. Ralph will use the dev-browser skill to navigate to the page, interact with the UI, and confirm changes work.
+Frontend stories are NOT complete until visually verified.
 
 ---
 
@@ -121,7 +121,7 @@ Frontend stories are NOT complete until visually verified. Ralph will use the de
 2. **IDs**: Sequential (US-001, US-002, etc.)
 3. **Priority**: Based on dependency order, then document order
 4. **All stories**: `passes: false` and empty `notes`
-5. **branchName**: Derive from feature name, kebab-case, prefixed with `ralph/`
+5. **branchName**: Derive from feature name, kebab-case, prefixed with `relentless/`
 6. **Always add**: "Typecheck passes" to every story's acceptance criteria
 
 ---
@@ -164,7 +164,7 @@ Add ability to mark tasks with different statuses.
 ```json
 {
   "project": "TaskApp",
-  "branchName": "ralph/task-status",
+  "branchName": "relentless/task-status",
   "description": "Task Status Feature - Track task progress with status indicators",
   "userStories": [
     {
@@ -188,7 +188,7 @@ Add ability to mark tasks with different statuses.
         "Each task card shows colored status badge",
         "Badge colors: gray=pending, blue=in_progress, green=done",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Verify in browser"
       ],
       "priority": 2,
       "passes": false,
@@ -203,7 +203,7 @@ Add ability to mark tasks with different statuses.
         "Changing status saves immediately",
         "UI updates without page refresh",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Verify in browser"
       ],
       "priority": 3,
       "passes": false,
@@ -217,7 +217,7 @@ Add ability to mark tasks with different statuses.
         "Filter dropdown: All | Pending | In Progress | Done",
         "Filter persists in URL params",
         "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Verify in browser"
       ],
       "priority": 4,
       "passes": false,
@@ -229,18 +229,25 @@ Add ability to mark tasks with different statuses.
 
 ---
 
-## Archiving Previous Runs
+## Running Relentless
 
-**Before writing a new prd.json, check if there is an existing one from a different feature:**
+After creating prd.json, run the orchestrator:
 
-1. Read the current `prd.json` if it exists
-2. Check if `branchName` differs from the new feature's branch name
-3. If different AND `progress.txt` has content beyond the header:
-   - Create archive folder: `archive/YYYY-MM-DD-feature-name/`
-   - Copy current `prd.json` and `progress.txt` to archive
-   - Reset `progress.txt` with fresh header
+```bash
+# With Claude Code (default)
+./relentless.sh
 
-**The ralph.sh script handles this automatically** when you run it, but if you are manually updating prd.json between runs, archive first.
+# With a specific agent
+./relentless.sh --agent amp
+./relentless.sh --agent codex
+./relentless.sh --agent gemini
+
+# Smart routing (auto-select best agent per story)
+./relentless.sh --agent auto
+
+# Custom max iterations
+./relentless.sh --max-iterations 30
+```
 
 ---
 
@@ -248,10 +255,9 @@ Add ability to mark tasks with different statuses.
 
 Before writing prd.json, verify:
 
-- [ ] **Previous run archived** (if prd.json exists with different branchName, archive it first)
 - [ ] Each story is completable in one iteration (small enough)
 - [ ] Stories are ordered by dependency (schema to backend to UI)
 - [ ] Every story has "Typecheck passes" as criterion
-- [ ] UI stories have "Verify in browser using dev-browser skill" as criterion
+- [ ] UI stories have "Verify in browser" as criterion
 - [ ] Acceptance criteria are verifiable (not vague)
 - [ ] No story depends on a later story

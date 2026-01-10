@@ -1,181 +1,181 @@
-# Ralph
+# Relentless
 
-![Ralph](ralph.webp)
+![Relentless](ralph.webp)
 
-Ralph is an autonomous AI agent loop that runs [Amp](https://ampcode.com) repeatedly until all PRD items are complete. Each iteration is a fresh Amp instance with clean context. Memory persists via git history, `progress.txt`, and `prd.json`.
+**Relentless** is a universal AI agent orchestrator that runs any AI coding agent (Claude Code, Amp, OpenCode, Codex, Droid, Gemini) repeatedly until all PRD items are complete. Each iteration is a fresh agent instance with clean context. Memory persists via git history, `progress.txt`, and `prd.json`.
 
-Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
+Evolved from [Ralph Wiggum](https://ghuntley.com/ralph/) to work with ANY AI coding agent.
 
-[Read my in-depth article on how I use Ralph](https://x.com/ryancarson/status/2008548371712135632)
+## Features
 
-## Prerequisites
+- **Multi-Agent Support**: Works with Claude Code, Amp, OpenCode, Codex, Droid, and Gemini
+- **Smart Routing**: Auto-selects the best agent for each story type with `--agent auto`
+- **Zero-Friction Install**: `bunx relentless init` sets up everything
+- **TypeScript/Bun**: Robust error handling and async capabilities
+- **Skills**: PRD generation and conversion skills for agents that support them
 
-- [Amp CLI](https://ampcode.com) installed and authenticated
-- `jq` installed (`brew install jq` on macOS)
-- A git repository for your project
+## Quick Start
 
-## Setup
-
-### Option 1: Copy to your project
-
-Copy the ralph files into your project:
+### 1. Install in Your Project
 
 ```bash
-# From your project root
-mkdir -p scripts/ralph
-cp /path/to/ralph/ralph.sh scripts/ralph/
-cp /path/to/ralph/prompt.md scripts/ralph/
-chmod +x scripts/ralph/ralph.sh
+bunx relentless init
 ```
 
-### Option 2: Install skills globally
+This creates:
+- `relentless.config.json` - Configuration
+- `prompt.md` - Agent instructions
+- `CLAUDE.md` / `AGENTS.md` - Project agent documentation
+- `progress.txt` - Progress log
+- Skills in `.claude/skills/`
 
-Copy the skills to your Amp config for use across all projects:
+### 2. Create a PRD
 
 ```bash
-cp -r skills/prd ~/.config/amp/skills/
-cp -r skills/ralph ~/.config/amp/skills/
+# With Claude Code (has skills)
+claude "Load the prd skill and create a PRD for adding user authentication"
+
+# With any agent (using prompting)
+bunx relentless prd "add user authentication" --agent codex
 ```
 
-### Configure Amp auto-handoff (recommended)
+### 3. Convert PRD to JSON
 
-Add to `~/.config/amp/settings.json`:
+```bash
+# With Claude Code
+claude "Load the relentless skill and convert tasks/prd-user-auth.md"
+
+# With CLI
+bunx relentless convert tasks/prd-user-auth.md
+```
+
+### 4. Run Relentless
+
+```bash
+# With Claude Code (default)
+./bin/relentless.sh
+
+# With a specific agent
+./bin/relentless.sh --agent amp
+./bin/relentless.sh --agent codex
+./bin/relentless.sh --agent droid
+./bin/relentless.sh --agent gemini
+
+# Smart routing (auto-select best agent per story)
+./bin/relentless.sh --agent auto
+
+# Custom max iterations
+./bin/relentless.sh --max-iterations 30
+```
+
+## Agent Capabilities
+
+| Agent | Skills Support | Installation |
+|-------|----------------|--------------|
+| **Claude Code** | Full (`/plugin install`) | `bun install -g @anthropic-ai/claude-code` |
+| **Amp** | Full (`amp skill add`) | `curl -fsSL https://ampcode.com/install.sh \| bash` |
+| **OpenCode** | Via agents | `bun install -g opencode-ai` |
+| **Codex** | Manual SKILL.md | `bun install -g @openai/codex` |
+| **Droid** | Prompting only | `curl -fsSL https://app.factory.ai/cli \| sh` |
+| **Gemini** | Extensions | `bun install -g gemini-cli` |
+
+## CLI Commands
+
+```bash
+# Initialize in current project
+bunx relentless init
+
+# Run orchestration
+bunx relentless run --agent claude --max-iterations 20
+
+# Convert PRD markdown to JSON
+bunx relentless convert tasks/prd-feature.md
+
+# List available agents
+bunx relentless agents list
+
+# Check agent health
+bunx relentless agents doctor
+```
+
+## Configuration
+
+Create `relentless.config.json` in your project root:
 
 ```json
 {
-  "amp.experimental.autoHandoff": { "context": 90 }
+  "defaultAgent": "claude",
+  "agents": {
+    "claude": { "model": "sonnet", "dangerouslyAllowAll": true },
+    "amp": { "model": "smart", "dangerouslyAllowAll": true }
+  },
+  "routing": {
+    "rules": [
+      { "storyType": "database", "agent": "claude" },
+      { "storyType": "ui", "agent": "amp" }
+    ],
+    "default": "claude"
+  },
+  "execution": {
+    "maxIterations": 20,
+    "iterationDelay": 2000
+  }
 }
 ```
 
-This enables automatic handoff when context fills up, allowing Ralph to handle large stories that exceed a single context window.
-
-## Workflow
-
-### 1. Create a PRD
-
-Use the PRD skill to generate a detailed requirements document:
-
-```
-Load the prd skill and create a PRD for [your feature description]
-```
-
-Answer the clarifying questions. The skill saves output to `tasks/prd-[feature-name].md`.
-
-### 2. Convert PRD to Ralph format
-
-Use the Ralph skill to convert the markdown PRD to JSON:
-
-```
-Load the ralph skill and convert tasks/prd-[feature-name].md to prd.json
-```
-
-This creates `prd.json` with user stories structured for autonomous execution.
-
-### 3. Run Ralph
-
-```bash
-./scripts/ralph/ralph.sh [max_iterations]
-```
-
-Default is 10 iterations.
-
-Ralph will:
-1. Create a feature branch (from PRD `branchName`)
-2. Pick the highest priority story where `passes: false`
-3. Implement that single story
-4. Run quality checks (typecheck, tests)
-5. Commit if checks pass
-6. Update `prd.json` to mark story as `passes: true`
-7. Append learnings to `progress.txt`
-8. Repeat until all stories pass or max iterations reached
-
-## Key Files
-
-| File | Purpose |
-|------|---------|
-| `ralph.sh` | The bash loop that spawns fresh Amp instances |
-| `prompt.md` | Instructions given to each Amp instance |
-| `prd.json` | User stories with `passes` status (the task list) |
-| `prd.json.example` | Example PRD format for reference |
-| `progress.txt` | Append-only learnings for future iterations |
-| `skills/prd/` | Skill for generating PRDs |
-| `skills/ralph/` | Skill for converting PRDs to JSON |
-
-## Critical Concepts
+## Key Concepts
 
 ### Each Iteration = Fresh Context
 
-Each iteration spawns a **new Amp instance** with clean context. The only memory between iterations is:
+Each iteration spawns a **new agent instance** with clean context. The only memory between iterations is:
 - Git history (commits from previous iterations)
 - `progress.txt` (learnings and context)
 - `prd.json` (which stories are done)
 
 ### Small Tasks
 
-Each PRD item should be small enough to complete in one context window. If a task is too big, the LLM runs out of context before finishing and produces poor code.
+Each PRD item should be small enough to complete in one context window. If a task is too big, the LLM runs out of context before finishing.
 
 Right-sized stories:
 - Add a database column and migration
 - Add a UI component to an existing page
 - Update a server action with new logic
-- Add a filter dropdown to a list
 
 Too big (split these):
 - "Build the entire dashboard"
 - "Add authentication"
 - "Refactor the API"
 
-### AGENTS.md Updates Are Critical
-
-After each iteration, Ralph updates the relevant `AGENTS.md` files with learnings. This is key because Amp automatically reads these files, so future iterations (and future human developers) benefit from discovered patterns, gotchas, and conventions.
-
-Examples of what to add to AGENTS.md:
-- Patterns discovered ("this codebase uses X for Y")
-- Gotchas ("do not forget to update Z when changing W")
-- Useful context ("the settings panel is in component X")
-
-### Feedback Loops
-
-Ralph only works if there are feedback loops:
-- Typecheck catches type errors
-- Tests verify behavior
-- CI must stay green (broken code compounds across iterations)
-
-### Browser Verification for UI Stories
-
-Frontend stories must include "Verify in browser using dev-browser skill" in acceptance criteria. Ralph will use the dev-browser skill to navigate to the page, interact with the UI, and confirm changes work.
-
 ### Stop Condition
 
-When all stories have `passes: true`, Ralph outputs `<promise>COMPLETE</promise>` and the loop exits.
+When all stories have `passes: true`, the agent outputs `<promise>COMPLETE</promise>` and the loop exits.
 
-## Debugging
-
-Check current state:
+## Development
 
 ```bash
-# See which stories are done
-cat prd.json | jq '.userStories[] | {id, title, passes}'
+# Install dependencies
+bun install
 
-# See learnings from previous iterations
-cat progress.txt
+# Run CLI
+bun run bin/relentless.ts --help
 
-# Check git history
-git log --oneline -10
+# Type check
+bun run typecheck
+
+# Lint
+bun run lint
 ```
-
-## Customizing prompt.md
-
-Edit `prompt.md` to customize Ralph's behavior for your project:
-- Add project-specific quality check commands
-- Include codebase conventions
-- Add common gotchas for your stack
-
-## Archiving
-
-Ralph automatically archives previous runs when you start a new feature (different `branchName`). Archives are saved to `archive/YYYY-MM-DD-feature-name/`.
 
 ## References
 
-- [Geoffrey Huntley's Ralph article](https://ghuntley.com/ralph/)
-- [Amp documentation](https://ampcode.com/manual)
+- [Ralph Wiggum Pattern](https://ghuntley.com/ralph/)
+- [Amp Documentation](https://ampcode.com/manual)
+- [Claude Code Documentation](https://docs.anthropic.com/claude-code)
+- [OpenCode](https://opencode.ai/)
+- [Codex CLI](https://developers.openai.com/codex/cli/)
+- [Factory Droid](https://factory.ai/)
+- [Gemini CLI](https://github.com/google-gemini/gemini-cli)
+
+## License
+
+MIT

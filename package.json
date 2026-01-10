@@ -1,0 +1,46 @@
+{
+  "name": "relentless",
+  "version": "0.1.0",
+  "description": "Universal AI agent orchestrator - works with Claude Code, Amp, OpenCode, Codex, Droid, and Gemini",
+  "type": "module",
+  "bin": {
+    "relentless": "./bin/relentless.ts"
+  },
+  "scripts": {
+    "start": "bun run bin/relentless.ts",
+    "build": "bun build ./bin/relentless.ts --outdir dist --target bun",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src bin --ext .ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "zod": "^3.23.8",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "typescript": "^5.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "orchestrator",
+    "claude",
+    "amp",
+    "codex",
+    "gemini",
+    "opencode",
+    "droid",
+    "ralph-wiggum"
+  ],
+  "author": "Arvor",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arvor/relentless"
+  }
+}

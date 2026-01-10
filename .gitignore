@@ -1,4 +1,4 @@
-# Ralph working files (generated during runs)
+# Relentless working files (generated during runs)
 prd.json
 progress.txt
 .last-branch
@@ -8,3 +8,7 @@ progress.txt
 
 # OS files
 .DS_Store
+
+# Dependencies
+node_modules/
+bun.lock
