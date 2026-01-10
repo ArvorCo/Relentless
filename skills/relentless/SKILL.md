@@ -11,7 +11,9 @@ Converts existing PRDs to the prd.json format that Relentless uses for autonomou
 
 ## The Job
 
-Take a PRD (markdown file or text) and convert it to `prd.json` in your project directory.
+Take a PRD (markdown file or text) and convert it to `relentless/prd.json` in your project directory.
+
+**Important:** All relentless files are stored in the `relentless/` subdirectory.
 
 ---
 
@@ -231,22 +233,22 @@ Add ability to mark tasks with different statuses.
 
 ## Running Relentless
 
-After creating prd.json, run the orchestrator:
+After creating relentless/prd.json, run the orchestrator:
 
 ```bash
 # With Claude Code (default)
-./relentless.sh
+./relentless/bin/relentless.sh
 
 # With a specific agent
-./relentless.sh --agent amp
-./relentless.sh --agent codex
-./relentless.sh --agent gemini
+./relentless/bin/relentless.sh --agent amp
+./relentless/bin/relentless.sh --agent codex
+./relentless/bin/relentless.sh --agent gemini
 
 # Smart routing (auto-select best agent per story)
-./relentless.sh --agent auto
+./relentless/bin/relentless.sh --agent auto
 
 # Custom max iterations
-./relentless.sh --max-iterations 30
+./relentless/bin/relentless.sh --max-iterations 30
 ```
 
 ---

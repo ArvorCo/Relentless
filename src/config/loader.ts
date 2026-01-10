@@ -1,27 +1,45 @@
 /**
  * Configuration Loader
  *
- * Loads and validates relentless.config.json
+ * Loads and validates relentless/config.json
  */
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { RelentlessConfigSchema, DEFAULT_CONFIG, type RelentlessConfig } from "./schema";
 
-const CONFIG_FILENAME = "relentless.config.json";
+const CONFIG_FILENAME = "config.json";
+const RELENTLESS_DIR = "relentless";
 
 /**
- * Find the config file in the current or parent directories
+ * Find the relentless directory in the current or parent directories
  */
-export function findConfigFile(startDir: string = process.cwd()): string | null {
+export function findRelentlessDir(startDir: string = process.cwd()): string | null {
   let dir = startDir;
 
   while (dir !== "/") {
-    const configPath = join(dir, CONFIG_FILENAME);
-    if (existsSync(configPath)) {
-      return configPath;
+    const relentlessPath = join(dir, RELENTLESS_DIR);
+    if (existsSync(relentlessPath)) {
+      return relentlessPath;
     }
     dir = join(dir, "..");
+  }
+
+  return null;
+}
+
+/**
+ * Find the config file in the relentless directory
+ */
+export function findConfigFile(startDir: string = process.cwd()): string | null {
+  const relentlessDir = findRelentlessDir(startDir);
+  if (!relentlessDir) {
+    return null;
+  }
+
+  const configPath = join(relentlessDir, CONFIG_FILENAME);
+  if (existsSync(configPath)) {
+    return configPath;
   }
 
   return null;
@@ -34,7 +52,7 @@ export async function loadConfig(configPath?: string): Promise<RelentlessConfig>
   const path = configPath ?? findConfigFile();
 
   if (!path) {
-    console.warn(`No ${CONFIG_FILENAME} found, using defaults`);
+    console.warn(`No relentless/${CONFIG_FILENAME} found, using defaults`);
     return DEFAULT_CONFIG;
   }
 
@@ -56,7 +74,7 @@ export async function loadConfig(configPath?: string): Promise<RelentlessConfig>
  */
 export async function saveConfig(
   config: RelentlessConfig,
-  path: string = join(process.cwd(), CONFIG_FILENAME)
+  path: string = join(process.cwd(), RELENTLESS_DIR, CONFIG_FILENAME)
 ): Promise<void> {
   const validated = RelentlessConfigSchema.parse(config);
   const content = JSON.stringify(validated, null, 2);
@@ -69,7 +87,7 @@ export async function saveConfig(
 export async function createDefaultConfig(
   dir: string = process.cwd()
 ): Promise<string> {
-  const path = join(dir, CONFIG_FILENAME);
+  const path = join(dir, RELENTLESS_DIR, CONFIG_FILENAME);
   await saveConfig(DEFAULT_CONFIG, path);
   return path;
 }

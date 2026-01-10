@@ -1,41 +1,63 @@
 /**
  * Project Scaffolder
  *
- * Creates Relentless files in a project
+ * Creates Relentless files in a project's relentless/ directory
+ *
+ * Structure:
+ * relentless/
+ * ├── bin/
+ * │   └── relentless.sh
+ * ├── config.json
+ * ├── prompt.md
+ * └── features/
+ *     └── <feature-name>/
+ *         ├── prd.md
+ *         ├── prd.json
+ *         └── progress.txt
+ *
+ * Best practices:
+ * - All relentless files go in relentless/ subdirectory
+ * - Each feature gets its own folder with prd.md, prd.json, progress.txt
+ * - Only skills are installed to .claude/skills/ (expected by Claude Code)
+ * - Does not modify project root files (CLAUDE.md, AGENTS.md, etc.)
  */
 
 import { existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import chalk from "chalk";
-import { getInstalledAgents, checkAgentHealth } from "../agents/registry";
+import { checkAgentHealth } from "../agents/registry";
 import { DEFAULT_CONFIG } from "../config/schema";
 
 /**
- * Files to create in the project
+ * Files to create in the relentless/ directory
  */
-const FILES = {
-  "relentless.config.json": () => JSON.stringify(DEFAULT_CONFIG, null, 2),
+const RELENTLESS_FILES: Record<string, () => string> = {
+  "config.json": () => JSON.stringify(DEFAULT_CONFIG, null, 2),
   "prompt.md": () => PROMPT_TEMPLATE,
-  "CLAUDE.md": () => CLAUDE_MD_TEMPLATE,
-  "progress.txt": () => `# Relentless Progress Log\nStarted: ${new Date().toISOString()}\n---\n`,
 };
 
 const PROMPT_TEMPLATE = `# Relentless Agent Instructions
 
 You are an autonomous coding agent working on a software project.
 
+## Before You Start
+
+1. **Review the codebase** - Understand the current state, architecture, and patterns
+2. **Read progress.txt** - Check the Codebase Patterns section for learnings from previous iterations
+3. **Read the PRD** - Understand what needs to be done
+
 ## Your Task
 
-1. Read the PRD at \`prd.json\` (in the same directory as this file)
-2. Read the progress log at \`progress.txt\` (check Codebase Patterns section first)
+1. Read the PRD at \`relentless/features/<feature>/prd.json\`
+2. Read the progress log at \`relentless/features/<feature>/progress.txt\`
 3. Check you're on the correct branch from PRD \`branchName\`. If not, check it out or create from main.
 4. Pick the **highest priority** user story where \`passes: false\`
-5. Implement that single user story
-6. Run quality checks (e.g., typecheck, lint, test - use whatever your project requires)
-7. Update AGENTS.md/CLAUDE.md files if you discover reusable patterns
+5. **Review relevant code** before implementing - understand existing patterns
+6. Implement that single user story
+7. Run quality checks (typecheck, lint, test - whatever your project requires)
 8. If checks pass, commit ALL changes with message: \`feat: [Story ID] - [Story Title]\`
 9. Update the PRD to set \`passes: true\` for the completed story
-10. Append your progress to \`progress.txt\`
+10. Append your progress to \`relentless/features/<feature>/progress.txt\`
 
 ## Progress Report Format
 
@@ -57,6 +79,7 @@ APPEND to progress.txt (never replace, always append):
 - Do NOT commit broken code
 - Keep changes focused and minimal
 - Follow existing code patterns
+- Review code before modifying it
 
 ## Stop Condition
 
@@ -70,39 +93,25 @@ If there are still stories with \`passes: false\`, end your response normally (a
 ## Important
 
 - Work on ONE story per iteration
+- Review existing code before implementing
 - Commit frequently
 - Keep CI green
-- Read the Codebase Patterns section in progress.txt before starting
 `;
 
-const CLAUDE_MD_TEMPLATE = `# Project Agent Instructions
-
-This project uses Relentless for autonomous AI agent orchestration.
-
-## Getting Started
-
-\`\`\`bash
-# Run the orchestrator with Claude Code
-./relentless/bin/relentless.sh --agent claude
-
-# Or use other agents
-./relentless/bin/relentless.sh --agent amp
-./relentless/bin/relentless.sh --agent auto  # Smart routing
-\`\`\`
+/**
+ * Default progress.txt content for a new feature
+ */
+export function createProgressTemplate(featureName: string): string {
+  return `# Progress Log: ${featureName}
+Started: ${new Date().toISOString()}
 
 ## Codebase Patterns
 
-<!-- Add patterns discovered during development here -->
+<!-- Patterns discovered during development will be added here -->
 
-## Development Commands
-
-\`\`\`bash
-# Add your project's commands here
-# bun run typecheck
-# bun run lint
-# bun run test
-\`\`\`
+---
 `;
+}
 
 /**
  * Initialize Relentless in a project
@@ -125,53 +134,52 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
     console.log(chalk.dim(`\nNot installed: ${notInstalled.map((a) => a.displayName).join(", ")}`));
   }
 
-  // Create files
-  console.log(chalk.dim("\nCreating files..."));
+  // Create relentless directory structure
+  const relentlessDir = join(projectDir, "relentless");
+  const featuresDir = join(relentlessDir, "features");
+  const binDir = join(relentlessDir, "bin");
 
-  for (const [filename, contentFn] of Object.entries(FILES)) {
-    const path = join(projectDir, filename);
-
-    if (existsSync(path)) {
-      console.log(`  ${chalk.yellow("⚠")} ${filename} already exists, skipping`);
-      continue;
-    }
-
-    const dir = dirname(path);
+  for (const dir of [relentlessDir, featuresDir, binDir]) {
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
+  }
+
+  // Create relentless files
+  console.log(chalk.dim("\nCreating relentless files..."));
+
+  for (const [filename, contentFn] of Object.entries(RELENTLESS_FILES)) {
+    const path = join(relentlessDir, filename);
+
+    if (existsSync(path)) {
+      console.log(`  ${chalk.yellow("⚠")} relentless/${filename} already exists, skipping`);
+      continue;
+    }
 
     await Bun.write(path, contentFn());
-    console.log(`  ${chalk.green("✓")} ${filename}`);
+    console.log(`  ${chalk.green("✓")} relentless/${filename}`);
   }
 
-  // Create AGENTS.md symlink
-  const agentsMdPath = join(projectDir, "AGENTS.md");
-  if (!existsSync(agentsMdPath)) {
-    await Bun.spawn(["ln", "-sf", "CLAUDE.md", "AGENTS.md"], { cwd: projectDir }).exited;
-    console.log(`  ${chalk.green("✓")} AGENTS.md -> CLAUDE.md (symlink)`);
-  }
-
-  // Copy relentless bin
-  console.log(chalk.dim("\nSetting up relentless scripts..."));
+  // Copy relentless.sh (always update to latest version)
   const relentlessRoot = dirname(dirname(dirname(import.meta.path)));
-  const relentlessBinDir = join(projectDir, "relentless", "bin");
-
-  if (!existsSync(relentlessBinDir)) {
-    mkdirSync(relentlessBinDir, { recursive: true });
-  }
-
   const sourceScript = join(relentlessRoot, "bin", "relentless.sh");
-  const destScript = join(relentlessBinDir, "relentless.sh");
+  const destScript = join(binDir, "relentless.sh");
 
-  if (existsSync(sourceScript) && !existsSync(destScript)) {
+  if (existsSync(sourceScript)) {
     await Bun.spawn(["cp", sourceScript, destScript]).exited;
     await Bun.spawn(["chmod", "+x", destScript]).exited;
     console.log(`  ${chalk.green("✓")} relentless/bin/relentless.sh`);
   }
 
-  // Copy skills
-  console.log(chalk.dim("\nSetting up skills..."));
+  // Create features directory with .gitkeep
+  const gitkeepPath = join(featuresDir, ".gitkeep");
+  if (!existsSync(gitkeepPath)) {
+    await Bun.write(gitkeepPath, "");
+    console.log(`  ${chalk.green("✓")} relentless/features/.gitkeep`);
+  }
+
+  // Copy skills to .claude/skills/ (this is expected by Claude Code)
+  console.log(chalk.dim("\nInstalling skills..."));
   const skillsDir = join(projectDir, ".claude", "skills");
   if (!existsSync(skillsDir)) {
     mkdirSync(skillsDir, { recursive: true });
@@ -186,19 +194,73 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
 
       if (existsSync(sourcePath) && !existsSync(destPath)) {
         await Bun.spawn(["cp", "-r", sourcePath, destPath]).exited;
-        console.log(`  ${chalk.green("✓")} Installed skill: ${skill}`);
+        console.log(`  ${chalk.green("✓")} .claude/skills/${skill}`);
+      } else if (existsSync(destPath)) {
+        console.log(`  ${chalk.yellow("⚠")} .claude/skills/${skill} already exists, skipping`);
       }
     }
   }
 
   // Print next steps
   console.log(chalk.bold.green("\n✅ Relentless initialized!\n"));
+  console.log(chalk.dim("Structure:"));
+  console.log(chalk.dim("  relentless/"));
+  console.log(chalk.dim("  ├── bin/relentless.sh    # Orchestrator script"));
+  console.log(chalk.dim("  ├── config.json          # Configuration"));
+  console.log(chalk.dim("  ├── prompt.md            # Base prompt template"));
+  console.log(chalk.dim("  └── features/            # Feature folders"));
+  console.log(chalk.dim("      └── <feature>/       # Each feature has:"));
+  console.log(chalk.dim("          ├── prd.md       # PRD markdown"));
+  console.log(chalk.dim("          ├── prd.json     # PRD JSON"));
+  console.log(chalk.dim("          └── progress.txt # Progress log\n"));
+
   console.log("Next steps:");
   console.log(chalk.dim("1. Create a PRD:"));
   console.log(`   ${chalk.cyan('claude "Load the prd skill and create a PRD for [your feature]"')}`);
   console.log(chalk.dim("\n2. Convert to JSON:"));
-  console.log(`   ${chalk.cyan('claude "Load the relentless skill and convert tasks/prd-*.md"')}`);
+  console.log(`   ${chalk.cyan('claude "Load the relentless skill and convert the PRD"')}`);
   console.log(chalk.dim("\n3. Run Relentless:"));
-  console.log(`   ${chalk.cyan("./relentless/bin/relentless.sh --agent claude")}`);
+  console.log(`   ${chalk.cyan("./relentless/bin/relentless.sh --feature <feature-name>")}`);
   console.log("");
+}
+
+/**
+ * Create a new feature folder
+ */
+export async function createFeature(
+  projectDir: string,
+  featureName: string
+): Promise<string> {
+  const featureDir = join(projectDir, "relentless", "features", featureName);
+
+  if (existsSync(featureDir)) {
+    throw new Error(`Feature '${featureName}' already exists`);
+  }
+
+  mkdirSync(featureDir, { recursive: true });
+
+  // Create progress.txt
+  const progressPath = join(featureDir, "progress.txt");
+  await Bun.write(progressPath, createProgressTemplate(featureName));
+
+  return featureDir;
+}
+
+/**
+ * List all features
+ */
+export function listFeatures(projectDir: string): string[] {
+  const featuresDir = join(projectDir, "relentless", "features");
+
+  if (!existsSync(featuresDir)) {
+    return [];
+  }
+
+  const entries = Bun.spawnSync(["ls", "-1", featuresDir]);
+  const output = new TextDecoder().decode(entries.stdout);
+
+  return output
+    .split("\n")
+    .map((s) => s.trim())
+    .filter((s) => s && s !== ".gitkeep");
 }
