@@ -144,3 +144,30 @@ Started: 2026-01-11T16:48:00.000Z
 - **Frontmatter fields**: feature, started, last_updated, stories_completed, patterns array
 
 ---
+## 2026-01-11T23:30:00.000Z - US-004
+
+### What was implemented
+- Created comprehensive plan.md template in templates/ directory with all technical planning sections
+- Extended scaffolder to support optional withPlan parameter in createFeature()
+- Updated runner to load and append plan.md to prompt context when present in feature directory
+- Plan.md template includes: Feature Overview, Technical Approach, Implementation Details, Integration Points, Testing Strategy, Security, Rollout, Monitoring, Open Questions, Alternatives, Dependencies/Risks, Success Criteria
+
+### Files changed
+- templates/plan.md (created with comprehensive technical planning structure)
+- src/init/scaffolder.ts (added CreateFeatureOptions interface, updated createFeature signature, added plan.md copying logic)
+- src/execution/runner.ts (added plan.md loading and appending to prompt in buildPrompt function)
+- relentless/features/ghsk-ideas/prd.json (set US-004 passes: true)
+
+### Learnings for future iterations:
+- **Template structure**: Plan.md follows comprehensive technical design document pattern with 15+ sections
+- **Optional feature integration**: Used options parameter pattern for backward compatibility
+- **Path calculation**: planPath = join(dirname(progressPath), "plan.md") mirrors existing pattern
+- **Prompt appending**: Plan content appended after patterns, before agent starts work
+- **Template sections**: Includes problem statement, architecture, tech stack, data models, API design, file structure, integration points, testing, security, rollout, monitoring, open questions, alternatives, risks, and success criteria
+- **Conditional loading**: Plan only included in prompt if file exists in feature directory
+- **Scaffolder pattern**: Copy from templates/ to feature directory when withPlan: true
+- **relentlessRoot constant**: Already defined for template access, reused for plan.md
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Interface export**: CreateFeatureOptions exported for external usage
+
+---
