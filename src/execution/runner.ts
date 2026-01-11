@@ -4,12 +4,15 @@
  * Main orchestration loop for running agents with automatic fallback
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
+import { join, dirname } from "node:path";
 import chalk from "chalk";
 import type { AgentAdapter, AgentName } from "../agents/types";
 import { getAgent, getInstalledAgents } from "../agents/registry";
 import type { RelentlessConfig } from "../config/schema";
+import { loadConstitution, validateConstitution } from "../config/loader";
 import { loadPRD, getNextStory, isComplete, countStories } from "../prd";
+import { loadProgress, updateProgressMetadata, syncPatternsFromContent } from "../prd/progress";
 import { routeStory } from "./router";
 
 export interface RunOptions {
@@ -53,11 +56,67 @@ interface AgentLimitState {
 /**
  * Build the prompt for an iteration
  */
-async function buildPrompt(promptPath: string): Promise<string> {
+async function buildPrompt(
+  promptPath: string,
+  workingDirectory: string,
+  progressPath: string,
+  story?: { id: string; research?: boolean }
+): Promise<string> {
   if (!existsSync(promptPath)) {
     throw new Error(`Prompt file not found: ${promptPath}`);
   }
-  return await Bun.file(promptPath).text();
+
+  let prompt = await Bun.file(promptPath).text();
+
+  // Load and append constitution if available
+  const constitution = await loadConstitution(workingDirectory);
+  if (constitution) {
+    // Validate constitution
+    const validation = validateConstitution(constitution);
+    if (!validation.valid) {
+      console.warn(chalk.yellow("\n⚠️  Constitution validation warnings:"));
+      for (const error of validation.errors) {
+        console.warn(chalk.dim(`  - ${error}`));
+      }
+    }
+
+    // Append constitution to prompt
+    prompt += `\n\n## Project Constitution\n\n`;
+    prompt += `The following principles and constraints govern this project.\n\n`;
+    prompt += constitution.raw;
+  }
+
+  // Load and append progress patterns if available
+  const progress = await loadProgress(progressPath);
+  if (progress && progress.metadata.patterns.length > 0) {
+    prompt += `\n\n## Learned Patterns from Previous Iterations\n\n`;
+    prompt += `The following patterns were discovered in previous iterations:\n\n`;
+    for (const pattern of progress.metadata.patterns) {
+      prompt += `- ${pattern}\n`;
+    }
+  }
+
+  // Load and append plan.md if available
+  const planPath = join(dirname(progressPath), "plan.md");
+  if (existsSync(planPath)) {
+    const planContent = await Bun.file(planPath).text();
+    prompt += `\n\n## Technical Planning Document\n\n`;
+    prompt += `The following technical plan has been created for this feature:\n\n`;
+    prompt += planContent;
+  }
+
+  // Load and append research findings if available
+  if (story?.id) {
+    const researchPath = join(dirname(progressPath), "research", `${story.id}.md`);
+    if (existsSync(researchPath)) {
+      const researchContent = await Bun.file(researchPath).text();
+      prompt += `\n\n## Research Findings for ${story.id}\n\n`;
+      prompt += `The following research was conducted before implementation:\n\n`;
+      prompt += researchContent;
+    }
+  }
+
+  return prompt;
 }
 
 /**
@@ -155,7 +214,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const limitedAgents = new Map<AgentName, AgentLimitState>();
 
   // Current active agent
-  let currentAgentName: AgentName | null = options.agent === "auto" ? null : options.agent;
+  let _currentAgentName: AgentName | null = options.agent === "auto" ? null : options.agent;
 
   // Load PRD
   if (!existsSync(options.prdPath)) {
@@ -163,6 +222,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
   }
   const prd = await loadPRD(options.prdPath);
   const initialCount = countStories(prd);
+
+  // Calculate progress.txt path
+  const prdDir = dirname(options.prdPath);
+  const progressPath = join(prdDir, "progress.txt");
 
   console.log(chalk.bold.blue("\n🚀 Relentless - Universal AI Agent Orchestrator\n"));
   console.log(`Project: ${chalk.cyan(prd.project)}`);
@@ -210,7 +273,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
         routedName
       );
       if (agent) {
-        currentAgentName = agent.name;
+        _currentAgentName = agent.name;
       }
     } else if (options.config.fallback.enabled) {
       // Use fallback if enabled
@@ -220,12 +283,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
         options.agent
       );
       if (agent) {
-        currentAgentName = agent.name;
+        _currentAgentName = agent.name;
       }
     } else {
       // Use specified agent without fallback
       agent = getAgent(options.agent);
-      currentAgentName = options.agent;
+      _currentAgentName = options.agent;
     }
 
     // Check if we have an available agent
@@ -275,9 +338,65 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
     // Build and run prompt
     try {
-      const prompt = await buildPrompt(options.promptPath);
+      // Check if this story requires research phase
+      const researchDir = join(dirname(options.prdPath), "research");
+      const researchPath = join(researchDir, `${story.id}.md`);
+      const needsResearch = story.research && !existsSync(researchPath);
 
-      console.log(chalk.dim("  Running agent..."));
+      if (needsResearch) {
+        // Phase 1: Research
+        console.log(chalk.cyan("  📚 Research phase - gathering context and patterns..."));
+
+        // Ensure research directory exists
+        if (!existsSync(researchDir)) {
+          mkdirSync(researchDir, { recursive: true });
+        }
+
+        const researchPrompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+        const researchResult = await agent.invoke(researchPrompt, {
+          workingDirectory: options.workingDirectory,
+          dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,
+          model: options.config.agents[agent.name]?.model,
+        });
+
+        // Check for rate limit during research phase
+        const researchRateLimit = agent.detectRateLimit(researchResult.output);
+        if (researchRateLimit.limited) {
+          console.log(chalk.yellow.bold(`\n⚠️ ${agent.displayName} rate limited during research!`));
+          limitedAgents.set(agent.name, {
+            resetTime: researchRateLimit.resetTime,
+            detectedAt: new Date(),
+          });
+          if (options.config.fallback.enabled) {
+            const fallbackAgent = await getNextAvailableAgent(
+              options.config.fallback.priority,
+              limitedAgents
+            );
+            if (fallbackAgent) {
+              console.log(chalk.green(`  Switching to: ${fallbackAgent.displayName}`));
+              _currentAgentName = fallbackAgent.name;
+              await sleep(options.config.fallback.retryDelay);
+              i--;
+              continue;
+            }
+          }
+          console.log(chalk.dim("  No fallback agents available."));
+          continue;
+        }
+
+        console.log(chalk.green("  ✓ Research phase complete"));
+        console.log(chalk.dim(`    Research findings saved to: research/${story.id}.md`));
+
+        // Phase 2: Implementation
+        console.log(chalk.cyan("  🔨 Implementation phase - applying research findings..."));
+      }
+
+      const prompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+
+      if (!needsResearch) {
+        console.log(chalk.dim("  Running agent..."));
+      }
+
       const result = await agent.invoke(prompt, {
         workingDirectory: options.workingDirectory,
         dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,
@@ -308,7 +427,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
           if (fallbackAgent) {
             console.log(chalk.green(`  Switching to: ${fallbackAgent.displayName}`));
-            currentAgentName = fallbackAgent.name;
+            _currentAgentName = fallbackAgent.name;
             // Wait before retry
             await sleep(options.config.fallback.retryDelay);
             i--; // Retry this iteration with new agent
@@ -353,6 +472,21 @@ export async function run(options: RunOptions): Promise<RunResult> {
       }
 
       console.log(chalk.dim(`  Stories: ${updatedCount.completed}/${updatedCount.total} complete`));
+
+      // Update progress metadata after each iteration
+      if (existsSync(progressPath)) {
+        try {
+          // Sync patterns from content
+          await syncPatternsFromContent(progressPath);
+
+          // Update metadata
+          await updateProgressMetadata(progressPath, {
+            stories_completed: updatedCount.completed,
+          });
+        } catch (error) {
+          console.warn(chalk.yellow(`  ⚠️  Failed to update progress metadata: ${error}`));
+        }
+      }
     } catch (error) {
       console.error(chalk.red(`\n❌ Error in iteration ${i}:`), error);
       // Continue to next iteration

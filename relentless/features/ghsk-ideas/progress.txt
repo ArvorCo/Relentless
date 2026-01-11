@@ -1,0 +1,408 @@
+# Progress Log: ghsk-ideas
+Started: 2026-01-11T16:48:00.000Z
+
+## Codebase Patterns
+
+### Binary Installation Pattern
+- Relentless uses package.json "bin" field to register global binary
+- bin/relentless.ts has #!/usr/bin/env bun shebang for direct execution
+- Global install: `bun install -g .` or from GitHub
+- Binary location after global install: checked in user's PATH
+- Alternative usage: bunx github:ArvorCo/Relentless for no-install execution
+
+### Documentation Update Strategy
+- Used systematic grep search to find all shell script references
+- Replaced shell script patterns (.sh, relentless.sh) with binary commands
+- Updated multiple locations: README, CLAUDE.md, scaffolder, skills
+- Ensured consistent command format: `relentless <command> --params`
+
+### Scaffolder Simplification
+- Removed shell script copying logic from scaffolder
+- Removed bin/ directory creation from init process
+- Simplified project structure: only config.json, prompt.md, and features/
+- Updated output messages to reflect binary-first approach
+
+---
+
+## 2026-01-11T19:00:00.000Z - US-000
+
+### What was implemented
+- Converted Relentless from shell script to globally-installable binary
+- Removed bin/relentless.sh completely
+- Made bin/relentless.ts executable (chmod +x)
+- Updated all documentation to use binary commands instead of shell script
+
+### Files changed
+- bin/relentless.sh (deleted)
+- bin/relentless.ts (made executable, already had correct shebang)
+- README.md (replaced all shell script references with binary commands)
+- CLAUDE.md (updated CLI usage patterns)
+- src/init/scaffolder.ts (removed shell script copying logic)
+- skills/relentless/SKILL.md (updated to use binary commands)
+- relentless/bin/relentless.sh (deleted from project's relentless folder)
+- relentless/features/ghsk-ideas/prd.json (set US-000 passes: true)
+
+### Learnings for future iterations:
+- **package.json bin field**: Already correctly configured, pointing to bin/relentless.ts
+- **Bun global install**: Works with `bun install -g .` but PATH verification may vary by system
+- **Binary execution**: Can run with ./bin/relentless.ts, bun run bin/relentless.ts, or globally after install
+- **Grep for cleanup**: Used grep to find all .sh references across codebase for thorough cleanup
+- **Scaffolder simplification**: Removed unnecessary bin/ directory creation, cleaner structure
+- **Documentation consistency**: Important to update ALL docs (README, CLAUDE.md, skills) in one pass
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Shell script removal**: Two files to remove - source bin/relentless.sh and relentless/bin/relentless.sh
+
+---
+## 2026-01-11T20:15:00.000Z - US-001
+
+### What was implemented
+- Extended UserStory schema with dependencies, parallel, and phase fields
+- Implemented validateDependencies() with circular dependency detection using DFS algorithm
+- Updated getNextStory() to respect dependencies and only return stories with completed prerequisites
+- Updated parser to extract Dependencies, Parallel, and Phase fields from PRD markdown
+- Added support for parsing "Dependencies: US-001, US-002" format with comma or semicolon separators
+
+### Files changed
+- src/prd/types.ts (extended schema, added validateDependencies and areDependenciesMet functions)
+- src/prd/parser.ts (added dependency/parallel/phase parsing, updated createPRD mapping)
+- relentless/features/ghsk-ideas/prd.json (set US-001 passes: true)
+
+### Learnings for future iterations:
+- **Zod schema extensions**: Optional fields using .optional() work seamlessly with existing PRDs
+- **Dependency validation**: DFS algorithm is effective for circular dependency detection
+- **Parser pattern matching**: Used regex `/^\*\*Dependencies:?\*\*/i` for flexible markdown parsing
+- **Dependencies filtering**: getNextStory() now validates dependencies first, then filters stories
+- **areDependenciesMet helper**: Checks if all dependencies have passes: true before allowing execution
+- **Parser field extraction**: Dependencies split by comma/semicolon, parallel accepts true/yes values
+- **Backward compatibility**: Existing PRDs without dependencies work correctly (undefined treated as no dependencies)
+- **Type safety**: All changes passed typecheck with 0 errors - Zod schema validation ensures consistency
+
+---
+## 2026-01-11T21:30:00.000Z - US-002
+
+### What was implemented
+- Created comprehensive constitution.md template with clear structure for project governance
+- Extended config loader to read, parse, and validate constitution.md
+- Updated runner to include constitution in agent prompt context
+- Updated scaffolder to copy constitution template during init
+- Implemented MUST/SHOULD principle parsing and validation
+
+### Files changed
+- templates/constitution.md (created with comprehensive governance structure)
+- src/config/loader.ts (added constitution loading, parsing, and validation)
+- src/execution/runner.ts (updated buildPrompt to include constitution)
+- src/init/scaffolder.ts (added constitution template copying, updated output)
+- relentless/features/ghsk-ideas/prd.json (set US-002 passes: true)
+
+### Learnings for future iterations:
+- **Template structure**: Constitution uses MUST/SHOULD format for clear requirement levels
+- **Regex parsing**: Used `/\*\*MUST\*\*\s+(.+)/` and `/\*\*SHOULD\*\*\s+(.+)/` to extract principles
+- **Section tracking**: Parser tracks current section (## or ###) for principle attribution
+- **Validation strategy**: Checks for at least some principles, both MUST and SHOULD present, and no empty text
+- **Runner integration**: Constitution appended to prompt after base template, warns on validation issues
+- **Scaffolder pattern**: Constitution copied from templates/ to relentless/ during init
+- **relentlessRoot**: Defined as `import.meta.dir.replace("/src/init", "")` for template access
+- **Optional loading**: Constitution is optional - if not present, agents continue without it
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+
+---
+
+---
+## 2026-01-11T22:00:00.000Z - US-003
+
+### What was implemented
+- Created progress.ts module with YAML frontmatter parsing and serialization
+- Implemented parseProgress() to handle both legacy and YAML frontmatter formats
+- Implemented serializeProgress() to write progress files with YAML frontmatter
+- Added loadProgress(), updateProgressMetadata(), and appendProgress() helper functions
+- Implemented extractPatterns() to parse learnings from progress content
+- Implemented syncPatternsFromContent() to update frontmatter patterns from content
+- Updated scaffolder to create progress.txt with YAML frontmatter structure
+- Updated Runner.ts to load progress metadata and include patterns in prompt context
+- Updated Runner.ts to update frontmatter after each iteration (last_updated, stories_completed)
+- Added js-yaml dependency for YAML parsing
+
+### Files changed
+- package.json (added js-yaml and @types/js-yaml dependencies)
+- src/prd/progress.ts (created new module with all progress metadata functions)
+- src/prd/index.ts (exported progress functions)
+- src/init/scaffolder.ts (updated createProgressTemplate to include YAML frontmatter)
+- src/execution/runner.ts (added progress loading, pattern inclusion, metadata updates)
+- relentless/features/ghsk-ideas/prd.json (set US-003 passes: true)
+
+### Learnings for future iterations:
+- **YAML frontmatter structure**: Uses --- delimiters at start and end of frontmatter block
+- **js-yaml library**: Simple API with yaml.load() and yaml.dump() for parsing and serialization
+- **Backward compatibility**: parseProgress() handles legacy format without frontmatter gracefully
+- **Pattern extraction**: Used regex to find "Learnings for future iterations:" sections and extract patterns
+- **Pattern format**: Patterns formatted as **Key**: Description for easy identification
+- **Runner integration**: Progress loaded in buildPrompt() to include patterns in agent context
+- **Metadata updates**: After each iteration, sync patterns from content, then update metadata
+- **Path calculation**: progressPath = join(dirname(prdPath), "progress.txt") for consistency
+- **Error handling**: Progress metadata updates wrapped in try-catch to avoid breaking orchestration
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Frontmatter fields**: feature, started, last_updated, stories_completed, patterns array
+
+---
+## 2026-01-11T23:30:00.000Z - US-004
+
+### What was implemented
+- Created comprehensive plan.md template in templates/ directory with all technical planning sections
+- Extended scaffolder to support optional withPlan parameter in createFeature()
+- Updated runner to load and append plan.md to prompt context when present in feature directory
+- Plan.md template includes: Feature Overview, Technical Approach, Implementation Details, Integration Points, Testing Strategy, Security, Rollout, Monitoring, Open Questions, Alternatives, Dependencies/Risks, Success Criteria
+
+### Files changed
+- templates/plan.md (created with comprehensive technical planning structure)
+- src/init/scaffolder.ts (added CreateFeatureOptions interface, updated createFeature signature, added plan.md copying logic)
+- src/execution/runner.ts (added plan.md loading and appending to prompt in buildPrompt function)
+- relentless/features/ghsk-ideas/prd.json (set US-004 passes: true)
+
+### Learnings for future iterations:
+- **Template structure**: Plan.md follows comprehensive technical design document pattern with 15+ sections
+- **Optional feature integration**: Used options parameter pattern for backward compatibility
+- **Path calculation**: planPath = join(dirname(progressPath), "plan.md") mirrors existing pattern
+- **Prompt appending**: Plan content appended after patterns, before agent starts work
+- **Template sections**: Includes problem statement, architecture, tech stack, data models, API design, file structure, integration points, testing, security, rollout, monitoring, open questions, alternatives, risks, and success criteria
+- **Conditional loading**: Plan only included in prompt if file exists in feature directory
+- **Scaffolder pattern**: Copy from templates/ to feature directory when withPlan: true
+- **relentlessRoot constant**: Already defined for template access, reused for plan.md
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Interface export**: CreateFeatureOptions exported for external usage
+
+---
+## 2026-01-11T23:45:00.000Z - US-005
+
+### What was implemented
+- Created comprehensive quality checklist generator skill in skills/checklist/SKILL.md
+- Skill analyzes PRD to infer appropriate domain (database, frontend, full-stack, etc.)
+- Generates 20-40 checklist items across 5-7 domain-specific categories
+- Ensures 80% of items reference PRD sections or mark gaps/ambiguities
+- Provides detailed examples for database, frontend, and full-stack features
+- Multi-agent support: works with Claude Code, Amp, Gemini, Codex, Droid
+
+### Files changed
+- skills/checklist/SKILL.md (created comprehensive skill documentation)
+- relentless/features/ghsk-ideas/prd.json (set US-005 passes: true)
+
+### Learnings for future iterations:
+- **Skill structure pattern**: skills/[name]/SKILL.md with frontmatter (name, description, triggers)
+- **Domain inference approach**: Analyze user stories to determine primary/secondary domains
+- **Checklist categories**: 5-7 categories tailored to domain (Schema, Backend, Frontend, Integration, Testing, Security, Performance)
+- **Item distribution**: 60% referenced items, 20% gaps/ambiguities, 20% best practices
+- **Reference format**: [US-XXX], [FR-X], [Gap], [Ambiguity], [Edge Case], [Security]
+- **Multi-agent compatibility**: Skills should work across agents by using standard capabilities (file read, text analysis, file write)
+- **Example-driven documentation**: Comprehensive examples help agents understand expected output
+- **Coverage tracking**: Include summary section with item counts and coverage percentage
+- **Gap identification**: Common patterns - error handling, loading states, edge cases, security, performance, accessibility
+- **Category selection guide**: Detailed guidance for database, frontend, and full-stack features
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+
+---
+## 2026-01-11T17:20:00.000Z - US-006
+
+### What was implemented
+- Created comprehensive analyzer module in src/prd/analyzer.ts
+- Implemented analyzeConsistency() function with 5 consistency categories
+- Added analyze command to bin/relentless.ts CLI
+- Exported analyzer functions from src/prd/index.ts
+- Analyzer checks: Schema Validation, Dependency Consistency, File Existence, Story Completeness, Progress Log Sync
+- Implemented formatReport() for beautiful console output with severity icons and coverage bars
+
+### Files changed
+- src/prd/analyzer.ts (created new module with consistency analysis logic)
+- src/prd/index.ts (exported analyzer functions)
+- bin/relentless.ts (added analyze command with --feature and --dir options)
+- relentless/features/ghsk-ideas/prd.json (set US-006 passes: true)
+
+### Learnings for future iterations:
+- **Consistency categories**: 5 categories cover most common issues - schema, dependencies, files, completeness, sync
+- **Severity levels**: critical, warning, info provide clear prioritization of issues
+- **ConsistencyIssue interface**: category, severity, message, recommendation, storyId fields cover all use cases
+- **AnalysisReport structure**: feature, timestamp, issues array, summary stats, coverage by phase
+- **Schema validation**: Check for missing required fields (project, branchName, description) and story fields (id, title, acceptanceCriteria)
+- **Dependency checking**: Detect invalid dependencies, circular dependencies using DFS, and completion inconsistencies
+- **File existence checks**: prd.md, progress.txt, plan.md, constitution.md with appropriate severity levels
+- **Story completeness**: Check for duplicate IDs, minimal acceptance criteria, notes on incomplete stories
+- **Progress log sync**: Verify completed stories are mentioned in progress.txt
+- **Coverage calculation**: Group by phase if available, otherwise show overall coverage with percentage
+- **Report formatting**: Box-drawing characters, severity icons (🔴🟡🔵), progress bars with █ and ░
+- **Exit codes**: Exit with error (1) if critical issues, warning message for warnings, success (0) if clean
+- **Graceful handling**: Handle missing files without crashing, provide helpful recommendations
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **CLI pattern**: Consistent with other commands - requiredOption for --feature, optional --dir
+
+---
+## 2026-01-11T17:30:00.000Z - US-007
+
+### What was implemented
+- Created comprehensive Interactive Clarification Skill in skills/clarify/SKILL.md
+- Skill supports scanning PRD across 9 ambiguity categories
+- Generates max 5 highly targeted questions with multiple-choice options
+- Includes [NEEDS CLARIFICATION] marker system (max 3 per spec)
+- Provides clarification-log.md format for tracking questions and answers
+- Supports PRD in-place updates after clarification
+- Multi-agent support: Claude Code, Amp, Gemini, Codex, Droid
+
+### Files changed
+- skills/clarify/SKILL.md (created comprehensive skill documentation)
+- relentless/features/ghsk-ideas/prd.json (set US-007 passes: true)
+
+### Learnings for future iterations:
+- **9 ambiguity categories**: Behavioral, Data, UI/UX, Integration, Permission/Security, Performance/Scale, Error Handling, State Management, Edge Case
+- **Question format pattern**: Context → Question → Options (A/B/C/D) → Impact → Recommendation
+- **Marker system**: [NEEDS CLARIFICATION: {category}] placed inline, max 3 per spec to avoid clutter
+- **Interactive workflow**: Round 1 (analysis + questions) → Round 2+ (update PRD based on answers)
+- **Clarification log structure**: Rounds with questions, answers, actions taken, summary with stats
+- **PRD update strategy**: Update acceptance criteria, functional requirements, add new sections as needed
+- **Question prioritization**: Focus on blocking, user-facing, architectural, security-critical items
+- **Ambiguity detection heuristics**: Look for vague terms like "appropriately", "properly", "user-friendly"
+- **Multi-round clarification**: Max 3 rounds - foundational → integration/edge cases → polish/performance
+- **Multi-agent compatibility**: Skills should work across agents by using standard capabilities
+- **Stopping conditions**: All critical ambiguities resolved, user satisfaction, or 3 rounds completed
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+
+---
+## 2026-01-11T17:45:00.000Z - US-008
+
+### What was implemented
+- Created comprehensive Dependency-Ordered Task Breakdown Skill in skills/tasks/SKILL.md
+- Skill generates phase structure: Setup → Foundation → Stories → Polish
+- Tasks formatted with IDs (T001+), phase markers, story labels [US-X]
+- Parallel tasks marked with [P] for tasks that can run concurrently
+- Ensures each story is independently testable with explicit verification tasks
+- Provides detailed examples for simple linear features and complex parallel features
+- Multi-agent support: Claude Code, Amp, Gemini, Codex, Droid
+
+### Files changed
+- skills/tasks/SKILL.md (created comprehensive skill documentation)
+- relentless/features/ghsk-ideas/prd.json (set US-008 passes: true)
+
+### Learnings for future iterations:
+- **4-phase structure**: Setup (dependencies) → Foundation (infrastructure) → Stories (features) → Polish (refinements)
+- **Task ID format**: T001, T002, T003... (3-digit zero-padded for clear ordering)
+- **Task format pattern**: `- [ ] **T[NNN]** [Phase X] [Story Label] Description [Parallel Marker]`
+- **Phase 0 (Setup)**: Project structure, dependencies, config - required by all other phases
+- **Phase 1 (Foundation)**: Core infrastructure, schemas, base utilities - referenced by multiple stories
+- **Phase 2 (Stories)**: User-facing features from PRD - maps 1:1 or 1:N to user stories
+- **Phase 3 (Polish)**: Refinements, optimizations, documentation - enhances existing functionality
+- **Parallel markers [P]**: Used when tasks touch different files, have no shared dependencies, can be verified independently
+- **Independent testability**: Each story includes explicit test/verification tasks (typecheck, lint)
+- **Dependency ordering**: Within phases, tasks sequential by default unless marked [P]; across phases, strict order
+- **Task granularity**: Right-sized tasks should take 15-60 minutes each
+- **Circular dependency detection**: Skill includes guidance for detecting and resolving circular dependencies
+- **Research task pattern**: Stories with research flag get two-phase breakdown (research → implementation)
+- **Template structure**: Comprehensive template with overview, phase sections, summary statistics
+- **Examples provided**: Simple linear feature and complex parallel feature examples for clarity
+- **Quality checklist**: 13-point verification checklist before saving tasks.md
+- **Multi-agent compatibility**: Works across agents using standard capabilities (file read, text analysis, file write)
+- **Common pitfalls**: Documented avoid/do patterns for task size, dependencies, testing, grouping
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+
+---
+## 2026-01-11T20:00:00.000Z - US-009
+
+### What was implemented
+- Extended UserStory schema with optional research field
+- Implemented two-phase execution in Runner for stories with research: true flag
+- Created research directory creation and management in runner
+- Added research findings loading in buildPrompt() for second phase
+- Updated prompt template with clear research phase instructions
+- Added research field parsing support in PRD markdown parser
+
+### Files changed
+- src/prd/types.ts (added research: z.boolean().optional() to UserStorySchema)
+- src/execution/runner.ts (added two-phase execution logic, research directory creation, research findings loading)
+- src/prd/parser.ts (added research field parsing and mapping in createPRD)
+- relentless/prompt.md (added Research Phase and Implementation Phase sections)
+- relentless/features/ghsk-ideas/prd.json (set US-009 passes: true)
+
+### Learnings for future iterations:
+- **Two-phase execution pattern**: Check for research flag and research file existence to determine phase
+- **Research directory structure**: research/<story-id>.md within feature directory
+- **Phase detection**: needsResearch = story.research && !existsSync(researchPath)
+- **Research phase workflow**: Phase 1 explores and documents, Phase 2 implements using findings
+- **Prompt building signature**: Extended buildPrompt() with optional story parameter for context-aware loading
+- **Research findings integration**: Loaded automatically in buildPrompt if research file exists
+- **Parser pattern**: Added Research: true/yes parsing similar to Parallel flag parsing
+- **Schema extension**: Optional boolean field using .optional() maintains backward compatibility
+- **Directory creation**: Use mkdirSync with { recursive: true } for nested directory creation
+- **Rate limit handling**: Research phase includes rate limit detection and fallback logic
+- **Visual feedback**: Different console messages for research vs implementation phases
+- **Iteration continuation**: Research phase can trigger agent fallback and iteration retry
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Import additions**: Added mkdirSync from node:fs for directory creation
+
+---
+## 2026-01-11T17:35:00.000Z - US-010
+
+### What was implemented
+- Extended CreateFeatureOptions interface with autoNumber field
+- Implemented getNextFeatureNumber() helper to find highest existing number
+- Updated createFeature() to generate numbered directory names (001-feature-name)
+- Updated generateBranchName() to prepend number prefix from feature name to branch name
+- Extended createPRD() to accept optional featureName parameter
+- Added --auto-number flag to features create CLI command
+- Added --auto-number flag to convert CLI command
+- Updated CLI commands to extract and use final feature name in output
+
+### Files changed
+- src/init/scaffolder.ts (added autoNumber option, getNextFeatureNumber helper, numbered directory creation)
+- src/prd/parser.ts (updated generateBranchName and createPRD to support number prefix)
+- bin/relentless.ts (added --auto-number flags to features create and convert commands)
+- relentless/features/ghsk-ideas/prd.json (set US-010 passes: true)
+
+### Learnings for future iterations:
+- **Auto-numbering pattern**: Extract number from existing features with regex /^(\d{3})-/
+- **Number formatting**: Use .padStart(3, "0") for consistent 3-digit zero-padded numbers
+- **Next number calculation**: Find max of existing numbers and add 1, default to 1 if none exist
+- **Feature name handling**: Auto-number creates final name (001-feature) then uses it everywhere
+- **Branch name integration**: Extract number prefix from feature name and prepend to kebab-case project name
+- **Optional parameter pattern**: featureName parameter in createPRD and generateBranchName allows number-aware branch generation
+- **CLI flag pattern**: --auto-number boolean flag on both create and convert commands
+- **Backward compatibility**: Non-numbered features still work - regex match returns null for non-numbered names
+- **listFeatures compatibility**: No changes needed - function returns directory names as-is
+- **Number extraction logic**: Shared pattern in convert command and getNextFeatureNumber helper
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Feature name extraction**: Use .split("/").pop() to get final directory name from full path
+
+---
+## 2026-01-11T21:00:00.000Z - US-011
+
+### What was implemented
+- Created comprehensive GitHub Issues Generator module in src/prd/issues.ts
+- Implemented validateGitRemote() to ensure safety before creating issues
+- Implemented inferLabels() to automatically tag issues with type, priority, phase, research labels
+- Implemented formatIssueBody() to create well-formatted issue bodies with description, acceptance criteria, dependencies, phase, parallel, research indicators, and notes
+- Implemented createIssue() to create GitHub issues via gh CLI
+- Added checkGhCLI() to validate gh CLI is installed
+- Implemented generateGitHubIssues() main orchestration function with dry-run and filtering options
+- Added issues command to bin/relentless.ts CLI with --all and --dry-run flags
+- Exported issues module from src/prd/index.ts
+
+### Files changed
+- src/prd/issues.ts (created new module with GitHub issues generation logic)
+- src/prd/index.ts (exported issues module)
+- bin/relentless.ts (added issues command with comprehensive options)
+- relentless/features/ghsk-ideas/prd.json (set US-011 passes: true)
+
+### Learnings for future iterations:
+- **Git remote validation**: Parse both SSH (git@github.com:owner/repo) and HTTPS (https://github.com/owner/repo) formats
+- **Regex patterns for remotes**: Use capturing groups to extract owner and repo from various URL formats
+- **Label inference strategy**: Combine story type (database, ui, api, test, refactor, docs, general), priority (high/medium/low), phase, and research markers
+- **Priority label mapping**: Priority 1-3 = high, 4-6 = medium, 7+ = low
+- **Issue body formatting**: Use markdown with ## headers, checkboxes for acceptance criteria, dependency lists, and warning indicators
+- **gh CLI integration**: Use gh issue create --title --body --label for issue creation
+- **Process handling in Bun**: Use Bun.spawn() with stdout/stderr readers and exitCode checking
+- **Dry-run pattern**: Preview operations without side effects, helpful for validation
+- **onlyIncomplete filter**: Default to only creating issues for incomplete stories, --all flag for all stories
+- **Error accumulation**: Collect errors during batch operations, continue on individual failures
+- **Safety checks**: Validate gh CLI installation and git remote before any destructive operations
+- **Issue URL extraction**: gh CLI returns the created issue URL in stdout
+- **Dependency mapping**: Include dependencies in issue body for manual linking (gh CLI doesn't support automated relationships)
+- **Research indicator**: Add ⚠️ warning emoji for stories requiring research phase
+- **Parallel indicator**: Document stories that can run in parallel for better planning
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **CLI option pattern**: --dry-run for preview, --all for including completed stories, --feature required
+
+---

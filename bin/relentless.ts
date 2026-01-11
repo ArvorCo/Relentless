@@ -11,8 +11,9 @@ import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 
 import { checkAgentHealth, getAllAgentNames, isValidAgentName } from "../src/agents";
+import type { AgentName } from "../src/agents/types";
 import { loadConfig, findRelentlessDir } from "../src/config";
-import { loadPRD, savePRD, parsePRDMarkdown, createPRD } from "../src/prd";
+import { loadPRD, savePRD, parsePRDMarkdown, createPRD, analyzeConsistency, formatReport, generateGitHubIssues } from "../src/prd";
 import { run } from "../src/execution/runner";
 import { runTUI } from "../src/tui/TUIRunner";
 import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
@@ -84,7 +85,7 @@ program
     // Use TUI if requested
     if (options.tui) {
       const success = await runTUI({
-        agent: agent as any,
+        agent: agent as AgentName | "auto",
         maxIterations: parseInt(options.maxIterations, 10),
         workingDirectory: options.dir,
         prdPath,
@@ -98,7 +99,7 @@ program
 
     // Standard runner
     const result = await run({
-      agent: agent as any,
+      agent: agent as AgentName | "auto",
       maxIterations: parseInt(options.maxIterations, 10),
       workingDirectory: options.dir,
       prdPath,
@@ -127,6 +128,7 @@ program
   .description("Convert PRD markdown to prd.json in a feature folder")
   .requiredOption("-f, --feature <name>", "Feature name")
   .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("--auto-number", "Auto-number the feature directory (e.g., 001-feature-name)", false)
   .action(async (prdMd, options) => {
     if (!existsSync(prdMd)) {
       console.error(chalk.red(`File not found: ${prdMd}`));
@@ -139,22 +141,37 @@ program
       process.exit(1);
     }
 
+    // Determine final feature name (with auto-number if requested)
+    let finalFeatureName = options.feature;
+    if (options.autoNumber) {
+      const features = listFeatures(options.dir);
+      const numbers = features
+        .map((f) => {
+          const match = f.match(/^(\d{3})-/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter((n) => n > 0);
+      const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+      const numberPrefix = nextNumber.toString().padStart(3, "0");
+      finalFeatureName = `${numberPrefix}-${options.feature}`;
+    }
+
     // Create feature directory if it doesn't exist
-    const featureDir = join(relentlessDir, "features", options.feature);
+    const featureDir = join(relentlessDir, "features", finalFeatureName);
     if (!existsSync(featureDir)) {
       mkdirSync(featureDir, { recursive: true });
-      console.log(chalk.dim(`Created feature: ${options.feature}`));
+      console.log(chalk.dim(`Created feature: ${finalFeatureName}`));
 
       // Create progress.txt
       const progressPath = join(featureDir, "progress.txt");
-      await Bun.write(progressPath, createProgressTemplate(options.feature));
+      await Bun.write(progressPath, createProgressTemplate(finalFeatureName));
     }
 
     console.log(chalk.dim(`Converting ${prdMd}...`));
 
     const content = await Bun.file(prdMd).text();
     const parsed = parsePRDMarkdown(content);
-    const prd = createPRD(parsed);
+    const prd = createPRD(parsed, finalFeatureName);
 
     // Save prd.json to feature folder
     const prdJsonPath = join(featureDir, "prd.json");
@@ -164,7 +181,7 @@ program
     const prdMdPath = join(featureDir, "prd.md");
     await Bun.write(prdMdPath, content);
 
-    console.log(chalk.green(`✅ Created relentless/features/${options.feature}/`));
+    console.log(chalk.green(`✅ Created relentless/features/${finalFeatureName}/`));
     console.log(chalk.dim(`  prd.json - ${prd.userStories.length} stories`));
     console.log(chalk.dim(`  prd.md - source PRD`));
     console.log(chalk.dim(`  progress.txt - progress log`));
@@ -179,7 +196,7 @@ features
   .command("list")
   .description("List all features")
   .option("-d, --dir <path>", "Project directory", process.cwd())
-  .action((options) => {
+  .action(async (options) => {
     const featureList = listFeatures(options.dir);
 
     if (featureList.length === 0) {
@@ -196,9 +213,9 @@ features
 
       if (existsSync(prdPath)) {
         try {
-          const content = require(prdPath);
-          const completed = content.userStories?.filter((s: any) => s.passes).length ?? 0;
-          const total = content.userStories?.length ?? 0;
+          const prdFile = await Bun.file(prdPath).json();
+          const completed = prdFile.userStories?.filter((s: { passes?: boolean }) => s.passes).length ?? 0;
+          const total = prdFile.userStories?.length ?? 0;
           console.log(`  ${feature} - ${completed}/${total} stories complete`);
         } catch {
           console.log(`  ${feature}`);
@@ -214,12 +231,18 @@ features
   .command("create <name>")
   .description("Create a new feature folder")
   .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("--with-plan", "Include plan.md template", false)
+  .option("--auto-number", "Auto-number the feature directory (e.g., 001-feature-name)", false)
   .action(async (name, options) => {
     try {
-      const featureDir = await createFeature(options.dir, name);
-      console.log(chalk.green(`✅ Created feature: ${name}`));
+      const featureDir = await createFeature(options.dir, name, {
+        withPlan: options.withPlan,
+        autoNumber: options.autoNumber,
+      });
+      const featureName = featureDir.split("/").pop() || name;
+      console.log(chalk.green(`✅ Created feature: ${featureName}`));
       console.log(chalk.dim(`  ${featureDir}/`));
-      console.log(chalk.dim("\nNext: Add prd.md and run: relentless convert prd.md --feature " + name));
+      console.log(chalk.dim("\nNext: Add prd.md and run: relentless convert prd.md --feature " + featureName));
     } catch (error) {
       console.error(chalk.red((error as Error).message));
       process.exit(1);
@@ -382,13 +405,108 @@ agents
     }
   });
 
+// Analyze command
+program
+  .command("analyze")
+  .description("Analyze cross-artifact consistency for a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (options) => {
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    const prdPath = join(featureDir, "prd.json");
+
+    if (!existsSync(prdPath)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found or has no prd.json`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    const prd = await loadPRD(prdPath);
+    const report = await analyzeConsistency(prdPath, prd);
+
+    const formatted = formatReport(report);
+    console.log(formatted);
+
+    // Exit with error code if there are critical issues
+    if (report.summary.critical > 0) {
+      console.log(chalk.red("\n❌ Critical issues found. Please address them before proceeding.\n"));
+      process.exit(1);
+    } else if (report.summary.warnings > 0) {
+      console.log(chalk.yellow("\n⚠️  Warnings found. Consider addressing them.\n"));
+    } else {
+      console.log(chalk.green("\n✅ No critical issues or warnings found!\n"));
+    }
+  });
+
+// Issues command
+program
+  .command("issues")
+  .description("Convert user stories to GitHub issues")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("--all", "Include completed stories (default: only incomplete)", false)
+  .option("--dry-run", "Show what would be created without actually creating issues", false)
+  .action(async (options) => {
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    const prdPath = join(featureDir, "prd.json");
+
+    if (!existsSync(prdPath)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found or has no prd.json`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    const prd = await loadPRD(prdPath);
+
+    console.log(chalk.bold(`\n📋 GitHub Issues Generator\n`));
+    console.log(chalk.dim(`Feature: ${options.feature}`));
+    console.log(chalk.dim(`Project: ${prd.project}\n`));
+
+    try {
+      const result = await generateGitHubIssues(prd, {
+        dryRun: options.dryRun,
+        onlyIncomplete: !options.all,
+      });
+
+      console.log("");
+      if (options.dryRun) {
+        console.log(chalk.yellow(`Would create ${result.created} issues`));
+      } else {
+        console.log(chalk.green(`✅ Created ${result.created} issues`));
+      }
+
+      if (result.errors.length > 0) {
+        console.log(chalk.red(`\n❌ ${result.errors.length} errors occurred:`));
+        for (const error of result.errors) {
+          console.log(chalk.dim(`  ${error}`));
+        }
+        process.exit(1);
+      }
+    } catch (error) {
+      console.error(chalk.red(`\n❌ ${(error as Error).message}\n`));
+      process.exit(1);
+    }
+  });
+
 // PRD command (for agents without skill support)
 program
   .command("prd <description>")
   .description("Generate a PRD using prompting (for agents without skill support)")
   .option("-a, --agent <name>", "Agent to use", "claude")
   .option("-f, --feature <name>", "Feature name")
-  .action(async (description, options) => {
+  .action(async (description, _options) => {
     console.log(chalk.bold("\n📝 PRD Generation\n"));
     console.log(chalk.dim("For agents with skill support, use:"));
     console.log(chalk.cyan('  claude "Load the prd skill and create a PRD for ' + description + '"\n'));

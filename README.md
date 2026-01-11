@@ -16,21 +16,24 @@
 ## Quick Start
 
 ```bash
-# 1. Initialize Relentless in your project
+# 1. Install Relentless globally
+bun install -g github:ArvorCo/Relentless
+
+# 2. Initialize in your project
 cd your-project
-bun run github:ArvorCo/Relentless/bin/relentless.ts init
+relentless init
 
-# 2. Create a feature
-bun run github:ArvorCo/Relentless/bin/relentless.ts features create my-feature
+# 3. Create a feature
+relentless features create my-feature
 
-# 3. Create PRD using Claude Code skill (recommended)
+# 4. Create PRD using Claude Code skill (recommended)
 claude "Load the prd skill and create a PRD for [describe your feature]"
 
-# 4. Convert PRD to JSON
-./relentless/bin/relentless.sh --convert relentless/features/my-feature/prd.md --feature my-feature
+# 5. Convert PRD to JSON
+relentless convert relentless/features/my-feature/prd.md --feature my-feature
 
-# 5. Run Relentless (with beautiful TUI)
-./relentless/bin/relentless.sh --feature my-feature --tui
+# 6. Run Relentless (with beautiful TUI)
+relentless run --feature my-feature --tui
 ```
 
 **Alternative: Create PRD manually**
@@ -71,6 +74,12 @@ Evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/).
 - **Intelligent Agent Fallback** - Automatically switches agents when rate limits are hit
 - **Rate Limit Detection** - Detects limits for Claude, Codex, Amp, OpenCode, Gemini, and Droid
 - **Auto-Recovery** - Switches back to preferred agent when limits reset
+- **Cross-Artifact Analysis** - Consistency checks across PRD, JSON, and progress files
+- **GitHub Issues Generation** - Convert user stories directly to GitHub issues via `gh` CLI
+- **Research Phase Support** - Stories can require research before implementation
+- **Auto-Numbered Branches** - Automatic feature numbering (001-feature, 002-feature, etc.)
+- **Dependency-Ordered Tasks** - Stories with dependencies are executed in correct order
+- **Progress Tracking** - YAML frontmatter metadata in progress.txt for machine-readable context
 
 ---
 
@@ -94,10 +103,19 @@ cd Relentless
 bun install
 ```
 
-### Option 2: Run Directly from GitHub
+### Option 2: Install Globally
 
 ```bash
-bun run github:ArvorCo/Relentless/bin/relentless.ts init
+bun install -g github:ArvorCo/Relentless
+
+# Or install from npm when published
+bun install -g relentless
+```
+
+### Option 3: Run with bunx (No Installation)
+
+```bash
+bunx github:ArvorCo/Relentless init
 ```
 
 ---
@@ -108,15 +126,13 @@ bun run github:ArvorCo/Relentless/bin/relentless.ts init
 
 ```bash
 cd your-project
-bun run /path/to/Relentless/bin/relentless.ts init
+relentless init
 ```
 
 This creates:
 ```
 your-project/
 ├── relentless/
-│   ├── bin/
-│   │   └── relentless.sh      # Orchestrator script
 │   ├── config.json            # Configuration
 │   ├── prompt.md              # Agent prompt template
 │   └── features/              # Feature folders
@@ -129,7 +145,7 @@ your-project/
 ### Step 2: Create a Feature
 
 ```bash
-bun run /path/to/Relentless/bin/relentless.ts features create my-feature
+relentless features create my-feature
 ```
 
 This creates:
@@ -175,7 +191,7 @@ claude "Load the prd skill and create a PRD for adding user authentication"
 ### Step 4: Convert PRD to JSON
 
 ```bash
-bun run /path/to/Relentless/bin/relentless.ts convert relentless/features/my-feature/prd.md --feature my-feature
+relentless convert relentless/features/my-feature/prd.md --feature my-feature
 ```
 
 This generates `relentless/features/my-feature/prd.json`:
@@ -196,28 +212,25 @@ This generates `relentless/features/my-feature/prd.json`:
 ### Step 5: Run the Orchestrator
 
 ```bash
-./relentless/bin/relentless.sh --feature my-feature
+relentless run --feature my-feature
 ```
 
 **Options:**
 ```bash
 # Run with beautiful terminal UI
-./relentless/bin/relentless.sh --feature my-feature --tui
-
-# Convert PRD markdown to JSON
-./relentless/bin/relentless.sh --convert prd.md --feature my-feature
+relentless run --feature my-feature --tui
 
 # Specify agent (default: claude)
-./relentless/bin/relentless.sh --feature my-feature --agent amp
+relentless run --feature my-feature --agent amp
 
 # Set max iterations (default: 20)
-./relentless/bin/relentless.sh --feature my-feature --max-iterations 30
+relentless run --feature my-feature --max-iterations 30
 
 # Show status of all stories
-./relentless/bin/relentless.sh --status --feature my-feature
+relentless status --feature my-feature
 
 # Reset a story to re-run it
-./relentless/bin/relentless.sh --reset US-005 --feature my-feature
+relentless reset US-005 --feature my-feature
 
 # Available agents: claude, amp, opencode, codex, droid, gemini, auto
 ```
@@ -239,8 +252,6 @@ After initialization, your project will have:
 ```
 your-project/
 ├── relentless/
-│   ├── bin/
-│   │   └── relentless.sh          # Main orchestrator script
 │   ├── config.json                # Relentless configuration
 │   ├── prompt.md                  # Prompt template for agents
 │   └── features/
@@ -269,13 +280,13 @@ your-project/
 ### Check Which Agents Are Installed
 
 ```bash
-bun run /path/to/Relentless/bin/relentless.ts agents list
+relentless agents list
 ```
 
 ### Verify Agent Health
 
 ```bash
-bun run /path/to/Relentless/bin/relentless.ts agents doctor
+relentless agents doctor
 ```
 
 ---
@@ -286,14 +297,16 @@ bun run /path/to/Relentless/bin/relentless.ts agents doctor
 # Initialize Relentless in current project
 relentless init
 
-# Create a new feature
+# Create a new feature (with optional auto-numbering)
 relentless features create <name>
+relentless features create <name> --auto-number  # Creates 001-<name>, 002-<name>, etc.
 
 # List all features
 relentless features list
 
 # Convert PRD markdown to JSON
 relentless convert <prd.md> --feature <name>
+relentless convert <prd.md> --feature <name> --auto-number  # Auto-number the feature
 
 # Run orchestration for a feature
 relentless run --feature <name> [--agent <name>] [--max-iterations <n>] [--tui]
@@ -304,6 +317,12 @@ relentless status --feature <name>
 # Reset a story to incomplete (to re-run it)
 relentless reset <story-id> --feature <name>
 
+# Analyze cross-artifact consistency (PRD, JSON, progress)
+relentless analyze --feature <name>
+
+# Generate GitHub issues from user stories
+relentless issues --feature <name> [--dry-run] [--all]
+
 # List installed agents
 relentless agents list
 
@@ -311,24 +330,78 @@ relentless agents list
 relentless agents doctor
 ```
 
-### Shell Script Commands
+### Alternative: Run with bunx (No Installation)
 
 ```bash
-# Convert PRD to JSON
-./relentless/bin/relentless.sh --convert <prd.md> --feature <name>
+# Initialize
+bunx github:ArvorCo/Relentless init
 
-# Run with beautiful TUI
-./relentless/bin/relentless.sh --feature <name> --tui
+# Run orchestration
+bunx github:ArvorCo/Relentless run --feature <name>
 
-# Run with standard output
-./relentless/bin/relentless.sh --feature <name>
-
-# Show status
-./relentless/bin/relentless.sh --status --feature <name>
-
-# Reset a story
-./relentless/bin/relentless.sh --reset <story-id> --feature <name>
+# Check status
+bunx github:ArvorCo/Relentless status --feature <name>
 ```
+
+---
+
+## Quality Assurance Commands
+
+### Analyze Cross-Artifact Consistency
+
+Check for issues across your PRD, JSON, and progress files:
+
+```bash
+relentless analyze --feature my-feature
+```
+
+This checks for:
+- **Schema Validation** - Missing required fields, invalid story IDs
+- **Dependency Consistency** - Circular dependencies, missing dependencies
+- **File Existence** - Missing prd.md, progress.txt, constitution.md
+- **Story Completeness** - Stories with few acceptance criteria
+- **Progress Log Sync** - Completed stories not mentioned in progress.txt
+
+Example output:
+```
+╔═══════════════════════════════════════════════════════╗
+║  Cross-Artifact Consistency Analysis                 ║
+╚═══════════════════════════════════════════════════════╝
+
+Feature: my-feature
+Summary:
+  Stories: 10/12 completed (2 pending)
+  Issues: 3 total
+    Critical: 0
+    Warnings: 2
+    Info: 1
+```
+
+### Generate GitHub Issues
+
+Convert user stories directly to GitHub issues:
+
+```bash
+# Preview what would be created (dry run)
+relentless issues --feature my-feature --dry-run
+
+# Create issues for incomplete stories only
+relentless issues --feature my-feature
+
+# Create issues for all stories (including completed)
+relentless issues --feature my-feature --all
+```
+
+**Requirements:**
+- [GitHub CLI (gh)](https://cli.github.com/) must be installed and authenticated
+- Git remote must be a GitHub repository
+
+Each issue includes:
+- Story title and description
+- Acceptance criteria as checkboxes
+- Labels based on story type (database, ui, api, etc.)
+- Priority labels (high, medium, low)
+- Dependencies listed
 
 ---
 
@@ -393,6 +466,41 @@ Make criteria **verifiable**, not vague:
 
 - `Typecheck passes` in every story
 - `Verify in browser` for UI stories
+
+### Story Dependencies
+
+Stories can depend on other stories. Relentless ensures dependencies are completed first:
+
+```markdown
+### US-002: Add User Profile Page
+**Dependencies:** US-001
+**Description:** ...
+```
+
+In `prd.json`:
+```json
+{
+  "id": "US-002",
+  "title": "Add User Profile Page",
+  "dependencies": ["US-001"],
+  "passes": false
+}
+```
+
+### Research Phase
+
+For complex stories that require exploration before implementation, mark them for research:
+
+```markdown
+### US-005: Integrate Payment Provider
+**Research Required:** true
+**Description:** Research best payment provider options before implementing.
+```
+
+When `research: true`, Relentless will:
+1. Run a research phase first to gather context
+2. Save findings to `research/US-005.md`
+3. Then run the implementation phase with research context
 
 ---
 

@@ -90,6 +90,9 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
         priority: storyCount,
         passes: false,
         notes: "",
+        dependencies: undefined,
+        parallel: undefined,
+        phase: undefined,
       };
       inAcceptanceCriteria = false;
       descriptionLines = [];
@@ -105,6 +108,47 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
     // Parse story description (single line after **Description:**)
     if (currentStory && trimmed.startsWith("**Description:**")) {
       currentStory.description = trimmed.replace("**Description:**", "").trim();
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse dependencies (Dependencies: US-001, US-002)
+    if (currentStory && trimmed.match(/^\*\*Dependencies:?\*\*/i)) {
+      const deps = trimmed
+        .replace(/^\*\*Dependencies:?\*\*/i, "")
+        .trim()
+        .split(/[,;]/)
+        .map((d) => d.trim())
+        .filter(Boolean);
+      if (deps.length > 0) {
+        currentStory.dependencies = deps;
+      }
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse parallel flag (Parallel: true/yes)
+    if (currentStory && trimmed.match(/^\*\*Parallel:?\*\*/i)) {
+      const value = trimmed.replace(/^\*\*Parallel:?\*\*/i, "").trim().toLowerCase();
+      currentStory.parallel = value === "true" || value === "yes";
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse phase (Phase: Setup)
+    if (currentStory && trimmed.match(/^\*\*Phase:?\*\*/i)) {
+      const phase = trimmed.replace(/^\*\*Phase:?\*\*/i, "").trim();
+      if (phase) {
+        currentStory.phase = phase;
+      }
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse research flag (Research: true/yes)
+    if (currentStory && trimmed.match(/^\*\*Research:?\*\*/i)) {
+      const value = trimmed.replace(/^\*\*Research:?\*\*/i, "").trim().toLowerCase();
+      currentStory.research = value === "true" || value === "yes";
       inAcceptanceCriteria = false;
       continue;
     }
@@ -172,22 +216,32 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
 /**
  * Generate branch name from project name
  */
-export function generateBranchName(projectName: string): string {
-  const kebab = projectName
+export function generateBranchName(projectName: string, featureName?: string): string {
+  let kebab = projectName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+
+  // If featureName has a number prefix (NNN-name), prepend it to branch name
+  if (featureName) {
+    const match = featureName.match(/^(\d{3})-/);
+    if (match) {
+      const numberPrefix = match[1];
+      kebab = `${numberPrefix}-${kebab}`;
+    }
+  }
+
   return `ralph/${kebab}`;
 }
 
 /**
  * Convert parsed PRD to complete PRD with defaults
  */
-export function createPRD(parsed: Partial<PRD>): PRD {
+export function createPRD(parsed: Partial<PRD>, featureName?: string): PRD {
   const project = parsed.project ?? "Unnamed Project";
   const prd: PRD = {
     project,
-    branchName: parsed.branchName ?? generateBranchName(project),
+    branchName: parsed.branchName ?? generateBranchName(project, featureName),
     description: parsed.description ?? "",
     userStories: (parsed.userStories ?? []).map((story, index) => ({
       id: story.id ?? `US-${String(index + 1).padStart(3, "0")}`,
@@ -197,6 +251,10 @@ export function createPRD(parsed: Partial<PRD>): PRD {
       priority: story.priority ?? index + 1,
       passes: story.passes ?? false,
       notes: story.notes ?? "",
+      dependencies: story.dependencies,
+      parallel: story.parallel,
+      phase: story.phase,
+      research: story.research,
     })),
   };
 

@@ -5,8 +5,6 @@
  *
  * Structure:
  * relentless/
- * ├── bin/
- * │   └── relentless.sh
  * ├── config.json
  * ├── prompt.md
  * └── features/
@@ -23,10 +21,15 @@
  */
 
 import { existsSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import chalk from "chalk";
 import { checkAgentHealth } from "../agents/registry";
 import { DEFAULT_CONFIG } from "../config/schema";
+
+/**
+ * Get the relentless root directory
+ */
+const relentlessRoot = import.meta.dir.replace("/src/init", "");
 
 /**
  * Files to create in the relentless/ directory
@@ -99,11 +102,19 @@ If there are still stories with \`passes: false\`, end your response normally (a
 `;
 
 /**
- * Default progress.txt content for a new feature
+ * Default progress.txt content for a new feature with YAML frontmatter
  */
 export function createProgressTemplate(featureName: string): string {
-  return `# Progress Log: ${featureName}
-Started: ${new Date().toISOString()}
+  const started = new Date().toISOString();
+  return `---
+feature: ${featureName}
+started: ${started}
+last_updated: ${started}
+stories_completed: 0
+patterns: []
+---
+
+# Progress Log: ${featureName}
 
 ## Codebase Patterns
 
@@ -137,9 +148,8 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   // Create relentless directory structure
   const relentlessDir = join(projectDir, "relentless");
   const featuresDir = join(relentlessDir, "features");
-  const binDir = join(relentlessDir, "bin");
 
-  for (const dir of [relentlessDir, featuresDir, binDir]) {
+  for (const dir of [relentlessDir, featuresDir]) {
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -160,15 +170,16 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
     console.log(`  ${chalk.green("✓")} relentless/${filename}`);
   }
 
-  // Copy relentless.sh (always update to latest version)
-  const relentlessRoot = dirname(dirname(dirname(import.meta.path)));
-  const sourceScript = join(relentlessRoot, "bin", "relentless.sh");
-  const destScript = join(binDir, "relentless.sh");
+  // Copy constitution template
+  const constitutionSourcePath = join(relentlessRoot, "templates", "constitution.md");
+  const constitutionDestPath = join(relentlessDir, "constitution.md");
 
-  if (existsSync(sourceScript)) {
-    await Bun.spawn(["cp", sourceScript, destScript]).exited;
-    await Bun.spawn(["chmod", "+x", destScript]).exited;
-    console.log(`  ${chalk.green("✓")} relentless/bin/relentless.sh`);
+  if (existsSync(constitutionSourcePath) && !existsSync(constitutionDestPath)) {
+    const constitutionContent = await Bun.file(constitutionSourcePath).text();
+    await Bun.write(constitutionDestPath, constitutionContent);
+    console.log(`  ${chalk.green("✓")} relentless/constitution.md`);
+  } else if (existsSync(constitutionDestPath)) {
+    console.log(`  ${chalk.yellow("⚠")} relentless/constitution.md already exists, skipping`);
   }
 
   // Create features directory with .gitkeep
@@ -205,8 +216,8 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   console.log(chalk.bold.green("\n✅ Relentless initialized!\n"));
   console.log(chalk.dim("Structure:"));
   console.log(chalk.dim("  relentless/"));
-  console.log(chalk.dim("  ├── bin/relentless.sh    # Orchestrator script"));
   console.log(chalk.dim("  ├── config.json          # Configuration"));
+  console.log(chalk.dim("  ├── constitution.md      # Project governance"));
   console.log(chalk.dim("  ├── prompt.md            # Base prompt template"));
   console.log(chalk.dim("  └── features/            # Feature folders"));
   console.log(chalk.dim("      └── <feature>/       # Each feature has:"));
@@ -218,10 +229,44 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   console.log(chalk.dim("1. Create a PRD:"));
   console.log(`   ${chalk.cyan('claude "Load the prd skill and create a PRD for [your feature]"')}`);
   console.log(chalk.dim("\n2. Convert to JSON:"));
-  console.log(`   ${chalk.cyan('claude "Load the relentless skill and convert the PRD"')}`);
+  console.log(`   ${chalk.cyan("relentless convert relentless/features/<feature>/prd.md --feature <feature-name>")}`);
   console.log(chalk.dim("\n3. Run Relentless:"));
-  console.log(`   ${chalk.cyan("./relentless/bin/relentless.sh --feature <feature-name>")}`);
+  console.log(`   ${chalk.cyan("relentless run --feature <feature-name>")}`);
   console.log("");
+}
+
+/**
+ * Options for creating a feature
+ */
+export interface CreateFeatureOptions {
+  /** Include plan.md template */
+  withPlan?: boolean;
+  /** Auto-number the feature directory (e.g., 001-feature-name) */
+  autoNumber?: boolean;
+}
+
+/**
+ * Get the next feature number by finding the highest existing number
+ */
+function getNextFeatureNumber(projectDir: string): number {
+  const featuresDir = join(projectDir, "relentless", "features");
+
+  if (!existsSync(featuresDir)) {
+    return 1;
+  }
+
+  const features = listFeatures(projectDir);
+
+  // Extract numbers from features with format NNN-name
+  const numbers = features
+    .map((feature) => {
+      const match = feature.match(/^(\d{3})-/);
+      return match ? parseInt(match[1], 10) : 0;
+    })
+    .filter((n) => n > 0);
+
+  // Return next number (or 1 if no numbered features exist)
+  return numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
 }
 
 /**
@@ -229,19 +274,39 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
  */
 export async function createFeature(
   projectDir: string,
-  featureName: string
+  featureName: string,
+  options: CreateFeatureOptions = {}
 ): Promise<string> {
-  const featureDir = join(projectDir, "relentless", "features", featureName);
+  // Generate numbered directory name if autoNumber is enabled
+  let finalFeatureName = featureName;
+  if (options.autoNumber) {
+    const nextNumber = getNextFeatureNumber(projectDir);
+    const numberPrefix = nextNumber.toString().padStart(3, "0");
+    finalFeatureName = `${numberPrefix}-${featureName}`;
+  }
+
+  const featureDir = join(projectDir, "relentless", "features", finalFeatureName);
 
   if (existsSync(featureDir)) {
-    throw new Error(`Feature '${featureName}' already exists`);
+    throw new Error(`Feature '${finalFeatureName}' already exists`);
   }
 
   mkdirSync(featureDir, { recursive: true });
 
   // Create progress.txt
   const progressPath = join(featureDir, "progress.txt");
-  await Bun.write(progressPath, createProgressTemplate(featureName));
+  await Bun.write(progressPath, createProgressTemplate(finalFeatureName));
+
+  // Copy plan.md template if requested
+  if (options.withPlan) {
+    const planSourcePath = join(relentlessRoot, "templates", "plan.md");
+    const planDestPath = join(featureDir, "plan.md");
+
+    if (existsSync(planSourcePath)) {
+      const planContent = await Bun.file(planSourcePath).text();
+      await Bun.write(planDestPath, planContent);
+    }
+  }
 
   return featureDir;
 }
