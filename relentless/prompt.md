@@ -15,7 +15,26 @@ You are an autonomous coding agent working on a software project.
 3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
 4. Pick the **highest priority** user story where `passes: false`
 5. **Review relevant code** before implementing - understand existing patterns
-6. Implement that single user story
+
+### Research Phase (if story has `research: true`)
+
+If the current story has `research: true` and no research file exists yet:
+
+1. **Explore the codebase** - Find relevant files, patterns, and dependencies
+2. **Document findings** in `relentless/features/<feature>/research/<story-id>.md`:
+   - Existing patterns that should be followed
+   - Files that will likely need modification
+   - Dependencies and integration points
+   - Potential gotchas or edge cases
+   - Recommended implementation approach
+3. **Do NOT implement** - only research and document
+4. Save your findings to the research file and end your turn
+
+### Implementation Phase
+
+If research findings exist (or research is not required):
+
+6. Implement that single user story (using research findings if available)
 7. Run quality checks (typecheck, lint, test - whatever your project requires)
 8. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
 9. Update the PRD to set `passes: true` for the completed story

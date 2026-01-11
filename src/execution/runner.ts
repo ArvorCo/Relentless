@@ -4,7 +4,7 @@
  * Main orchestration loop for running agents with automatic fallback
  */
 
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import chalk from "chalk";
 import type { AgentAdapter, AgentName } from "../agents/types";
@@ -59,7 +59,8 @@ interface AgentLimitState {
 async function buildPrompt(
   promptPath: string,
   workingDirectory: string,
-  progressPath: string
+  progressPath: string,
+  story?: { id: string; research?: boolean }
 ): Promise<string> {
   if (!existsSync(promptPath)) {
     throw new Error(`Prompt file not found: ${promptPath}`);
@@ -102,6 +103,17 @@ async function buildPrompt(
     prompt += `\n\n## Technical Planning Document\n\n`;
     prompt += `The following technical plan has been created for this feature:\n\n`;
     prompt += planContent;
+  }
+
+  // Load and append research findings if available
+  if (story?.id) {
+    const researchPath = join(dirname(progressPath), "research", `${story.id}.md`);
+    if (existsSync(researchPath)) {
+      const researchContent = await Bun.file(researchPath).text();
+      prompt += `\n\n## Research Findings for ${story.id}\n\n`;
+      prompt += `The following research was conducted before implementation:\n\n`;
+      prompt += researchContent;
+    }
   }
 
   return prompt;
@@ -326,9 +338,65 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
     // Build and run prompt
     try {
-      const prompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath);
+      // Check if this story requires research phase
+      const researchDir = join(dirname(options.prdPath), "research");
+      const researchPath = join(researchDir, `${story.id}.md`);
+      const needsResearch = story.research && !existsSync(researchPath);
 
-      console.log(chalk.dim("  Running agent..."));
+      if (needsResearch) {
+        // Phase 1: Research
+        console.log(chalk.cyan("  📚 Research phase - gathering context and patterns..."));
+
+        // Ensure research directory exists
+        if (!existsSync(researchDir)) {
+          mkdirSync(researchDir, { recursive: true });
+        }
+
+        const researchPrompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+        const researchResult = await agent.invoke(researchPrompt, {
+          workingDirectory: options.workingDirectory,
+          dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,
+          model: options.config.agents[agent.name]?.model,
+        });
+
+        // Check for rate limit during research phase
+        const researchRateLimit = agent.detectRateLimit(researchResult.output);
+        if (researchRateLimit.limited) {
+          console.log(chalk.yellow.bold(`\n⚠️ ${agent.displayName} rate limited during research!`));
+          limitedAgents.set(agent.name, {
+            resetTime: researchRateLimit.resetTime,
+            detectedAt: new Date(),
+          });
+          if (options.config.fallback.enabled) {
+            const fallbackAgent = await getNextAvailableAgent(
+              options.config.fallback.priority,
+              limitedAgents
+            );
+            if (fallbackAgent) {
+              console.log(chalk.green(`  Switching to: ${fallbackAgent.displayName}`));
+              currentAgentName = fallbackAgent.name;
+              await sleep(options.config.fallback.retryDelay);
+              i--;
+              continue;
+            }
+          }
+          console.log(chalk.dim("  No fallback agents available."));
+          continue;
+        }
+
+        console.log(chalk.green("  ✓ Research phase complete"));
+        console.log(chalk.dim(`    Research findings saved to: research/${story.id}.md`));
+
+        // Phase 2: Implementation
+        console.log(chalk.cyan("  🔨 Implementation phase - applying research findings..."));
+      }
+
+      const prompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+
+      if (!needsResearch) {
+        console.log(chalk.dim("  Running agent..."));
+      }
+
       const result = await agent.invoke(prompt, {
         workingDirectory: options.workingDirectory,
         dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,

@@ -145,6 +145,14 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
       continue;
     }
 
+    // Parse research flag (Research: true/yes)
+    if (currentStory && trimmed.match(/^\*\*Research:?\*\*/i)) {
+      const value = trimmed.replace(/^\*\*Research:?\*\*/i, "").trim().toLowerCase();
+      currentStory.research = value === "true" || value === "yes";
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
     // Check for section headers within story that end acceptance criteria
     if (currentStory && trimmed.match(/^\*\*(Files|Note|Technical|Design)/i)) {
       inAcceptanceCriteria = false;
@@ -236,6 +244,7 @@ export function createPRD(parsed: Partial<PRD>): PRD {
       dependencies: story.dependencies,
       parallel: story.parallel,
       phase: story.phase,
+      research: story.research,
     })),
   };
 

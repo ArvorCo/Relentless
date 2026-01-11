@@ -20,6 +20,7 @@ export const UserStorySchema = z.object({
   dependencies: z.array(z.string()).optional(), // Array of story IDs this story depends on
   parallel: z.boolean().optional(), // Can be executed in parallel with other stories
   phase: z.string().optional(), // Phase marker (e.g., "Setup", "Foundation", "Stories", "Polish")
+  research: z.boolean().optional(), // Requires research phase before implementation
 });
 
 export type UserStory = z.infer<typeof UserStorySchema>;
