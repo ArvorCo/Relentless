@@ -79,9 +79,9 @@ if [ -z "$FEATURE" ]; then
   exit 1
 fi
 
-# Check if bun is available
-if command -v bun &> /dev/null; then
-  # Use TypeScript implementation
+# Check if bun is available AND TypeScript file exists (development mode)
+if command -v bun &> /dev/null && [ -f "${SCRIPT_DIR}/relentless.ts" ]; then
+  # Use TypeScript implementation (development)
   cd "$PROJECT_DIR"
   exec bun run "${SCRIPT_DIR}/relentless.ts" run \
     --feature "$FEATURE" \
@@ -89,7 +89,7 @@ if command -v bun &> /dev/null; then
     --max-iterations "$MAX_ITERATIONS" \
     $DRY_RUN
 else
-  echo "Bun not found, using bash fallback..."
+  # Use bash fallback (works everywhere)
 
   # Fallback to simple bash implementation
   FEATURE_DIR="${RELENTLESS_DIR}/features/${FEATURE}"
