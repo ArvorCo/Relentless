@@ -334,3 +334,36 @@ Started: 2026-01-11T16:48:00.000Z
 - **Import additions**: Added mkdirSync from node:fs for directory creation
 
 ---
+## 2026-01-11T17:35:00.000Z - US-010
+
+### What was implemented
+- Extended CreateFeatureOptions interface with autoNumber field
+- Implemented getNextFeatureNumber() helper to find highest existing number
+- Updated createFeature() to generate numbered directory names (001-feature-name)
+- Updated generateBranchName() to prepend number prefix from feature name to branch name
+- Extended createPRD() to accept optional featureName parameter
+- Added --auto-number flag to features create CLI command
+- Added --auto-number flag to convert CLI command
+- Updated CLI commands to extract and use final feature name in output
+
+### Files changed
+- src/init/scaffolder.ts (added autoNumber option, getNextFeatureNumber helper, numbered directory creation)
+- src/prd/parser.ts (updated generateBranchName and createPRD to support number prefix)
+- bin/relentless.ts (added --auto-number flags to features create and convert commands)
+- relentless/features/ghsk-ideas/prd.json (set US-010 passes: true)
+
+### Learnings for future iterations:
+- **Auto-numbering pattern**: Extract number from existing features with regex /^(\d{3})-/
+- **Number formatting**: Use .padStart(3, "0") for consistent 3-digit zero-padded numbers
+- **Next number calculation**: Find max of existing numbers and add 1, default to 1 if none exist
+- **Feature name handling**: Auto-number creates final name (001-feature) then uses it everywhere
+- **Branch name integration**: Extract number prefix from feature name and prepend to kebab-case project name
+- **Optional parameter pattern**: featureName parameter in createPRD and generateBranchName allows number-aware branch generation
+- **CLI flag pattern**: --auto-number boolean flag on both create and convert commands
+- **Backward compatibility**: Non-numbered features still work - regex match returns null for non-numbered names
+- **listFeatures compatibility**: No changes needed - function returns directory names as-is
+- **Number extraction logic**: Shared pattern in convert command and getNextFeatureNumber helper
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Feature name extraction**: Use .split("/").pop() to get final directory name from full path
+
+---
