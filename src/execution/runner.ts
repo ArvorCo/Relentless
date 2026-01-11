@@ -95,6 +95,15 @@ async function buildPrompt(
     }
   }
 
+  // Load and append plan.md if available
+  const planPath = join(dirname(progressPath), "plan.md");
+  if (existsSync(planPath)) {
+    const planContent = await Bun.file(planPath).text();
+    prompt += `\n\n## Technical Planning Document\n\n`;
+    prompt += `The following technical plan has been created for this feature:\n\n`;
+    prompt += planContent;
+  }
+
   return prompt;
 }
 

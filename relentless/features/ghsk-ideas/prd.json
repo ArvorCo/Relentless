@@ -97,7 +97,7 @@
         "Linter passes (0 warnings)"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {

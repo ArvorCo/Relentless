@@ -236,11 +236,20 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
 }
 
 /**
+ * Options for creating a feature
+ */
+export interface CreateFeatureOptions {
+  /** Include plan.md template */
+  withPlan?: boolean;
+}
+
+/**
  * Create a new feature folder
  */
 export async function createFeature(
   projectDir: string,
-  featureName: string
+  featureName: string,
+  options: CreateFeatureOptions = {}
 ): Promise<string> {
   const featureDir = join(projectDir, "relentless", "features", featureName);
 
@@ -253,6 +262,17 @@ export async function createFeature(
   // Create progress.txt
   const progressPath = join(featureDir, "progress.txt");
   await Bun.write(progressPath, createProgressTemplate(featureName));
+
+  // Copy plan.md template if requested
+  if (options.withPlan) {
+    const planSourcePath = join(relentlessRoot, "templates", "plan.md");
+    const planDestPath = join(featureDir, "plan.md");
+
+    if (existsSync(planSourcePath)) {
+      const planContent = await Bun.file(planSourcePath).text();
+      await Bun.write(planDestPath, planContent);
+    }
+  }
 
   return featureDir;
 }
