@@ -300,3 +300,37 @@ Started: 2026-01-11T16:48:00.000Z
 - **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
 
 ---
+## 2026-01-11T20:00:00.000Z - US-009
+
+### What was implemented
+- Extended UserStory schema with optional research field
+- Implemented two-phase execution in Runner for stories with research: true flag
+- Created research directory creation and management in runner
+- Added research findings loading in buildPrompt() for second phase
+- Updated prompt template with clear research phase instructions
+- Added research field parsing support in PRD markdown parser
+
+### Files changed
+- src/prd/types.ts (added research: z.boolean().optional() to UserStorySchema)
+- src/execution/runner.ts (added two-phase execution logic, research directory creation, research findings loading)
+- src/prd/parser.ts (added research field parsing and mapping in createPRD)
+- relentless/prompt.md (added Research Phase and Implementation Phase sections)
+- relentless/features/ghsk-ideas/prd.json (set US-009 passes: true)
+
+### Learnings for future iterations:
+- **Two-phase execution pattern**: Check for research flag and research file existence to determine phase
+- **Research directory structure**: research/<story-id>.md within feature directory
+- **Phase detection**: needsResearch = story.research && !existsSync(researchPath)
+- **Research phase workflow**: Phase 1 explores and documents, Phase 2 implements using findings
+- **Prompt building signature**: Extended buildPrompt() with optional story parameter for context-aware loading
+- **Research findings integration**: Loaded automatically in buildPrompt if research file exists
+- **Parser pattern**: Added Research: true/yes parsing similar to Parallel flag parsing
+- **Schema extension**: Optional boolean field using .optional() maintains backward compatibility
+- **Directory creation**: Use mkdirSync with { recursive: true } for nested directory creation
+- **Rate limit handling**: Research phase includes rate limit detection and fallback logic
+- **Visual feedback**: Different console messages for research vs implementation phases
+- **Iteration continuation**: Research phase can trigger agent fallback and iteration retry
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Import additions**: Added mkdirSync from node:fs for directory creation
+
+---
