@@ -12,7 +12,7 @@ import { existsSync, mkdirSync } from "node:fs";
 
 import { checkAgentHealth, getAllAgentNames, isValidAgentName } from "../src/agents";
 import { loadConfig, findRelentlessDir } from "../src/config";
-import { loadPRD, savePRD, parsePRDMarkdown, createPRD, analyzeConsistency, formatReport } from "../src/prd";
+import { loadPRD, savePRD, parsePRDMarkdown, createPRD, analyzeConsistency, formatReport, generateGitHubIssues } from "../src/prd";
 import { run } from "../src/execution/runner";
 import { runTUI } from "../src/tui/TUIRunner";
 import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
@@ -440,6 +440,62 @@ program
       console.log(chalk.yellow("\n⚠️  Warnings found. Consider addressing them.\n"));
     } else {
       console.log(chalk.green("\n✅ No critical issues or warnings found!\n"));
+    }
+  });
+
+// Issues command
+program
+  .command("issues")
+  .description("Convert user stories to GitHub issues")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("--all", "Include completed stories (default: only incomplete)", false)
+  .option("--dry-run", "Show what would be created without actually creating issues", false)
+  .action(async (options) => {
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    const prdPath = join(featureDir, "prd.json");
+
+    if (!existsSync(prdPath)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found or has no prd.json`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    const prd = await loadPRD(prdPath);
+
+    console.log(chalk.bold(`\n📋 GitHub Issues Generator\n`));
+    console.log(chalk.dim(`Feature: ${options.feature}`));
+    console.log(chalk.dim(`Project: ${prd.project}\n`));
+
+    try {
+      const result = await generateGitHubIssues(prd, {
+        dryRun: options.dryRun,
+        onlyIncomplete: !options.all,
+      });
+
+      console.log("");
+      if (options.dryRun) {
+        console.log(chalk.yellow(`Would create ${result.created} issues`));
+      } else {
+        console.log(chalk.green(`✅ Created ${result.created} issues`));
+      }
+
+      if (result.errors.length > 0) {
+        console.log(chalk.red(`\n❌ ${result.errors.length} errors occurred:`));
+        for (const error of result.errors) {
+          console.log(chalk.dim(`  ${error}`));
+        }
+        process.exit(1);
+      }
+    } catch (error) {
+      console.error(chalk.red(`\n❌ ${(error as Error).message}\n`));
+      process.exit(1);
     }
   });
 

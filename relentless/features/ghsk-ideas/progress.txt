@@ -367,3 +367,42 @@ Started: 2026-01-11T16:48:00.000Z
 - **Feature name extraction**: Use .split("/").pop() to get final directory name from full path
 
 ---
+## 2026-01-11T21:00:00.000Z - US-011
+
+### What was implemented
+- Created comprehensive GitHub Issues Generator module in src/prd/issues.ts
+- Implemented validateGitRemote() to ensure safety before creating issues
+- Implemented inferLabels() to automatically tag issues with type, priority, phase, research labels
+- Implemented formatIssueBody() to create well-formatted issue bodies with description, acceptance criteria, dependencies, phase, parallel, research indicators, and notes
+- Implemented createIssue() to create GitHub issues via gh CLI
+- Added checkGhCLI() to validate gh CLI is installed
+- Implemented generateGitHubIssues() main orchestration function with dry-run and filtering options
+- Added issues command to bin/relentless.ts CLI with --all and --dry-run flags
+- Exported issues module from src/prd/index.ts
+
+### Files changed
+- src/prd/issues.ts (created new module with GitHub issues generation logic)
+- src/prd/index.ts (exported issues module)
+- bin/relentless.ts (added issues command with comprehensive options)
+- relentless/features/ghsk-ideas/prd.json (set US-011 passes: true)
+
+### Learnings for future iterations:
+- **Git remote validation**: Parse both SSH (git@github.com:owner/repo) and HTTPS (https://github.com/owner/repo) formats
+- **Regex patterns for remotes**: Use capturing groups to extract owner and repo from various URL formats
+- **Label inference strategy**: Combine story type (database, ui, api, test, refactor, docs, general), priority (high/medium/low), phase, and research markers
+- **Priority label mapping**: Priority 1-3 = high, 4-6 = medium, 7+ = low
+- **Issue body formatting**: Use markdown with ## headers, checkboxes for acceptance criteria, dependency lists, and warning indicators
+- **gh CLI integration**: Use gh issue create --title --body --label for issue creation
+- **Process handling in Bun**: Use Bun.spawn() with stdout/stderr readers and exitCode checking
+- **Dry-run pattern**: Preview operations without side effects, helpful for validation
+- **onlyIncomplete filter**: Default to only creating issues for incomplete stories, --all flag for all stories
+- **Error accumulation**: Collect errors during batch operations, continue on individual failures
+- **Safety checks**: Validate gh CLI installation and git remote before any destructive operations
+- **Issue URL extraction**: gh CLI returns the created issue URL in stdout
+- **Dependency mapping**: Include dependencies in issue body for manual linking (gh CLI doesn't support automated relationships)
+- **Research indicator**: Add ⚠️ warning emoji for stories requiring research phase
+- **Parallel indicator**: Document stories that can run in parallel for better planning
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **CLI option pattern**: --dry-run for preview, --all for including completed stories, --feature required
+
+---
