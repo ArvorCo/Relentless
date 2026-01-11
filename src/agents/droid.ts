@@ -38,8 +38,8 @@ export const droidAdapter: AgentAdapter = {
   async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
     const startTime = Date.now();
 
-    // Droid uses `droid exec -` to read from stdin
-    const proc = Bun.spawn(["droid", "exec", "-"], {
+    // Droid reads from stdin when piped or redirected.
+    const proc = Bun.spawn(["droid", "exec"], {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
       stdout: "pipe",
