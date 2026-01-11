@@ -9,6 +9,7 @@ import chalk from "chalk";
 import type { AgentAdapter, AgentName } from "../agents/types";
 import { getAgent, getInstalledAgents } from "../agents/registry";
 import type { RelentlessConfig } from "../config/schema";
+import { loadConstitution, validateConstitution } from "../config/loader";
 import { loadPRD, getNextStory, isComplete, countStories } from "../prd";
 import { routeStory } from "./router";
 
@@ -53,11 +54,32 @@ interface AgentLimitState {
 /**
  * Build the prompt for an iteration
  */
-async function buildPrompt(promptPath: string): Promise<string> {
+async function buildPrompt(promptPath: string, workingDirectory: string): Promise<string> {
   if (!existsSync(promptPath)) {
     throw new Error(`Prompt file not found: ${promptPath}`);
   }
-  return await Bun.file(promptPath).text();
+
+  let prompt = await Bun.file(promptPath).text();
+
+  // Load and append constitution if available
+  const constitution = await loadConstitution(workingDirectory);
+  if (constitution) {
+    // Validate constitution
+    const validation = validateConstitution(constitution);
+    if (!validation.valid) {
+      console.warn(chalk.yellow("\n⚠️  Constitution validation warnings:"));
+      for (const error of validation.errors) {
+        console.warn(chalk.dim(`  - ${error}`));
+      }
+    }
+
+    // Append constitution to prompt
+    prompt += `\n\n## Project Constitution\n\n`;
+    prompt += `The following principles and constraints govern this project.\n\n`;
+    prompt += constitution.raw;
+  }
+
+  return prompt;
 }
 
 /**
@@ -275,7 +297,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
     // Build and run prompt
     try {
-      const prompt = await buildPrompt(options.promptPath);
+      const prompt = await buildPrompt(options.promptPath, options.workingDirectory);
 
       console.log(chalk.dim("  Running agent..."));
       const result = await agent.invoke(prompt, {

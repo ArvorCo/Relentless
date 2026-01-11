@@ -27,6 +27,11 @@ import { checkAgentHealth } from "../agents/registry";
 import { DEFAULT_CONFIG } from "../config/schema";
 
 /**
+ * Get the relentless root directory
+ */
+const relentlessRoot = import.meta.dir.replace("/src/init", "");
+
+/**
  * Files to create in the relentless/ directory
  */
 const RELENTLESS_FILES: Record<string, () => string> = {
@@ -157,6 +162,18 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
     console.log(`  ${chalk.green("✓")} relentless/${filename}`);
   }
 
+  // Copy constitution template
+  const constitutionSourcePath = join(relentlessRoot, "templates", "constitution.md");
+  const constitutionDestPath = join(relentlessDir, "constitution.md");
+
+  if (existsSync(constitutionSourcePath) && !existsSync(constitutionDestPath)) {
+    const constitutionContent = await Bun.file(constitutionSourcePath).text();
+    await Bun.write(constitutionDestPath, constitutionContent);
+    console.log(`  ${chalk.green("✓")} relentless/constitution.md`);
+  } else if (existsSync(constitutionDestPath)) {
+    console.log(`  ${chalk.yellow("⚠")} relentless/constitution.md already exists, skipping`);
+  }
+
   // Create features directory with .gitkeep
   const gitkeepPath = join(featuresDir, ".gitkeep");
   if (!existsSync(gitkeepPath)) {
@@ -192,6 +209,7 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   console.log(chalk.dim("Structure:"));
   console.log(chalk.dim("  relentless/"));
   console.log(chalk.dim("  ├── config.json          # Configuration"));
+  console.log(chalk.dim("  ├── constitution.md      # Project governance"));
   console.log(chalk.dim("  ├── prompt.md            # Base prompt template"));
   console.log(chalk.dim("  └── features/            # Feature folders"));
   console.log(chalk.dim("      └── <feature>/       # Each feature has:"));

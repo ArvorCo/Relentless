@@ -1,7 +1,7 @@
 /**
  * Configuration Loader
  *
- * Loads and validates relentless/config.json
+ * Loads and validates relentless/config.json and constitution.md
  */
 
 import { existsSync } from "node:fs";
@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { RelentlessConfigSchema, DEFAULT_CONFIG, type RelentlessConfig } from "./schema";
 
 const CONFIG_FILENAME = "config.json";
+const CONSTITUTION_FILENAME = "constitution.md";
 const RELENTLESS_DIR = "relentless";
 
 /**
@@ -90,4 +91,147 @@ export async function createDefaultConfig(
   const path = join(dir, RELENTLESS_DIR, CONFIG_FILENAME);
   await saveConfig(DEFAULT_CONFIG, path);
   return path;
+}
+
+/**
+ * Find the constitution file in the relentless directory
+ */
+export function findConstitutionFile(startDir: string = process.cwd()): string | null {
+  const relentlessDir = findRelentlessDir(startDir);
+  if (!relentlessDir) {
+    return null;
+  }
+
+  const constitutionPath = join(relentlessDir, CONSTITUTION_FILENAME);
+  if (existsSync(constitutionPath)) {
+    return constitutionPath;
+  }
+
+  return null;
+}
+
+/**
+ * Constitution principle level
+ */
+export type PrincipleLevel = "MUST" | "SHOULD";
+
+/**
+ * Parsed constitution principle
+ */
+export interface Principle {
+  level: PrincipleLevel;
+  text: string;
+  section: string;
+}
+
+/**
+ * Parsed constitution
+ */
+export interface Constitution {
+  raw: string;
+  principles: Principle[];
+  sections: string[];
+}
+
+/**
+ * Parse constitution markdown to extract MUST/SHOULD principles
+ */
+export function parseConstitution(content: string): Constitution {
+  const principles: Principle[] = [];
+  const sections = new Set<string>();
+
+  let currentSection = "";
+  const lines = content.split("\n");
+
+  for (const line of lines) {
+    // Track current section
+    if (line.startsWith("## ")) {
+      currentSection = line.replace("## ", "").trim();
+      sections.add(currentSection);
+    } else if (line.startsWith("### ")) {
+      currentSection = line.replace("### ", "").trim();
+      sections.add(currentSection);
+    }
+
+    // Extract MUST principles
+    const mustMatch = line.match(/\*\*MUST\*\*\s+(.+)/);
+    if (mustMatch) {
+      principles.push({
+        level: "MUST",
+        text: mustMatch[1].trim(),
+        section: currentSection,
+      });
+    }
+
+    // Extract SHOULD principles
+    const shouldMatch = line.match(/\*\*SHOULD\*\*\s+(.+)/);
+    if (shouldMatch) {
+      principles.push({
+        level: "SHOULD",
+        text: shouldMatch[1].trim(),
+        section: currentSection,
+      });
+    }
+  }
+
+  return {
+    raw: content,
+    principles,
+    sections: Array.from(sections),
+  };
+}
+
+/**
+ * Load constitution from file
+ */
+export async function loadConstitution(constitutionPath?: string): Promise<Constitution | null> {
+  const path = constitutionPath ?? findConstitutionFile();
+
+  if (!path || !existsSync(path)) {
+    return null;
+  }
+
+  try {
+    const content = await Bun.file(path).text();
+    return parseConstitution(content);
+  } catch (error) {
+    console.warn(`Failed to load constitution: ${error}`);
+    return null;
+  }
+}
+
+/**
+ * Validate constitution format
+ */
+export function validateConstitution(constitution: Constitution): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  // Check that we have at least some principles
+  if (constitution.principles.length === 0) {
+    errors.push("Constitution has no MUST or SHOULD principles defined");
+  }
+
+  // Check that we have both MUST and SHOULD principles
+  const hasMust = constitution.principles.some(p => p.level === "MUST");
+  const hasShould = constitution.principles.some(p => p.level === "SHOULD");
+
+  if (!hasMust) {
+    errors.push("Constitution has no MUST principles (required directives)");
+  }
+
+  if (!hasShould) {
+    errors.push("Constitution has no SHOULD principles (recommended guidelines)");
+  }
+
+  // Check for empty principle text
+  for (const principle of constitution.principles) {
+    if (!principle.text || principle.text.trim().length === 0) {
+      errors.push(`Empty ${principle.level} principle in section: ${principle.section}`);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
 }
