@@ -107,3 +107,40 @@ Started: 2026-01-11T16:48:00.000Z
 
 ---
 
+---
+## 2026-01-11T22:00:00.000Z - US-003
+
+### What was implemented
+- Created progress.ts module with YAML frontmatter parsing and serialization
+- Implemented parseProgress() to handle both legacy and YAML frontmatter formats
+- Implemented serializeProgress() to write progress files with YAML frontmatter
+- Added loadProgress(), updateProgressMetadata(), and appendProgress() helper functions
+- Implemented extractPatterns() to parse learnings from progress content
+- Implemented syncPatternsFromContent() to update frontmatter patterns from content
+- Updated scaffolder to create progress.txt with YAML frontmatter structure
+- Updated Runner.ts to load progress metadata and include patterns in prompt context
+- Updated Runner.ts to update frontmatter after each iteration (last_updated, stories_completed)
+- Added js-yaml dependency for YAML parsing
+
+### Files changed
+- package.json (added js-yaml and @types/js-yaml dependencies)
+- src/prd/progress.ts (created new module with all progress metadata functions)
+- src/prd/index.ts (exported progress functions)
+- src/init/scaffolder.ts (updated createProgressTemplate to include YAML frontmatter)
+- src/execution/runner.ts (added progress loading, pattern inclusion, metadata updates)
+- relentless/features/ghsk-ideas/prd.json (set US-003 passes: true)
+
+### Learnings for future iterations:
+- **YAML frontmatter structure**: Uses --- delimiters at start and end of frontmatter block
+- **js-yaml library**: Simple API with yaml.load() and yaml.dump() for parsing and serialization
+- **Backward compatibility**: parseProgress() handles legacy format without frontmatter gracefully
+- **Pattern extraction**: Used regex to find "Learnings for future iterations:" sections and extract patterns
+- **Pattern format**: Patterns formatted as **Key**: Description for easy identification
+- **Runner integration**: Progress loaded in buildPrompt() to include patterns in agent context
+- **Metadata updates**: After each iteration, sync patterns from content, then update metadata
+- **Path calculation**: progressPath = join(dirname(prdPath), "progress.txt") for consistency
+- **Error handling**: Progress metadata updates wrapped in try-catch to avoid breaking orchestration
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Frontmatter fields**: feature, started, last_updated, stories_completed, patterns array
+
+---
