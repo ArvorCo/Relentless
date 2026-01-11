@@ -5,8 +5,6 @@
  *
  * Structure:
  * relentless/
- * ├── bin/
- * │   └── relentless.sh
  * ├── config.json
  * ├── prompt.md
  * └── features/
@@ -137,9 +135,8 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   // Create relentless directory structure
   const relentlessDir = join(projectDir, "relentless");
   const featuresDir = join(relentlessDir, "features");
-  const binDir = join(relentlessDir, "bin");
 
-  for (const dir of [relentlessDir, featuresDir, binDir]) {
+  for (const dir of [relentlessDir, featuresDir]) {
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -158,17 +155,6 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
 
     await Bun.write(path, contentFn());
     console.log(`  ${chalk.green("✓")} relentless/${filename}`);
-  }
-
-  // Copy relentless.sh (always update to latest version)
-  const relentlessRoot = dirname(dirname(dirname(import.meta.path)));
-  const sourceScript = join(relentlessRoot, "bin", "relentless.sh");
-  const destScript = join(binDir, "relentless.sh");
-
-  if (existsSync(sourceScript)) {
-    await Bun.spawn(["cp", sourceScript, destScript]).exited;
-    await Bun.spawn(["chmod", "+x", destScript]).exited;
-    console.log(`  ${chalk.green("✓")} relentless/bin/relentless.sh`);
   }
 
   // Create features directory with .gitkeep
@@ -205,7 +191,6 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   console.log(chalk.bold.green("\n✅ Relentless initialized!\n"));
   console.log(chalk.dim("Structure:"));
   console.log(chalk.dim("  relentless/"));
-  console.log(chalk.dim("  ├── bin/relentless.sh    # Orchestrator script"));
   console.log(chalk.dim("  ├── config.json          # Configuration"));
   console.log(chalk.dim("  ├── prompt.md            # Base prompt template"));
   console.log(chalk.dim("  └── features/            # Feature folders"));
@@ -218,9 +203,9 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   console.log(chalk.dim("1. Create a PRD:"));
   console.log(`   ${chalk.cyan('claude "Load the prd skill and create a PRD for [your feature]"')}`);
   console.log(chalk.dim("\n2. Convert to JSON:"));
-  console.log(`   ${chalk.cyan('claude "Load the relentless skill and convert the PRD"')}`);
+  console.log(`   ${chalk.cyan("relentless convert relentless/features/<feature>/prd.md --feature <feature-name>")}`);
   console.log(chalk.dim("\n3. Run Relentless:"));
-  console.log(`   ${chalk.cyan("./relentless/bin/relentless.sh --feature <feature-name>")}`);
+  console.log(`   ${chalk.cyan("relentless run --feature <feature-name>")}`);
   console.log("");
 }
 

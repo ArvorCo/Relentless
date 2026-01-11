@@ -16,21 +16,24 @@
 ## Quick Start
 
 ```bash
-# 1. Initialize Relentless in your project
+# 1. Install Relentless globally
+bun install -g github:ArvorCo/Relentless
+
+# 2. Initialize in your project
 cd your-project
-bun run github:ArvorCo/Relentless/bin/relentless.ts init
+relentless init
 
-# 2. Create a feature
-bun run github:ArvorCo/Relentless/bin/relentless.ts features create my-feature
+# 3. Create a feature
+relentless features create my-feature
 
-# 3. Create PRD using Claude Code skill (recommended)
+# 4. Create PRD using Claude Code skill (recommended)
 claude "Load the prd skill and create a PRD for [describe your feature]"
 
-# 4. Convert PRD to JSON
-./relentless/bin/relentless.sh --convert relentless/features/my-feature/prd.md --feature my-feature
+# 5. Convert PRD to JSON
+relentless convert relentless/features/my-feature/prd.md --feature my-feature
 
-# 5. Run Relentless (with beautiful TUI)
-./relentless/bin/relentless.sh --feature my-feature --tui
+# 6. Run Relentless (with beautiful TUI)
+relentless run --feature my-feature --tui
 ```
 
 **Alternative: Create PRD manually**
@@ -94,10 +97,19 @@ cd Relentless
 bun install
 ```
 
-### Option 2: Run Directly from GitHub
+### Option 2: Install Globally
 
 ```bash
-bun run github:ArvorCo/Relentless/bin/relentless.ts init
+bun install -g github:ArvorCo/Relentless
+
+# Or install from npm when published
+bun install -g relentless
+```
+
+### Option 3: Run with bunx (No Installation)
+
+```bash
+bunx github:ArvorCo/Relentless init
 ```
 
 ---
@@ -108,15 +120,13 @@ bun run github:ArvorCo/Relentless/bin/relentless.ts init
 
 ```bash
 cd your-project
-bun run /path/to/Relentless/bin/relentless.ts init
+relentless init
 ```
 
 This creates:
 ```
 your-project/
 ├── relentless/
-│   ├── bin/
-│   │   └── relentless.sh      # Orchestrator script
 │   ├── config.json            # Configuration
 │   ├── prompt.md              # Agent prompt template
 │   └── features/              # Feature folders
@@ -129,7 +139,7 @@ your-project/
 ### Step 2: Create a Feature
 
 ```bash
-bun run /path/to/Relentless/bin/relentless.ts features create my-feature
+relentless features create my-feature
 ```
 
 This creates:
@@ -175,7 +185,7 @@ claude "Load the prd skill and create a PRD for adding user authentication"
 ### Step 4: Convert PRD to JSON
 
 ```bash
-bun run /path/to/Relentless/bin/relentless.ts convert relentless/features/my-feature/prd.md --feature my-feature
+relentless convert relentless/features/my-feature/prd.md --feature my-feature
 ```
 
 This generates `relentless/features/my-feature/prd.json`:
@@ -196,28 +206,25 @@ This generates `relentless/features/my-feature/prd.json`:
 ### Step 5: Run the Orchestrator
 
 ```bash
-./relentless/bin/relentless.sh --feature my-feature
+relentless run --feature my-feature
 ```
 
 **Options:**
 ```bash
 # Run with beautiful terminal UI
-./relentless/bin/relentless.sh --feature my-feature --tui
-
-# Convert PRD markdown to JSON
-./relentless/bin/relentless.sh --convert prd.md --feature my-feature
+relentless run --feature my-feature --tui
 
 # Specify agent (default: claude)
-./relentless/bin/relentless.sh --feature my-feature --agent amp
+relentless run --feature my-feature --agent amp
 
 # Set max iterations (default: 20)
-./relentless/bin/relentless.sh --feature my-feature --max-iterations 30
+relentless run --feature my-feature --max-iterations 30
 
 # Show status of all stories
-./relentless/bin/relentless.sh --status --feature my-feature
+relentless status --feature my-feature
 
 # Reset a story to re-run it
-./relentless/bin/relentless.sh --reset US-005 --feature my-feature
+relentless reset US-005 --feature my-feature
 
 # Available agents: claude, amp, opencode, codex, droid, gemini, auto
 ```
@@ -239,8 +246,6 @@ After initialization, your project will have:
 ```
 your-project/
 ├── relentless/
-│   ├── bin/
-│   │   └── relentless.sh          # Main orchestrator script
 │   ├── config.json                # Relentless configuration
 │   ├── prompt.md                  # Prompt template for agents
 │   └── features/
@@ -269,13 +274,13 @@ your-project/
 ### Check Which Agents Are Installed
 
 ```bash
-bun run /path/to/Relentless/bin/relentless.ts agents list
+relentless agents list
 ```
 
 ### Verify Agent Health
 
 ```bash
-bun run /path/to/Relentless/bin/relentless.ts agents doctor
+relentless agents doctor
 ```
 
 ---
@@ -311,23 +316,17 @@ relentless agents list
 relentless agents doctor
 ```
 
-### Shell Script Commands
+### Alternative: Run with bunx (No Installation)
 
 ```bash
-# Convert PRD to JSON
-./relentless/bin/relentless.sh --convert <prd.md> --feature <name>
+# Initialize
+bunx github:ArvorCo/Relentless init
 
-# Run with beautiful TUI
-./relentless/bin/relentless.sh --feature <name> --tui
+# Run orchestration
+bunx github:ArvorCo/Relentless run --feature <name>
 
-# Run with standard output
-./relentless/bin/relentless.sh --feature <name>
-
-# Show status
-./relentless/bin/relentless.sh --status --feature <name>
-
-# Reset a story
-./relentless/bin/relentless.sh --reset <story-id> --feature <name>
+# Check status
+bunx github:ArvorCo/Relentless status --feature <name>
 ```
 
 ---

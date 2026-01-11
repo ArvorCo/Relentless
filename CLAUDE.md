@@ -8,7 +8,7 @@ This is the Relentless codebase - a universal AI agent orchestrator that works w
 
 ### Directory Structure
 
-- `bin/` - CLI entry points (relentless.ts, relentless.sh)
+- `bin/` - CLI entry point (relentless.ts)
 - `src/` - Core TypeScript implementation
   - `agents/` - Agent adapters for each AI coding agent
   - `config/` - Configuration schema and loading
@@ -28,8 +28,11 @@ This is the Relentless codebase - a universal AI agent orchestrator that works w
 ### Development Commands
 
 ```bash
-# Run the orchestrator
-bun run bin/relentless.ts run --agent claude
+# Install locally for development
+bun install
+
+# Run the orchestrator during development
+bun run bin/relentless.ts run --feature <name>
 
 # Type check
 bun run typecheck
@@ -46,7 +49,19 @@ mkdir /tmp/test && cd /tmp/test
 bun run /path/to/relentless/bin/relentless.ts init
 
 # Test with a simple PRD
-bun run bin/relentless.ts run --agent claude --max-iterations 3
+cd /path/to/relentless
+bun run bin/relentless.ts run --feature <name>
+```
+
+### Using the Global Binary
+
+```bash
+# Install globally
+bun install -g .
+
+# Run from anywhere
+relentless init
+relentless run --feature <name>
 ```
 
 ### Code Style
