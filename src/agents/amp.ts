@@ -5,7 +5,7 @@
  * https://ampcode.com
  */
 
-import type { AgentAdapter, AgentResult, InvokeOptions } from "./types";
+import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
 
 export const ampAdapter: AgentAdapter = {
   name: "amp",
@@ -69,6 +69,27 @@ export const ampAdapter: AgentAdapter = {
 
   detectCompletion(output: string): boolean {
     return output.includes("<promise>COMPLETE</promise>");
+  },
+
+  detectRateLimit(output: string): RateLimitInfo {
+    // Amp rate limit patterns
+    const patterns = [
+      /quota exceeded/i,
+      /limit reached/i,
+      /rate limit/i,
+      /too many requests/i,
+    ];
+
+    for (const pattern of patterns) {
+      if (pattern.test(output)) {
+        return {
+          limited: true,
+          message: "Amp rate limit exceeded",
+        };
+      }
+    }
+
+    return { limited: false };
   },
 
   async installSkills(projectPath: string): Promise<void> {

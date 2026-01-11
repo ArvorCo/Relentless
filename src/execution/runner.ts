@@ -1,16 +1,15 @@
 /**
  * Execution Runner
  *
- * Main orchestration loop for running agents
+ * Main orchestration loop for running agents with automatic fallback
  */
 
 import { existsSync } from "node:fs";
-import { join } from "node:path";
 import chalk from "chalk";
 import type { AgentAdapter, AgentName } from "../agents/types";
-import { getAgent, isValidAgentName } from "../agents/registry";
+import { getAgent, getInstalledAgents } from "../agents/registry";
 import type { RelentlessConfig } from "../config/schema";
-import { loadPRD, savePRD, getNextStory, isComplete, countStories, type PRD } from "../prd";
+import { loadPRD, getNextStory, isComplete, countStories } from "../prd";
 import { routeStory } from "./router";
 
 export interface RunOptions {
@@ -42,6 +41,16 @@ export interface RunResult {
 }
 
 /**
+ * Track rate limit state for agents
+ */
+interface AgentLimitState {
+  /** When the limit resets */
+  resetTime?: Date;
+  /** When we detected the limit */
+  detectedAt: Date;
+}
+
+/**
  * Build the prompt for an iteration
  */
 async function buildPrompt(promptPath: string): Promise<string> {
@@ -59,12 +68,94 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Run the orchestration loop
+ * Check if an agent's rate limit has reset
+ */
+function hasLimitReset(state: AgentLimitState): boolean {
+  if (state.resetTime) {
+    return new Date() >= state.resetTime;
+  }
+  // If no reset time known, assume 1 hour from detection
+  const oneHourAfter = new Date(state.detectedAt.getTime() + 60 * 60 * 1000);
+  return new Date() >= oneHourAfter;
+}
+
+/**
+ * Get the next available agent from the fallback priority list
+ */
+async function getNextAvailableAgent(
+  priority: AgentName[],
+  limitedAgents: Map<AgentName, AgentLimitState>,
+  preferredAgent?: AgentName
+): Promise<AgentAdapter | null> {
+  // Get installed agents
+  const installed = await getInstalledAgents();
+  const installedNames = new Set(installed.map((a) => a.name));
+
+  // If preferred agent is available and not limited, use it
+  if (preferredAgent && installedNames.has(preferredAgent)) {
+    const state = limitedAgents.get(preferredAgent);
+    if (!state || hasLimitReset(state)) {
+      // Clear the limit if it has reset
+      if (state && hasLimitReset(state)) {
+        limitedAgents.delete(preferredAgent);
+      }
+      return getAgent(preferredAgent);
+    }
+  }
+
+  // Find first available agent in priority order
+  for (const name of priority) {
+    if (!installedNames.has(name)) {
+      continue; // Agent not installed
+    }
+
+    const state = limitedAgents.get(name);
+    if (!state) {
+      return getAgent(name); // Not limited
+    }
+
+    if (hasLimitReset(state)) {
+      limitedAgents.delete(name); // Limit has reset
+      return getAgent(name);
+    }
+  }
+
+  return null; // All agents are rate limited
+}
+
+/**
+ * Format time until reset
+ */
+function formatTimeUntilReset(resetTime: Date): string {
+  const now = new Date();
+  const diffMs = resetTime.getTime() - now.getTime();
+
+  if (diffMs <= 0) {
+    return "now";
+  }
+
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
+
+/**
+ * Run the orchestration loop with automatic agent fallback
  */
 export async function run(options: RunOptions): Promise<RunResult> {
   const startTime = Date.now();
   let iterations = 0;
   let storiesCompleted = 0;
+
+  // Track rate-limited agents
+  const limitedAgents = new Map<AgentName, AgentLimitState>();
+
+  // Current active agent
+  let currentAgentName: AgentName | null = options.agent === "auto" ? null : options.agent;
 
   // Load PRD
   if (!existsSync(options.prdPath)) {
@@ -78,6 +169,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
   console.log(`Branch: ${chalk.cyan(prd.branchName)}`);
   console.log(`Stories: ${chalk.green(initialCount.completed)}/${initialCount.total} complete`);
   console.log(`Max iterations: ${chalk.yellow(options.maxIterations)}`);
+
+  if (options.config.fallback.enabled) {
+    console.log(`Fallback: ${chalk.green("enabled")} (${options.config.fallback.priority.join(" → ")})`);
+  }
 
   if (options.dryRun) {
     console.log(chalk.yellow("\n⚠️  Dry run mode - not executing\n"));
@@ -104,13 +199,66 @@ export async function run(options: RunOptions): Promise<RunResult> {
     }
 
     // Select agent
-    let agent: AgentAdapter;
+    let agent: AgentAdapter | null = null;
+
     if (options.agent === "auto") {
-      const agentName = routeStory(story, options.config.routing);
-      agent = getAgent(agentName);
-      console.log(chalk.dim(`\nSmart routing selected: ${agent.displayName}`));
+      // Smart routing
+      const routedName = routeStory(story, options.config.routing);
+      agent = await getNextAvailableAgent(
+        options.config.fallback.priority,
+        limitedAgents,
+        routedName
+      );
+      if (agent) {
+        currentAgentName = agent.name;
+      }
+    } else if (options.config.fallback.enabled) {
+      // Use fallback if enabled
+      agent = await getNextAvailableAgent(
+        options.config.fallback.priority,
+        limitedAgents,
+        options.agent
+      );
+      if (agent) {
+        currentAgentName = agent.name;
+      }
     } else {
+      // Use specified agent without fallback
       agent = getAgent(options.agent);
+      currentAgentName = options.agent;
+    }
+
+    // Check if we have an available agent
+    if (!agent) {
+      console.log(chalk.red.bold("\n❌ All agents are rate limited!"));
+
+      // Show when limits reset
+      for (const [name, state] of limitedAgents) {
+        if (state.resetTime) {
+          console.log(chalk.dim(`  ${name}: resets in ${formatTimeUntilReset(state.resetTime)}`));
+        } else {
+          console.log(chalk.dim(`  ${name}: rate limited (reset time unknown)`));
+        }
+      }
+
+      // Find earliest reset time and wait
+      const earliestReset = Array.from(limitedAgents.values())
+        .filter((s) => s.resetTime)
+        .sort((a, b) => (a.resetTime?.getTime() ?? 0) - (b.resetTime?.getTime() ?? 0))[0];
+
+      if (earliestReset?.resetTime) {
+        const waitMs = earliestReset.resetTime.getTime() - Date.now();
+        if (waitMs > 0 && waitMs < 60 * 60 * 1000) {
+          // Wait up to 1 hour
+          console.log(chalk.yellow(`\n⏳ Waiting ${formatTimeUntilReset(earliestReset.resetTime)} for rate limit to reset...`));
+          await sleep(waitMs + 1000); // Add 1 second buffer
+          continue; // Retry the iteration
+        }
+      }
+
+      // Can't continue
+      console.log(chalk.yellow("\nStopping - no agents available and reset time too far."));
+      break;
     }
 
     // Print iteration header
@@ -135,6 +283,41 @@ export async function run(options: RunOptions): Promise<RunResult> {
         dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,
         model: options.config.agents[agent.name]?.model,
       });
+
+      // Check for rate limit
+      const rateLimit = agent.detectRateLimit(result.output);
+      if (rateLimit.limited) {
+        console.log(chalk.yellow.bold(`\n⚠️ ${agent.displayName} rate limited!`));
+
+        // Track the limit
+        limitedAgents.set(agent.name, {
+          resetTime: rateLimit.resetTime,
+          detectedAt: new Date(),
+        });
+
+        if (rateLimit.resetTime) {
+          console.log(chalk.dim(`  Resets at: ${rateLimit.resetTime.toLocaleTimeString()}`));
+        }
+
+        // Try to get fallback agent
+        if (options.config.fallback.enabled) {
+          const fallbackAgent = await getNextAvailableAgent(
+            options.config.fallback.priority,
+            limitedAgents
+          );
+
+          if (fallbackAgent) {
+            console.log(chalk.green(`  Switching to: ${fallbackAgent.displayName}`));
+            currentAgentName = fallbackAgent.name;
+            // Wait before retry
+            await sleep(options.config.fallback.retryDelay);
+            i--; // Retry this iteration with new agent
+            continue;
+          }
+        }
+
+        console.log(chalk.dim("  No fallback agents available."));
+      }
 
       // Log output (truncated if too long)
       if (result.output) {

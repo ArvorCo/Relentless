@@ -18,6 +18,18 @@ export interface InvokeOptions {
   dangerouslyAllowAll?: boolean;
 }
 
+/**
+ * Rate limit detection result
+ */
+export interface RateLimitInfo {
+  /** Whether the agent is rate limited */
+  limited: boolean;
+  /** When the rate limit resets (if known) */
+  resetTime?: Date;
+  /** Raw error message */
+  message?: string;
+}
+
 export interface AgentResult {
   /** Raw output from the agent */
   output: string;
@@ -27,6 +39,10 @@ export interface AgentResult {
   isComplete: boolean;
   /** Duration in milliseconds */
   duration: number;
+  /** Whether the agent hit rate limits */
+  rateLimited?: boolean;
+  /** When the rate limit resets */
+  resetTime?: Date;
 }
 
 export interface AgentAdapter {
@@ -45,8 +61,17 @@ export interface AgentAdapter {
   /** Invoke the agent with a prompt */
   invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult>;
 
+  /** Invoke the agent with streaming output */
+  invokeStream?(
+    prompt: string,
+    options?: InvokeOptions
+  ): AsyncGenerator<string, AgentResult, unknown>;
+
   /** Detect if the output indicates completion */
   detectCompletion(output: string): boolean;
+
+  /** Detect if the output indicates rate limiting */
+  detectRateLimit(output: string): RateLimitInfo;
 
   /** Whether this agent supports skills/plugins */
   hasSkillSupport: boolean;

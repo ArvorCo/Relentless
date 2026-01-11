@@ -18,8 +18,10 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "outDir": "dist"
+    "outDir": "dist",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
   },
-  "include": ["src/**/*.ts", "bin/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "bin/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

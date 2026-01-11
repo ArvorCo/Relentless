@@ -5,7 +5,7 @@
  * https://docs.anthropic.com/claude-code
  */
 
-import type { AgentAdapter, AgentResult, InvokeOptions } from "./types";
+import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types.js";
 
 export const claudeAdapter: AgentAdapter = {
   name: "claude",
@@ -71,8 +71,95 @@ export const claudeAdapter: AgentAdapter = {
     };
   },
 
+  async *invokeStream(
+    prompt: string,
+    options?: InvokeOptions
+  ): AsyncGenerator<string, AgentResult, unknown> {
+    const startTime = Date.now();
+    const args = ["-p"];
+
+    if (options?.dangerouslyAllowAll) {
+      args.push("--dangerously-skip-permissions");
+    }
+
+    if (options?.model) {
+      args.push("--model", options.model);
+    }
+
+    const proc = Bun.spawn(["claude", ...args], {
+      cwd: options?.workingDirectory,
+      stdin: new Blob([prompt]),
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    const decoder = new TextDecoder();
+    let fullOutput = "";
+
+    // Stream stdout
+    const reader = proc.stdout.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullOutput += chunk;
+        yield chunk;
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    // Collect any stderr
+    const stderr = await new Response(proc.stderr).text();
+    const exitCode = await proc.exited;
+
+    const output = fullOutput + (stderr ? `\n${stderr}` : "");
+    const duration = Date.now() - startTime;
+
+    return {
+      output,
+      exitCode,
+      isComplete: this.detectCompletion(output),
+      duration,
+    };
+  },
+
   detectCompletion(output: string): boolean {
     return output.includes("<promise>COMPLETE</promise>");
+  },
+
+  detectRateLimit(output: string): RateLimitInfo {
+    // Pattern: "You've hit your limit · resets 12am (America/Sao_Paulo)"
+    if (output.includes("You've hit your limit") || output.includes("you've hit your limit")) {
+      const resetMatch = output.match(/resets\s+(\d{1,2})(am|pm)/i);
+      let resetTime: Date | undefined;
+
+      if (resetMatch) {
+        const hour = parseInt(resetMatch[1], 10);
+        const isPM = resetMatch[2].toLowerCase() === "pm";
+        const now = new Date();
+
+        resetTime = new Date(now);
+        resetTime.setHours(isPM && hour !== 12 ? hour + 12 : hour === 12 && !isPM ? 0 : hour);
+        resetTime.setMinutes(0);
+        resetTime.setSeconds(0);
+        resetTime.setMilliseconds(0);
+
+        // If reset time is in the past, move to tomorrow
+        if (resetTime <= now) {
+          resetTime.setDate(resetTime.getDate() + 1);
+        }
+      }
+
+      return {
+        limited: true,
+        resetTime,
+        message: "Claude Code rate limit exceeded",
+      };
+    }
+
+    return { limited: false };
   },
 
   async installSkills(projectPath: string): Promise<void> {

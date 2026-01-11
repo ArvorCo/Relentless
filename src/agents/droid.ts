@@ -5,7 +5,7 @@
  * https://factory.ai
  */
 
-import type { AgentAdapter, AgentResult, InvokeOptions } from "./types";
+import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
 
 export const droidAdapter: AgentAdapter = {
   name: "droid",
@@ -64,5 +64,26 @@ export const droidAdapter: AgentAdapter = {
 
   detectCompletion(output: string): boolean {
     return output.includes("<promise>COMPLETE</promise>");
+  },
+
+  detectRateLimit(output: string): RateLimitInfo {
+    // Droid rate limit patterns
+    const patterns = [
+      /rate limit/i,
+      /\b429\b/,
+      /too many requests/i,
+      /quota exceeded/i,
+    ];
+
+    for (const pattern of patterns) {
+      if (pattern.test(output)) {
+        return {
+          limited: true,
+          message: "Factory Droid rate limit exceeded",
+        };
+      }
+    }
+
+    return { limited: false };
   },
 };

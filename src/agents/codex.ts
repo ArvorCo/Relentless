@@ -5,7 +5,7 @@
  * https://developers.openai.com/codex/cli/
  */
 
-import type { AgentAdapter, AgentResult, InvokeOptions } from "./types";
+import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
 
 export const codexAdapter: AgentAdapter = {
   name: "codex",
@@ -64,5 +64,26 @@ export const codexAdapter: AgentAdapter = {
 
   detectCompletion(output: string): boolean {
     return output.includes("<promise>COMPLETE</promise>");
+  },
+
+  detectRateLimit(output: string): RateLimitInfo {
+    // Codex/OpenAI rate limit patterns
+    const patterns = [
+      /rate limit exceeded/i,
+      /\b429\b/,
+      /too many requests/i,
+      /quota exceeded/i,
+    ];
+
+    for (const pattern of patterns) {
+      if (pattern.test(output)) {
+        return {
+          limited: true,
+          message: "OpenAI Codex rate limit exceeded",
+        };
+      }
+    }
+
+    return { limited: false };
   },
 };

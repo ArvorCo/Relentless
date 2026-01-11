@@ -18,8 +18,10 @@ AGENT="claude"
 MAX_ITERATIONS=20
 FEATURE=""
 DRY_RUN=""
+TUI=""
 MODE="run"
 RESET_STORY=""
+CONVERT_FILE=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -40,6 +42,10 @@ while [[ $# -gt 0 ]]; do
       DRY_RUN="--dry-run"
       shift
       ;;
+    --tui)
+      TUI="--tui"
+      shift
+      ;;
     -s|--status)
       MODE="status"
       shift
@@ -47,6 +53,11 @@ while [[ $# -gt 0 ]]; do
     --reset)
       MODE="reset"
       RESET_STORY="$2"
+      shift 2
+      ;;
+    --convert)
+      MODE="convert"
+      CONVERT_FILE="$2"
       shift 2
       ;;
     -h|--help)
@@ -61,11 +72,13 @@ while [[ $# -gt 0 ]]; do
       echo "  (default)                 Run the orchestration loop"
       echo "  -s, --status              Show status of all user stories"
       echo "  --reset <story-id>        Reset a story to incomplete"
+      echo "  --convert <prd.md>        Convert PRD markdown to JSON"
       echo ""
       echo "Options:"
       echo "  -a, --agent <name>        Agent to use (default: claude)"
       echo "                            Options: claude, amp, opencode, codex, droid, gemini, auto"
       echo "  -m, --max-iterations <n>  Maximum iterations (default: 20)"
+      echo "  --tui                     Use beautiful terminal UI interface"
       echo "  --dry-run                 Show what would execute without running"
       echo "  -h, --help                Show this help message"
       echo ""
@@ -114,17 +127,35 @@ if command -v bun &> /dev/null && [ -f "${SCRIPT_DIR}/relentless.ts" ]; then
     reset)
       exec bun run "${SCRIPT_DIR}/relentless.ts" reset "$RESET_STORY" --feature "$FEATURE"
       ;;
+    convert)
+      exec bun run "${SCRIPT_DIR}/relentless.ts" convert "$CONVERT_FILE" --feature "$FEATURE"
+      ;;
     run)
       exec bun run "${SCRIPT_DIR}/relentless.ts" run \
         --feature "$FEATURE" \
         --agent "$AGENT" \
         --max-iterations "$MAX_ITERATIONS" \
-        $DRY_RUN
+        $DRY_RUN $TUI
       ;;
   esac
 fi
 
 # Bash fallback (works everywhere)
+
+# TUI requires bun/TypeScript
+if [ -n "$TUI" ]; then
+  echo "Error: --tui requires bun runtime"
+  echo "Install bun: curl -fsSL https://bun.sh/install | bash"
+  echo "Or run without --tui for standard output"
+  exit 1
+fi
+
+# Convert requires bun/TypeScript
+if [ "$MODE" = "convert" ]; then
+  echo "Error: --convert requires bun runtime"
+  echo "Install bun: curl -fsSL https://bun.sh/install | bash"
+  exit 1
+fi
 
 if [ ! -d "$FEATURE_DIR" ]; then
   echo "Error: Feature '${FEATURE}' not found"

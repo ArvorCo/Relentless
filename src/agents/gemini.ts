@@ -5,7 +5,7 @@
  * https://github.com/google-gemini/gemini-cli
  */
 
-import type { AgentAdapter, AgentResult, InvokeOptions } from "./types";
+import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
 
 export const geminiAdapter: AgentAdapter = {
   name: "gemini",
@@ -75,6 +75,28 @@ export const geminiAdapter: AgentAdapter = {
 
   detectCompletion(output: string): boolean {
     return output.includes("<promise>COMPLETE</promise>");
+  },
+
+  detectRateLimit(output: string): RateLimitInfo {
+    // Gemini rate limit patterns
+    const patterns = [
+      /quota exceeded/i,
+      /resource exhausted/i,
+      /rate limit/i,
+      /\b429\b/,
+      /too many requests/i,
+    ];
+
+    for (const pattern of patterns) {
+      if (pattern.test(output)) {
+        return {
+          limited: true,
+          message: "Gemini rate limit exceeded",
+        };
+      }
+    }
+
+    return { limited: false };
   },
 
   async installSkills(projectPath: string): Promise<void> {

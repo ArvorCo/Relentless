@@ -5,7 +5,7 @@
  * https://opencode.ai
  */
 
-import type { AgentAdapter, AgentResult, InvokeOptions } from "./types";
+import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
 
 export const opencodeAdapter: AgentAdapter = {
   name: "opencode",
@@ -63,5 +63,26 @@ export const opencodeAdapter: AgentAdapter = {
 
   detectCompletion(output: string): boolean {
     return output.includes("<promise>COMPLETE</promise>");
+  },
+
+  detectRateLimit(output: string): RateLimitInfo {
+    // OpenCode rate limit patterns
+    const patterns = [
+      /rate limited/i,
+      /try again later/i,
+      /quota exceeded/i,
+      /\b429\b/,
+    ];
+
+    for (const pattern of patterns) {
+      if (pattern.test(output)) {
+        return {
+          limited: true,
+          message: "OpenCode rate limit exceeded",
+        };
+      }
+    }
+
+    return { limited: false };
   },
 };

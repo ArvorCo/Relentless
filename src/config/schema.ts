@@ -28,6 +28,23 @@ export const RoutingRuleSchema = z.object({
 export type RoutingRule = z.infer<typeof RoutingRuleSchema>;
 
 /**
+ * Fallback configuration for automatic agent switching
+ */
+export const FallbackConfigSchema = z.object({
+  /** Enable automatic fallback when rate limited */
+  enabled: z.boolean().default(true),
+  /** Priority order for agents (first = preferred) */
+  priority: z.array(z.enum(["claude", "amp", "opencode", "codex", "droid", "gemini"]))
+    .default(["claude", "codex", "amp", "opencode", "gemini"]),
+  /** Automatically switch back when limits reset */
+  autoRecovery: z.boolean().default(true),
+  /** Delay (ms) before trying fallback agent */
+  retryDelay: z.number().int().nonnegative().default(2000),
+});
+
+export type FallbackConfig = z.infer<typeof FallbackConfigSchema>;
+
+/**
  * Execution configuration
  */
 export const ExecutionConfigSchema = z.object({
@@ -58,6 +75,7 @@ export const RelentlessConfigSchema = z.object({
     AgentConfigSchema
   ).default({}),
   routing: RoutingConfigSchema.default({}),
+  fallback: FallbackConfigSchema.default({}),
   execution: ExecutionConfigSchema.default({}),
   prompt: z.object({
     path: z.string().default("prompt.md"),
@@ -79,6 +97,12 @@ export const DEFAULT_CONFIG: RelentlessConfig = {
   routing: {
     rules: [],
     default: "claude",
+  },
+  fallback: {
+    enabled: true,
+    priority: ["claude", "codex", "amp", "opencode", "gemini"],
+    autoRecovery: true,
+    retryDelay: 2000,
   },
   execution: {
     maxIterations: 20,

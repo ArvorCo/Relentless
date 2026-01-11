@@ -14,6 +14,7 @@ import { checkAgentHealth, getAllAgentNames, isValidAgentName } from "../src/age
 import { loadConfig, findRelentlessDir } from "../src/config";
 import { loadPRD, savePRD, parsePRDMarkdown, createPRD } from "../src/prd";
 import { run } from "../src/execution/runner";
+import { runTUI } from "../src/tui/TUIRunner";
 import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
 
 const program = new Command();
@@ -40,6 +41,7 @@ program
   .option("-a, --agent <name>", "Agent to use (claude, amp, opencode, codex, droid, gemini, auto)", "claude")
   .option("-m, --max-iterations <n>", "Maximum iterations", "20")
   .option("--dry-run", "Show what would be executed without running", false)
+  .option("--tui", "Use beautiful terminal UI interface", false)
   .option("-d, --dir <path>", "Working directory", process.cwd())
   .action(async (options) => {
     const agent = options.agent.toLowerCase();
@@ -79,6 +81,22 @@ program
 
     const config = await loadConfig();
 
+    // Use TUI if requested
+    if (options.tui) {
+      const success = await runTUI({
+        agent: agent as any,
+        maxIterations: parseInt(options.maxIterations, 10),
+        workingDirectory: options.dir,
+        prdPath,
+        promptPath,
+        feature: options.feature,
+        config,
+        dryRun: options.dryRun,
+      });
+      process.exit(success ? 0 : 1);
+    }
+
+    // Standard runner
     const result = await run({
       agent: agent as any,
       maxIterations: parseInt(options.maxIterations, 10),
