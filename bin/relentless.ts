@@ -208,6 +208,101 @@ features
     }
   });
 
+// Status command - show all stories with status
+program
+  .command("status")
+  .description("Show status of all user stories in a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (options) => {
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    const prdPath = join(featureDir, "prd.json");
+
+    if (!existsSync(prdPath)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found or has no prd.json`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    const prd = await loadPRD(prdPath);
+    const completed = prd.userStories.filter((s) => s.passes).length;
+    const total = prd.userStories.length;
+
+    console.log(chalk.bold(`\nFeature: ${options.feature}`));
+    console.log(chalk.dim(`Progress: ${completed}/${total} stories complete\n`));
+
+    for (const story of prd.userStories) {
+      const status = story.passes
+        ? chalk.green("✓")
+        : chalk.dim("○");
+      const id = story.passes
+        ? chalk.green(story.id.padEnd(8))
+        : chalk.dim(story.id.padEnd(8));
+      const title = story.passes
+        ? chalk.strikethrough(chalk.dim(story.title))
+        : story.title;
+      console.log(`  ${status} ${id} ${title}`);
+    }
+    console.log("");
+  });
+
+// Reset command - reset a story to incomplete
+program
+  .command("reset <storyId>")
+  .description("Reset a user story to incomplete so it can be re-run")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (storyId, options) => {
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    const prdPath = join(featureDir, "prd.json");
+
+    if (!existsSync(prdPath)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found or has no prd.json`));
+      process.exit(1);
+    }
+
+    const prd = await loadPRD(prdPath);
+    const storyIndex = prd.userStories.findIndex(
+      (s) => s.id.toLowerCase() === storyId.toLowerCase()
+    );
+
+    if (storyIndex === -1) {
+      console.error(chalk.red(`Story '${storyId}' not found`));
+      console.log(chalk.dim(`Available stories: ${prd.userStories.map((s) => s.id).join(", ")}`));
+      process.exit(1);
+    }
+
+    const story = prd.userStories[storyIndex];
+    const wasComplete = story.passes;
+    const prevCompleted = prd.userStories.filter((s) => s.passes).length;
+
+    // Reset the story
+    prd.userStories[storyIndex].passes = false;
+    await savePRD(prd, prdPath);
+
+    const newCompleted = prd.userStories.filter((s) => s.passes).length;
+
+    if (wasComplete) {
+      console.log(chalk.green(`\n✓ Reset ${story.id} (${story.title}) to incomplete`));
+      console.log(chalk.dim(`  Feature: ${options.feature}`));
+      console.log(chalk.dim(`  Progress: ${newCompleted}/${prd.userStories.length} stories complete (was ${prevCompleted}/${prd.userStories.length})\n`));
+    } else {
+      console.log(chalk.yellow(`\n○ ${story.id} (${story.title}) was already incomplete\n`));
+    }
+  });
+
 // Agents command
 const agents = program.command("agents").description("Manage AI agents");
 

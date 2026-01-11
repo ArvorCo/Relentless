@@ -279,6 +279,12 @@ relentless convert <prd.md> --feature <name>
 # Run orchestration for a feature
 relentless run --feature <name> [--agent <name>] [--max-iterations <n>]
 
+# Show status of all user stories
+relentless status --feature <name>
+
+# Reset a story to incomplete (to re-run it)
+relentless reset <story-id> --feature <name>
+
 # List installed agents
 relentless agents list
 
