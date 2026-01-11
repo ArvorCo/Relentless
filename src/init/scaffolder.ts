@@ -102,11 +102,19 @@ If there are still stories with \`passes: false\`, end your response normally (a
 `;
 
 /**
- * Default progress.txt content for a new feature
+ * Default progress.txt content for a new feature with YAML frontmatter
  */
 export function createProgressTemplate(featureName: string): string {
-  return `# Progress Log: ${featureName}
-Started: ${new Date().toISOString()}
+  const started = new Date().toISOString();
+  return `---
+feature: ${featureName}
+started: ${started}
+last_updated: ${started}
+stories_completed: 0
+patterns: []
+---
+
+# Progress Log: ${featureName}
 
 ## Codebase Patterns
 

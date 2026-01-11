@@ -5,12 +5,14 @@
  */
 
 import { existsSync } from "node:fs";
+import { join, dirname } from "node:path";
 import chalk from "chalk";
 import type { AgentAdapter, AgentName } from "../agents/types";
 import { getAgent, getInstalledAgents } from "../agents/registry";
 import type { RelentlessConfig } from "../config/schema";
 import { loadConstitution, validateConstitution } from "../config/loader";
 import { loadPRD, getNextStory, isComplete, countStories } from "../prd";
+import { loadProgress, updateProgressMetadata, syncPatternsFromContent } from "../prd/progress";
 import { routeStory } from "./router";
 
 export interface RunOptions {
@@ -54,7 +56,11 @@ interface AgentLimitState {
 /**
  * Build the prompt for an iteration
  */
-async function buildPrompt(promptPath: string, workingDirectory: string): Promise<string> {
+async function buildPrompt(
+  promptPath: string,
+  workingDirectory: string,
+  progressPath: string
+): Promise<string> {
   if (!existsSync(promptPath)) {
     throw new Error(`Prompt file not found: ${promptPath}`);
   }
@@ -77,6 +83,16 @@ async function buildPrompt(promptPath: string, workingDirectory: string): Promis
     prompt += `\n\n## Project Constitution\n\n`;
     prompt += `The following principles and constraints govern this project.\n\n`;
     prompt += constitution.raw;
+  }
+
+  // Load and append progress patterns if available
+  const progress = await loadProgress(progressPath);
+  if (progress && progress.metadata.patterns.length > 0) {
+    prompt += `\n\n## Learned Patterns from Previous Iterations\n\n`;
+    prompt += `The following patterns were discovered in previous iterations:\n\n`;
+    for (const pattern of progress.metadata.patterns) {
+      prompt += `- ${pattern}\n`;
+    }
   }
 
   return prompt;
@@ -185,6 +201,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
   }
   const prd = await loadPRD(options.prdPath);
   const initialCount = countStories(prd);
+
+  // Calculate progress.txt path
+  const prdDir = dirname(options.prdPath);
+  const progressPath = join(prdDir, "progress.txt");
 
   console.log(chalk.bold.blue("\n🚀 Relentless - Universal AI Agent Orchestrator\n"));
   console.log(`Project: ${chalk.cyan(prd.project)}`);
@@ -297,7 +317,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
     // Build and run prompt
     try {
-      const prompt = await buildPrompt(options.promptPath, options.workingDirectory);
+      const prompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath);
 
       console.log(chalk.dim("  Running agent..."));
       const result = await agent.invoke(prompt, {
@@ -375,6 +395,21 @@ export async function run(options: RunOptions): Promise<RunResult> {
       }
 
       console.log(chalk.dim(`  Stories: ${updatedCount.completed}/${updatedCount.total} complete`));
+
+      // Update progress metadata after each iteration
+      if (existsSync(progressPath)) {
+        try {
+          // Sync patterns from content
+          await syncPatternsFromContent(progressPath);
+
+          // Update metadata
+          await updateProgressMetadata(progressPath, {
+            stories_completed: updatedCount.completed,
+          });
+        } catch (error) {
+          console.warn(chalk.yellow(`  ⚠️  Failed to update progress metadata: ${error}`));
+        }
+      }
     } catch (error) {
       console.error(chalk.red(`\n❌ Error in iteration ${i}:`), error);
       // Continue to next iteration
