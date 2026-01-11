@@ -216,22 +216,32 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
 /**
  * Generate branch name from project name
  */
-export function generateBranchName(projectName: string): string {
-  const kebab = projectName
+export function generateBranchName(projectName: string, featureName?: string): string {
+  let kebab = projectName
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+
+  // If featureName has a number prefix (NNN-name), prepend it to branch name
+  if (featureName) {
+    const match = featureName.match(/^(\d{3})-/);
+    if (match) {
+      const numberPrefix = match[1];
+      kebab = `${numberPrefix}-${kebab}`;
+    }
+  }
+
   return `ralph/${kebab}`;
 }
 
 /**
  * Convert parsed PRD to complete PRD with defaults
  */
-export function createPRD(parsed: Partial<PRD>): PRD {
+export function createPRD(parsed: Partial<PRD>, featureName?: string): PRD {
   const project = parsed.project ?? "Unnamed Project";
   const prd: PRD = {
     project,
-    branchName: parsed.branchName ?? generateBranchName(project),
+    branchName: parsed.branchName ?? generateBranchName(project, featureName),
     description: parsed.description ?? "",
     userStories: (parsed.userStories ?? []).map((story, index) => ({
       id: story.id ?? `US-${String(index + 1).padStart(3, "0")}`,

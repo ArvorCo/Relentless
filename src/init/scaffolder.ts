@@ -241,6 +241,32 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
 export interface CreateFeatureOptions {
   /** Include plan.md template */
   withPlan?: boolean;
+  /** Auto-number the feature directory (e.g., 001-feature-name) */
+  autoNumber?: boolean;
+}
+
+/**
+ * Get the next feature number by finding the highest existing number
+ */
+function getNextFeatureNumber(projectDir: string): number {
+  const featuresDir = join(projectDir, "relentless", "features");
+
+  if (!existsSync(featuresDir)) {
+    return 1;
+  }
+
+  const features = listFeatures(projectDir);
+
+  // Extract numbers from features with format NNN-name
+  const numbers = features
+    .map((feature) => {
+      const match = feature.match(/^(\d{3})-/);
+      return match ? parseInt(match[1], 10) : 0;
+    })
+    .filter((n) => n > 0);
+
+  // Return next number (or 1 if no numbered features exist)
+  return numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
 }
 
 /**
@@ -251,17 +277,25 @@ export async function createFeature(
   featureName: string,
   options: CreateFeatureOptions = {}
 ): Promise<string> {
-  const featureDir = join(projectDir, "relentless", "features", featureName);
+  // Generate numbered directory name if autoNumber is enabled
+  let finalFeatureName = featureName;
+  if (options.autoNumber) {
+    const nextNumber = getNextFeatureNumber(projectDir);
+    const numberPrefix = nextNumber.toString().padStart(3, "0");
+    finalFeatureName = `${numberPrefix}-${featureName}`;
+  }
+
+  const featureDir = join(projectDir, "relentless", "features", finalFeatureName);
 
   if (existsSync(featureDir)) {
-    throw new Error(`Feature '${featureName}' already exists`);
+    throw new Error(`Feature '${finalFeatureName}' already exists`);
   }
 
   mkdirSync(featureDir, { recursive: true });
 
   // Create progress.txt
   const progressPath = join(featureDir, "progress.txt");
-  await Bun.write(progressPath, createProgressTemplate(featureName));
+  await Bun.write(progressPath, createProgressTemplate(finalFeatureName));
 
   // Copy plan.md template if requested
   if (options.withPlan) {

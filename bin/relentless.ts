@@ -127,6 +127,7 @@ program
   .description("Convert PRD markdown to prd.json in a feature folder")
   .requiredOption("-f, --feature <name>", "Feature name")
   .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("--auto-number", "Auto-number the feature directory (e.g., 001-feature-name)", false)
   .action(async (prdMd, options) => {
     if (!existsSync(prdMd)) {
       console.error(chalk.red(`File not found: ${prdMd}`));
@@ -139,22 +140,37 @@ program
       process.exit(1);
     }
 
+    // Determine final feature name (with auto-number if requested)
+    let finalFeatureName = options.feature;
+    if (options.autoNumber) {
+      const features = listFeatures(options.dir);
+      const numbers = features
+        .map((f) => {
+          const match = f.match(/^(\d{3})-/);
+          return match ? parseInt(match[1], 10) : 0;
+        })
+        .filter((n) => n > 0);
+      const nextNumber = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
+      const numberPrefix = nextNumber.toString().padStart(3, "0");
+      finalFeatureName = `${numberPrefix}-${options.feature}`;
+    }
+
     // Create feature directory if it doesn't exist
-    const featureDir = join(relentlessDir, "features", options.feature);
+    const featureDir = join(relentlessDir, "features", finalFeatureName);
     if (!existsSync(featureDir)) {
       mkdirSync(featureDir, { recursive: true });
-      console.log(chalk.dim(`Created feature: ${options.feature}`));
+      console.log(chalk.dim(`Created feature: ${finalFeatureName}`));
 
       // Create progress.txt
       const progressPath = join(featureDir, "progress.txt");
-      await Bun.write(progressPath, createProgressTemplate(options.feature));
+      await Bun.write(progressPath, createProgressTemplate(finalFeatureName));
     }
 
     console.log(chalk.dim(`Converting ${prdMd}...`));
 
     const content = await Bun.file(prdMd).text();
     const parsed = parsePRDMarkdown(content);
-    const prd = createPRD(parsed);
+    const prd = createPRD(parsed, finalFeatureName);
 
     // Save prd.json to feature folder
     const prdJsonPath = join(featureDir, "prd.json");
@@ -164,7 +180,7 @@ program
     const prdMdPath = join(featureDir, "prd.md");
     await Bun.write(prdMdPath, content);
 
-    console.log(chalk.green(`✅ Created relentless/features/${options.feature}/`));
+    console.log(chalk.green(`✅ Created relentless/features/${finalFeatureName}/`));
     console.log(chalk.dim(`  prd.json - ${prd.userStories.length} stories`));
     console.log(chalk.dim(`  prd.md - source PRD`));
     console.log(chalk.dim(`  progress.txt - progress log`));
@@ -214,12 +230,18 @@ features
   .command("create <name>")
   .description("Create a new feature folder")
   .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("--with-plan", "Include plan.md template", false)
+  .option("--auto-number", "Auto-number the feature directory (e.g., 001-feature-name)", false)
   .action(async (name, options) => {
     try {
-      const featureDir = await createFeature(options.dir, name);
-      console.log(chalk.green(`✅ Created feature: ${name}`));
+      const featureDir = await createFeature(options.dir, name, {
+        withPlan: options.withPlan,
+        autoNumber: options.autoNumber,
+      });
+      const featureName = featureDir.split("/").pop() || name;
+      console.log(chalk.green(`✅ Created feature: ${featureName}`));
       console.log(chalk.dim(`  ${featureDir}/`));
-      console.log(chalk.dim("\nNext: Add prd.md and run: relentless convert prd.md --feature " + name));
+      console.log(chalk.dim("\nNext: Add prd.md and run: relentless convert prd.md --feature " + featureName));
     } catch (error) {
       console.error(chalk.red((error as Error).message));
       process.exit(1);
