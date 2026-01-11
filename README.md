@@ -15,6 +15,8 @@
 
 ## Quick Start
 
+### Basic Workflow
+
 ```bash
 # 1. Install Relentless globally
 bun install -g github:ArvorCo/Relentless
@@ -34,6 +36,26 @@ relentless convert relentless/features/my-feature/prd.md --feature my-feature
 
 # 6. Run Relentless (with beautiful TUI)
 relentless run --feature my-feature --tui
+```
+
+### Advanced Workflow (with Spec Kit)
+
+For structured planning with hierarchical tasks, quality checklists, and interactive clarification:
+
+```bash
+# 1-2. Install and initialize (same as above)
+
+# 3. Create feature specification with Claude Code
+/speckit.specify Add user authentication with OAuth2 support
+
+# 4. Generate technical plan, tasks, and checklist
+/speckit.plan I'm using React, TypeScript, PostgreSQL
+/speckit.tasks
+/speckit.checklist
+
+# 5. Convert to PRD and run
+relentless convert relentless/features/003-user-auth/spec.md --feature 003-user-auth
+relentless run --feature 003-user-auth --tui
 ```
 
 **Alternative: Create PRD manually**
@@ -70,16 +92,40 @@ Evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/).
 
 ### Features
 
+#### Core Orchestration
 - **Beautiful TUI** - Real-time terminal interface with progress bars, story grid, and agent output
 - **Intelligent Agent Fallback** - Automatically switches agents when rate limits are hit
 - **Rate Limit Detection** - Detects limits for Claude, Codex, Amp, OpenCode, Gemini, and Droid
 - **Auto-Recovery** - Switches back to preferred agent when limits reset
-- **Cross-Artifact Analysis** - Consistency checks across PRD, JSON, and progress files
-- **GitHub Issues Generation** - Convert user stories directly to GitHub issues via `gh` CLI
-- **Research Phase Support** - Stories can require research before implementation
 - **Auto-Numbered Branches** - Automatic feature numbering (001-feature, 002-feature, etc.)
-- **Dependency-Ordered Tasks** - Stories with dependencies are executed in correct order
+
+#### Specification & Planning (Spec Kit Integration)
+- **Interactive Specification** - `/speckit.specify` command for creating feature specs from natural language
+- **Technical Planning** - `/speckit.plan` command for generating implementation plans
+- **Hierarchical Task Breakdown** - 4-phase structure (Setup → Foundation → Stories → Polish) with dependency ordering
+- **Quality Checklists** - Domain-specific validation checklists generated from PRD requirements
+- **Interactive Clarification** - Systematic ambiguity detection with targeted questions and multiple-choice options
+- **Constitution Management** - Project-level principles, patterns, and constraints (MUST/SHOULD format)
+
+#### Task & Dependency Management
+- **Dependency-Ordered Execution** - Stories with dependencies are executed in correct order
+- **Circular Dependency Detection** - Validates dependencies and prevents circular references
+- **Parallel Task Markers** - Tasks marked with `[P]` can run simultaneously
+- **Phase-Based Planning** - Tasks organized into Setup, Foundation, Stories, and Polish phases
+- **Research Phase Support** - Stories can require research before implementation
+
+#### Analysis & Integration
+- **Cross-Artifact Analysis** - Consistency checks across PRD, JSON, progress, and constitution files
+- **GitHub Issues Generation** - Convert user stories directly to GitHub issues via `gh` CLI
 - **Progress Tracking** - YAML frontmatter metadata in progress.txt for machine-readable context
+
+#### Skills for AI Agents
+Five specialized skills for Claude Code, Amp, and other AI agents:
+- **prd skill** - Generate comprehensive PRDs with acceptance criteria
+- **tasks skill** - Create dependency-ordered task breakdowns
+- **checklist skill** - Generate domain-specific quality checklists
+- **clarify skill** - Identify and resolve PRD ambiguities
+- **relentless skill** - Integration commands for orchestration
 
 ---
 
@@ -255,14 +301,42 @@ your-project/
 │   ├── config.json                # Relentless configuration
 │   ├── prompt.md                  # Prompt template for agents
 │   └── features/
-│       └── my-feature/
+│       └── my-feature/            # or 001-my-feature with auto-numbering
 │           ├── prd.md             # Your PRD (markdown)
 │           ├── prd.json           # Converted PRD (JSON)
-│           └── progress.txt       # Progress log
-└── .claude/skills/                # Skills for Claude Code
-    ├── prd/SKILL.md
-    └── relentless/SKILL.md
+│           ├── progress.txt       # Progress log with YAML frontmatter
+│           ├── plan.md            # Technical implementation plan (optional)
+│           ├── tasks.md           # Dependency-ordered task breakdown (optional)
+│           ├── checklist.md       # Quality validation checklist (optional)
+│           ├── constitution.md    # Project coding principles (optional)
+│           ├── clarification-log.md  # Ambiguity resolutions (optional)
+│           └── research/          # Research findings (optional)
+│               └── US-XXX.md
+├── .claude/
+│   ├── skills/                    # Skills for Claude Code
+│   │   ├── prd/SKILL.md
+│   │   ├── tasks/SKILL.md
+│   │   ├── checklist/SKILL.md
+│   │   ├── clarify/SKILL.md
+│   │   └── relentless/SKILL.md
+│   └── commands/                  # Spec Kit commands
+│       ├── speckit.specify.md
+│       ├── speckit.plan.md
+│       ├── speckit.tasks.md
+│       ├── speckit.checklist.md
+│       ├── speckit.clarify.md
+│       ├── speckit.constitution.md
+│       ├── speckit.analyze.md
+│       ├── speckit.implement.md
+│       └── speckit.taskstoissues.md
+└── templates/                     # Templates copied from Relentless
+    ├── prompt.md
+    ├── plan.md
+    ├── constitution.md
+    └── progress.txt
 ```
+
+**Note:** Files marked as "(optional)" are created when using the Spec Kit workflow or specific CLI options (`--with-plan`, etc.).
 
 ---
 
@@ -293,20 +367,11 @@ relentless agents doctor
 
 ## CLI Commands
 
+### Core Commands
+
 ```bash
 # Initialize Relentless in current project
 relentless init
-
-# Create a new feature (with optional auto-numbering)
-relentless features create <name>
-relentless features create <name> --auto-number  # Creates 001-<name>, 002-<name>, etc.
-
-# List all features
-relentless features list
-
-# Convert PRD markdown to JSON
-relentless convert <prd.md> --feature <name>
-relentless convert <prd.md> --feature <name> --auto-number  # Auto-number the feature
 
 # Run orchestration for a feature
 relentless run --feature <name> [--agent <name>] [--max-iterations <n>] [--tui]
@@ -316,18 +381,78 @@ relentless status --feature <name>
 
 # Reset a story to incomplete (to re-run it)
 relentless reset <story-id> --feature <name>
+```
 
-# Analyze cross-artifact consistency (PRD, JSON, progress)
+### Feature Management
+
+```bash
+# Create a new feature (with optional auto-numbering)
+relentless features create <name>
+relentless features create <name> --auto-number  # Creates 001-<name>, 002-<name>, etc.
+relentless features create <name> --with-plan    # Include plan.md template
+
+# List all features
+relentless features list
+
+# Convert PRD markdown to JSON
+relentless convert <prd.md> --feature <name>
+relentless convert <prd.md> --feature <name> --auto-number
+
+# Create PRD from natural language description
+relentless prd "<feature description>"
+```
+
+### Analysis & Integration
+
+```bash
+# Analyze cross-artifact consistency (PRD, JSON, progress, constitution)
 relentless analyze --feature <name>
 
 # Generate GitHub issues from user stories
 relentless issues --feature <name> [--dry-run] [--all]
+```
 
+### Agent Management
+
+```bash
 # List installed agents
 relentless agents list
 
 # Check agent health
 relentless agents doctor
+```
+
+### Spec Kit Commands (For Claude Code & Compatible Agents)
+
+These commands are available when using Claude Code or other agents that support custom commands:
+
+```bash
+# Create or update feature specification
+/speckit.specify <feature description>
+
+# Generate technical implementation plan
+/speckit.plan [options]
+
+# Generate dependency-ordered task breakdown
+/speckit.tasks
+
+# Generate domain-specific quality checklist
+/speckit.checklist
+
+# Clarify ambiguities in PRD
+/speckit.clarify
+
+# Manage project constitution
+/speckit.constitution
+
+# Analyze cross-artifact consistency
+/speckit.analyze
+
+# Convert tasks to GitHub issues
+/speckit.taskstoissues
+
+# Execute implementation workflow
+/speckit.implement
 ```
 
 ### Alternative: Run with bunx (No Installation)
@@ -341,6 +466,297 @@ bunx github:ArvorCo/Relentless run --feature <name>
 
 # Check status
 bunx github:ArvorCo/Relentless status --feature <name>
+```
+
+---
+
+## Spec Kit Integration (Optional but Recommended)
+
+Relentless now includes comprehensive Spec Kit-inspired features for structured specification, planning, and quality assurance. These features work with Claude Code and other compatible AI agents.
+
+### Overview
+
+The Spec Kit workflow provides:
+1. **Interactive Specification** - Natural language to structured specs
+2. **Technical Planning** - Implementation design and architecture
+3. **Hierarchical Task Breakdown** - Dependency-ordered, phase-structured tasks
+4. **Quality Checklists** - Domain-specific validation
+5. **Constitution Management** - Project-level coding principles
+
+### Workflow
+
+#### 1. Create Feature Specification
+
+Use the `/speckit.specify` command to create a feature spec from a natural language description:
+
+```bash
+/speckit.specify Add user authentication with email/password and OAuth2 support
+```
+
+This will:
+- Generate a short name for the feature (e.g., "user-auth")
+- Check for existing branches and auto-number (e.g., "003-user-auth")
+- Create a comprehensive specification with:
+  - User scenarios and acceptance criteria
+  - Functional requirements
+  - Success criteria (measurable, technology-agnostic)
+  - Key entities and data models
+  - Dependencies and assumptions
+- Validate specification quality with a checklist
+- Identify ambiguities and present clarification questions (max 3)
+
+**Optional: Clarify Ambiguities**
+
+If the spec has unclear areas, use `/speckit.clarify` to systematically resolve them:
+
+```bash
+/speckit.clarify
+```
+
+This scans for 9 types of ambiguities:
+- Behavioral (what happens when...)
+- Data (required fields, validation)
+- UI/UX (where, how, what style)
+- Integration (which APIs, fallbacks)
+- Permissions (who can do what)
+- Performance (limits, pagination)
+- Error handling (what errors, how displayed)
+- State management (persistence)
+- Edge cases (empty data, race conditions)
+
+#### 2. Generate Technical Plan
+
+Create an implementation plan using `/speckit.plan`:
+
+```bash
+/speckit.plan I'm building with React, TypeScript, and PostgreSQL
+```
+
+This generates:
+- Technical architecture and design patterns
+- Data models and API contracts
+- Integration points and migration strategy
+- Testing strategy (unit, integration, E2E)
+- Security considerations
+- Rollout and monitoring plan
+
+Saved to: `relentless/features/<feature-name>/plan.md`
+
+#### 3. Generate Task Breakdown
+
+Break down the plan into dependency-ordered tasks:
+
+```bash
+/speckit.tasks
+```
+
+**Hierarchical 4-Phase Structure:**
+
+```markdown
+Phase 0: Setup
+  - Install dependencies
+  - Create directory structure
+  - Initialize configuration
+
+Phase 1: Foundation
+  - Database schema
+  - Core types and models
+  - Base utilities
+
+Phase 2: Stories
+  - US-001: Feature implementation
+  - US-002: UI components
+  - US-003: API endpoints
+
+Phase 3: Polish
+  - Performance optimization
+  - Documentation
+  - Analytics
+```
+
+**Key Features:**
+- **Task IDs**: T001, T002, T003 (sequential)
+- **Phase Markers**: `[Phase 0]`, `[Phase 1]`, etc.
+- **Story Labels**: `[US-001]`, `[US-002]`
+- **Parallel Markers**: `[P]` for tasks that can run simultaneously
+- **Dependencies**: Tasks ordered by dependencies
+- **Testing**: Explicit verification tasks after each story
+
+Example:
+```markdown
+- [ ] **T001** [Phase 0] [Setup] Install required dependencies (zod, commander)
+- [ ] **T002** [Phase 1] [US-001] Create User schema with email field [P]
+- [ ] **T003** [Phase 1] [US-001] Add password hashing utility [P]
+- [ ] **T004** [Phase 2] [US-001] Implement login endpoint
+- [ ] **T005** [Phase 2] [US-001] Run typecheck and lint (verify US-001)
+```
+
+Saved to: `relentless/features/<feature-name>/tasks.md`
+
+#### 4. Generate Quality Checklist
+
+Create a domain-specific quality checklist:
+
+```bash
+/speckit.checklist
+```
+
+This generates 20-40 validation items across 5-7 categories:
+- Schema & Database
+- Backend Logic
+- Frontend Components
+- Integration & Flow
+- Testing & Validation
+- Security & Permissions
+- Performance & UX
+
+**80% of items** reference specific PRD sections or identify gaps/ambiguities:
+- `[US-001]` - References user story
+- `[Gap]` - Missing specification
+- `[Ambiguity]` - Unclear requirement
+- `[Edge Case]` - Potential edge case
+
+Saved to: `relentless/features/<feature-name>/checklist.md`
+
+### Hierarchical Planning Details
+
+#### Phase Structure
+
+**Phase 0: Setup** (Infrastructure)
+- Project structure and dependencies
+- Configuration files
+- Base templates and types
+- Required by all other phases
+
+**Phase 1: Foundation** (Core Platform)
+- Database schemas and migrations
+- Core data models and types
+- Base API endpoints
+- Authentication/authorization
+- Utility functions
+- Used by multiple user stories
+
+**Phase 2: Stories** (User Features)
+- Individual user story implementation
+- Feature-specific UI components
+- Feature-specific API routes
+- Integration between components
+- Independently testable
+
+**Phase 3: Polish** (Refinement)
+- Performance optimization
+- Error handling improvements
+- Accessibility enhancements
+- Documentation and analytics
+
+#### Dependency Management
+
+**Story Dependencies in PRD:**
+
+```json
+{
+  "id": "US-002",
+  "title": "User Profile Page",
+  "dependencies": ["US-001"],
+  "passes": false
+}
+```
+
+**Features:**
+- **Validation**: Checks for missing or circular dependencies
+- **Execution Order**: Stories run in dependency order
+- **Independent Testing**: Each story is independently testable
+- **Parallel Markers**: Stories without dependencies can run in parallel
+
+#### Task Granularity
+
+Each task should take 15-60 minutes:
+- **Too small**: "Change variable name" (combine these)
+- **Too large**: "Implement entire authentication" (break into subtasks)
+- **Just right**: "Create login form component", "Add JWT validation middleware"
+
+### Constitution Management
+
+Create a project constitution to enforce coding standards:
+
+```bash
+/speckit.constitution
+```
+
+The constitution defines:
+- **MUST** rules (enforced, blocking)
+- **SHOULD** rules (best practices, warnings)
+
+Categories:
+- Architecture patterns
+- Code quality standards
+- Version control practices
+- Technology stack constraints
+- Security requirements
+- Performance expectations
+
+Saved to: `relentless/features/<feature-name>/constitution.md`
+
+Agents check the constitution before implementing each story.
+
+### Skills for AI Agents
+
+Five skills are automatically installed in `.claude/skills/`:
+
+**1. prd skill** - Generate PRDs
+```bash
+claude "Load the prd skill and create a PRD for user authentication"
+```
+
+**2. tasks skill** - Generate task breakdowns
+```bash
+claude "Load the tasks skill and generate tasks for the auth feature"
+```
+
+**3. checklist skill** - Generate quality checklists
+```bash
+claude "Load the checklist skill and create a checklist for the API feature"
+```
+
+**4. clarify skill** - Clarify ambiguities
+```bash
+claude "Load the clarify skill and identify ambiguities in the PRD"
+```
+
+**5. relentless skill** - Orchestration integration
+```bash
+claude "Load the relentless skill and show me the next incomplete story"
+```
+
+### Complete Workflow Example
+
+```bash
+# 1. Initialize project
+relentless init
+
+# 2. Create feature specification (Claude Code)
+/speckit.specify Add user authentication with OAuth2 and 2FA support
+
+# 3. Clarify any ambiguities (if needed)
+/speckit.clarify
+
+# 4. Generate technical plan
+/speckit.plan I'm using React, Node.js, PostgreSQL
+
+# 5. Generate task breakdown
+/speckit.tasks
+
+# 6. Generate quality checklist
+/speckit.checklist
+
+# 7. Convert spec to PRD for orchestration
+relentless convert relentless/features/003-user-auth/spec.md --feature 003-user-auth
+
+# 8. Run orchestration
+relentless run --feature 003-user-auth --tui
+
+# 9. Generate GitHub issues (optional)
+relentless issues --feature 003-user-auth
 ```
 
 ---
@@ -467,17 +883,20 @@ Make criteria **verifiable**, not vague:
 - `Typecheck passes` in every story
 - `Verify in browser` for UI stories
 
-### Story Dependencies
+### Advanced PRD Features
 
-Stories can depend on other stories. Relentless ensures dependencies are completed first:
+#### Story Dependencies
 
+Stories can depend on other stories. Relentless ensures dependencies are completed first and validates for circular dependencies:
+
+**In Markdown:**
 ```markdown
 ### US-002: Add User Profile Page
 **Dependencies:** US-001
-**Description:** ...
+**Description:** Create user profile page showing user information.
 ```
 
-In `prd.json`:
+**In prd.json:**
 ```json
 {
   "id": "US-002",
@@ -487,32 +906,105 @@ In `prd.json`:
 }
 ```
 
-### Research Phase
+**Features:**
+- Validates dependencies exist
+- Detects circular dependencies (US-A → US-B → US-A)
+- Executes in correct order
+- Shows dependency errors in `relentless analyze`
 
-For complex stories that require exploration before implementation, mark them for research:
+#### Parallel Execution
 
+Mark stories that can run simultaneously:
+
+```json
+{
+  "id": "US-003",
+  "title": "Add Analytics Dashboard",
+  "parallel": true,
+  "passes": false
+}
+```
+
+Stories without dependencies and marked `parallel: true` can be implemented concurrently by different agent runs.
+
+#### Phase Markers
+
+Organize stories into phases for better task planning:
+
+```json
+{
+  "id": "US-001",
+  "title": "Create Database Schema",
+  "phase": "Foundation",
+  "passes": false
+}
+```
+
+**Common phases:**
+- `Setup` - Infrastructure and dependencies
+- `Foundation` - Core platform and shared code
+- `Stories` - User-facing features
+- `Polish` - Optimizations and refinements
+
+#### Research Phase
+
+For complex stories requiring exploration before implementation:
+
+**In Markdown:**
 ```markdown
 ### US-005: Integrate Payment Provider
 **Research Required:** true
 **Description:** Research best payment provider options before implementing.
 ```
 
+**In prd.json:**
+```json
+{
+  "id": "US-005",
+  "title": "Integrate Payment Provider",
+  "research": true,
+  "passes": false
+}
+```
+
 When `research: true`, Relentless will:
 1. Run a research phase first to gather context
-2. Save findings to `research/US-005.md`
+2. Save findings to `relentless/features/<feature>/research/US-005.md`
 3. Then run the implementation phase with research context
 
 ---
 
 ## How It Works
 
+### Core Orchestration Loop
+
 1. **Fresh Context Each Iteration** - Each loop spawns a new agent instance with clean context
-2. **Agent Reads PRD** - Finds the first story with `passes: false`
-3. **Agent Implements** - Makes changes, runs tests, commits
-4. **Agent Updates PRD** - Sets `passes: true` for completed story
-5. **Agent Updates Progress** - Appends learnings to `progress.txt`
-6. **Loop Continues** - Until all stories pass or max iterations reached
-7. **Completion Signal** - Agent outputs `<promise>COMPLETE</promise>` when done
+2. **Load Constitution** - Agent reads project coding principles and constraints (if present)
+3. **Agent Reads PRD** - Finds the next story with `passes: false` that has dependencies met
+4. **Dependency Validation** - Ensures all story dependencies are completed before execution
+5. **Research Phase** (if needed) - Agent explores and documents findings for complex stories
+6. **Agent Implements** - Makes changes, follows constitution rules, runs tests, commits
+7. **Agent Updates PRD** - Sets `passes: true` for completed story
+8. **Agent Updates Progress** - Appends learnings to `progress.txt` with YAML frontmatter
+9. **Loop Continues** - Until all stories pass or max iterations reached
+10. **Completion Signal** - Agent outputs `<promise>COMPLETE</promise>` when done
+
+### Dependency Resolution
+
+- **Before execution**: Validates all dependencies exist and no circular references
+- **During execution**: Only selects stories where all dependencies have `passes: true`
+- **Priority order**: Follows story priority while respecting dependencies
+- **Parallel execution**: Stories marked `parallel: true` without dependencies can run concurrently
+
+### Memory Persistence
+
+Each agent iteration has access to:
+- **Git history** - All commits from previous iterations
+- **progress.txt** - YAML metadata + learnings and context notes
+- **prd.json** - Task completion status and dependencies
+- **constitution.md** - Project coding principles (MUST/SHOULD rules)
+- **tasks.md** - Dependency-ordered task breakdown (if present)
+- **checklist.md** - Quality validation checklist (if present)
 
 ---
 
@@ -570,7 +1062,7 @@ bun run lint
 
 - [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) - Original concept by Geoffrey Huntley
 - [Ralph by Snarktank](https://github.com/snarktank/ralph) - Reference implementation that inspired Relentless
-- [GitHub Spec Kit](https://github.com/github/spec-kit) - PRD structure reference
+- [GitHub Spec Kit](https://github.com/github/spec-kit) - Specification workflow and structure inspiration for hierarchical planning, quality checklists, and interactive clarification features
 
 ---
 
