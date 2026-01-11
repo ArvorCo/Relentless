@@ -13,24 +13,41 @@
 
 ---
 
-## Quick Start (30 seconds)
+## Quick Start
 
 ```bash
-# 1. Clone and enter your project
+# 1. Initialize Relentless in your project
 cd your-project
-
-# 2. Initialize Relentless
 bun run github:ArvorCo/Relentless/bin/relentless.ts init
 
-# 3. Create a feature and add your PRD
-mkdir -p relentless/features/my-feature
-# Write your PRD to relentless/features/my-feature/prd.md
+# 2. Create a feature
+bun run github:ArvorCo/Relentless/bin/relentless.ts features create my-feature
+
+# 3. Create PRD using Claude Code skill (recommended)
+claude "Load the prd skill and create a PRD for [describe your feature]"
 
 # 4. Convert PRD to JSON
 bun run github:ArvorCo/Relentless/bin/relentless.ts convert relentless/features/my-feature/prd.md --feature my-feature
 
 # 5. Run Relentless
 ./relentless/bin/relentless.sh --feature my-feature
+```
+
+**Alternative: Create PRD manually**
+
+Create `relentless/features/my-feature/prd.md`:
+```markdown
+# My Feature
+
+## User Stories
+
+### US-001: First Task
+As a user, I want X so that Y.
+
+**Acceptance Criteria:**
+- Criterion 1
+- Criterion 2
+- Typecheck passes
 ```
 
 That's it. Relentless will run your AI agent in a loop until all PRD stories are complete.
