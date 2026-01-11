@@ -214,7 +214,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const limitedAgents = new Map<AgentName, AgentLimitState>();
 
   // Current active agent
-  let currentAgentName: AgentName | null = options.agent === "auto" ? null : options.agent;
+  let _currentAgentName: AgentName | null = options.agent === "auto" ? null : options.agent;
 
   // Load PRD
   if (!existsSync(options.prdPath)) {
@@ -273,7 +273,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
         routedName
       );
       if (agent) {
-        currentAgentName = agent.name;
+        _currentAgentName = agent.name;
       }
     } else if (options.config.fallback.enabled) {
       // Use fallback if enabled
@@ -283,12 +283,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
         options.agent
       );
       if (agent) {
-        currentAgentName = agent.name;
+        _currentAgentName = agent.name;
       }
     } else {
       // Use specified agent without fallback
       agent = getAgent(options.agent);
-      currentAgentName = options.agent;
+      _currentAgentName = options.agent;
     }
 
     // Check if we have an available agent
@@ -374,7 +374,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
             );
             if (fallbackAgent) {
               console.log(chalk.green(`  Switching to: ${fallbackAgent.displayName}`));
-              currentAgentName = fallbackAgent.name;
+              _currentAgentName = fallbackAgent.name;
               await sleep(options.config.fallback.retryDelay);
               i--;
               continue;
@@ -427,7 +427,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
           if (fallbackAgent) {
             console.log(chalk.green(`  Switching to: ${fallbackAgent.displayName}`));
-            currentAgentName = fallbackAgent.name;
+            _currentAgentName = fallbackAgent.name;
             // Wait before retry
             await sleep(options.config.fallback.retryDelay);
             i--; // Retry this iteration with new agent

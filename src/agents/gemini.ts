@@ -99,7 +99,7 @@ export const geminiAdapter: AgentAdapter = {
     return { limited: false };
   },
 
-  async installSkills(projectPath: string): Promise<void> {
+  async installSkills(_projectPath: string): Promise<void> {
     // Gemini uses extensions, we can't install project-local
     // Users need to run: gemini extensions install <url>
     console.log(

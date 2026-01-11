@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import type { AgentName, StoryType } from "../agents/types";
+// Agent and story types defined inline in Zod schemas below
 
 /**
  * Agent-specific configuration

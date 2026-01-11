@@ -74,6 +74,12 @@ Evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/).
 - **Intelligent Agent Fallback** - Automatically switches agents when rate limits are hit
 - **Rate Limit Detection** - Detects limits for Claude, Codex, Amp, OpenCode, Gemini, and Droid
 - **Auto-Recovery** - Switches back to preferred agent when limits reset
+- **Cross-Artifact Analysis** - Consistency checks across PRD, JSON, and progress files
+- **GitHub Issues Generation** - Convert user stories directly to GitHub issues via `gh` CLI
+- **Research Phase Support** - Stories can require research before implementation
+- **Auto-Numbered Branches** - Automatic feature numbering (001-feature, 002-feature, etc.)
+- **Dependency-Ordered Tasks** - Stories with dependencies are executed in correct order
+- **Progress Tracking** - YAML frontmatter metadata in progress.txt for machine-readable context
 
 ---
 
@@ -291,14 +297,16 @@ relentless agents doctor
 # Initialize Relentless in current project
 relentless init
 
-# Create a new feature
+# Create a new feature (with optional auto-numbering)
 relentless features create <name>
+relentless features create <name> --auto-number  # Creates 001-<name>, 002-<name>, etc.
 
 # List all features
 relentless features list
 
 # Convert PRD markdown to JSON
 relentless convert <prd.md> --feature <name>
+relentless convert <prd.md> --feature <name> --auto-number  # Auto-number the feature
 
 # Run orchestration for a feature
 relentless run --feature <name> [--agent <name>] [--max-iterations <n>] [--tui]
@@ -308,6 +316,12 @@ relentless status --feature <name>
 
 # Reset a story to incomplete (to re-run it)
 relentless reset <story-id> --feature <name>
+
+# Analyze cross-artifact consistency (PRD, JSON, progress)
+relentless analyze --feature <name>
+
+# Generate GitHub issues from user stories
+relentless issues --feature <name> [--dry-run] [--all]
 
 # List installed agents
 relentless agents list
@@ -328,6 +342,66 @@ bunx github:ArvorCo/Relentless run --feature <name>
 # Check status
 bunx github:ArvorCo/Relentless status --feature <name>
 ```
+
+---
+
+## Quality Assurance Commands
+
+### Analyze Cross-Artifact Consistency
+
+Check for issues across your PRD, JSON, and progress files:
+
+```bash
+relentless analyze --feature my-feature
+```
+
+This checks for:
+- **Schema Validation** - Missing required fields, invalid story IDs
+- **Dependency Consistency** - Circular dependencies, missing dependencies
+- **File Existence** - Missing prd.md, progress.txt, constitution.md
+- **Story Completeness** - Stories with few acceptance criteria
+- **Progress Log Sync** - Completed stories not mentioned in progress.txt
+
+Example output:
+```
+╔═══════════════════════════════════════════════════════╗
+║  Cross-Artifact Consistency Analysis                 ║
+╚═══════════════════════════════════════════════════════╝
+
+Feature: my-feature
+Summary:
+  Stories: 10/12 completed (2 pending)
+  Issues: 3 total
+    Critical: 0
+    Warnings: 2
+    Info: 1
+```
+
+### Generate GitHub Issues
+
+Convert user stories directly to GitHub issues:
+
+```bash
+# Preview what would be created (dry run)
+relentless issues --feature my-feature --dry-run
+
+# Create issues for incomplete stories only
+relentless issues --feature my-feature
+
+# Create issues for all stories (including completed)
+relentless issues --feature my-feature --all
+```
+
+**Requirements:**
+- [GitHub CLI (gh)](https://cli.github.com/) must be installed and authenticated
+- Git remote must be a GitHub repository
+
+Each issue includes:
+- Story title and description
+- Acceptance criteria as checkboxes
+- Labels based on story type (database, ui, api, etc.)
+- Priority labels (high, medium, low)
+- Dependencies listed
 
 ---
 
@@ -392,6 +466,41 @@ Make criteria **verifiable**, not vague:
 
 - `Typecheck passes` in every story
 - `Verify in browser` for UI stories
+
+### Story Dependencies
+
+Stories can depend on other stories. Relentless ensures dependencies are completed first:
+
+```markdown
+### US-002: Add User Profile Page
+**Dependencies:** US-001
+**Description:** ...
+```
+
+In `prd.json`:
+```json
+{
+  "id": "US-002",
+  "title": "Add User Profile Page",
+  "dependencies": ["US-001"],
+  "passes": false
+}
+```
+
+### Research Phase
+
+For complex stories that require exploration before implementation, mark them for research:
+
+```markdown
+### US-005: Integrate Payment Provider
+**Research Required:** true
+**Description:** Research best payment provider options before implementing.
+```
+
+When `research: true`, Relentless will:
+1. Run a research phase first to gather context
+2. Save findings to `research/US-005.md`
+3. Then run the implementation phase with research context
 
 ---
 

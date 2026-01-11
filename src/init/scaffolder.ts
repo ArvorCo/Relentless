@@ -21,7 +21,7 @@
  */
 
 import { existsSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import chalk from "chalk";
 import { checkAgentHealth } from "../agents/registry";
 import { DEFAULT_CONFIG } from "../config/schema";

@@ -4,7 +4,8 @@
  * Converts user stories to GitHub issues via gh CLI
  */
 
-import { PRD, UserStory, inferStoryType } from "./types";
+import type { PRD, UserStory } from "./types";
+import { inferStoryType } from "./types";
 import chalk from "chalk";
 
 /**
@@ -13,6 +14,12 @@ import chalk from "chalk";
 async function validateGitRemote(): Promise<{ owner: string; repo: string }> {
   const proc = Bun.spawn(["git", "remote", "get-url", "origin"]);
   const output = await new Response(proc.stdout).text();
+  const exitCode = await proc.exited;
+
+  if (exitCode !== 0) {
+    throw new Error(`Failed to get git remote: exit code ${exitCode}`);
+  }
+
   const url = output.trim();
 
   // Parse GitHub remote URL
@@ -147,10 +154,11 @@ async function createIssue(story: UserStory, labels: string[]): Promise<string> 
 
   const proc = Bun.spawn(["gh", ...args]);
   const output = await new Response(proc.stdout).text();
-  const error = await new Response(proc.stderr).text();
+  const stderr = await new Response(proc.stderr).text();
+  const exitCode = await proc.exited;
 
-  if (proc.exitCode !== 0) {
-    throw new Error(`Failed to create issue for ${story.id}: ${error}`);
+  if (exitCode !== 0) {
+    throw new Error(`Failed to create issue for ${story.id}: ${stderr}`);
   }
 
   // Extract issue URL from output (gh returns the URL)
@@ -163,9 +171,13 @@ async function createIssue(story: UserStory, labels: string[]): Promise<string> 
 async function checkGhCLI(): Promise<boolean> {
   try {
     const proc = Bun.spawn(["gh", "--version"]);
-    await proc.exited;
-    return proc.exitCode === 0;
-  } catch {
+    const exitCode = await proc.exited;
+    return exitCode === 0;
+  } catch (error) {
+    // Log unexpected errors (not just "command not found")
+    if (error instanceof Error && !error.message.includes("ENOENT")) {
+      console.warn(`Unexpected error checking gh CLI: ${error.message}`);
+    }
     return false;
   }
 }

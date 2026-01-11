@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 
 import { checkAgentHealth, getAllAgentNames, isValidAgentName } from "../src/agents";
+import type { AgentName } from "../src/agents/types";
 import { loadConfig, findRelentlessDir } from "../src/config";
 import { loadPRD, savePRD, parsePRDMarkdown, createPRD, analyzeConsistency, formatReport, generateGitHubIssues } from "../src/prd";
 import { run } from "../src/execution/runner";
@@ -84,7 +85,7 @@ program
     // Use TUI if requested
     if (options.tui) {
       const success = await runTUI({
-        agent: agent as any,
+        agent: agent as AgentName | "auto",
         maxIterations: parseInt(options.maxIterations, 10),
         workingDirectory: options.dir,
         prdPath,
@@ -98,7 +99,7 @@ program
 
     // Standard runner
     const result = await run({
-      agent: agent as any,
+      agent: agent as AgentName | "auto",
       maxIterations: parseInt(options.maxIterations, 10),
       workingDirectory: options.dir,
       prdPath,
@@ -195,7 +196,7 @@ features
   .command("list")
   .description("List all features")
   .option("-d, --dir <path>", "Project directory", process.cwd())
-  .action((options) => {
+  .action(async (options) => {
     const featureList = listFeatures(options.dir);
 
     if (featureList.length === 0) {
@@ -212,9 +213,9 @@ features
 
       if (existsSync(prdPath)) {
         try {
-          const content = require(prdPath);
-          const completed = content.userStories?.filter((s: any) => s.passes).length ?? 0;
-          const total = content.userStories?.length ?? 0;
+          const prdFile = await Bun.file(prdPath).json();
+          const completed = prdFile.userStories?.filter((s: { passes?: boolean }) => s.passes).length ?? 0;
+          const total = prdFile.userStories?.length ?? 0;
           console.log(`  ${feature} - ${completed}/${total} stories complete`);
         } catch {
           console.log(`  ${feature}`);
@@ -505,7 +506,7 @@ program
   .description("Generate a PRD using prompting (for agents without skill support)")
   .option("-a, --agent <name>", "Agent to use", "claude")
   .option("-f, --feature <name>", "Feature name")
-  .action(async (description, options) => {
+  .action(async (description, _options) => {
     console.log(chalk.bold("\n📝 PRD Generation\n"));
     console.log(chalk.dim("For agents with skill support, use:"));
     console.log(chalk.cyan('  claude "Load the prd skill and create a PRD for ' + description + '"\n'));

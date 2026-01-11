@@ -4,7 +4,7 @@
  * Checks consistency across PRD, JSON, and code to catch errors early
  */
 
-import { PRD, UserStory } from "./types";
+import type { PRD, UserStory } from "./types";
 import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
 
@@ -385,7 +385,7 @@ async function checkProgressLogSync(
         });
       }
     }
-  } catch (error) {
+  } catch {
     issues.push({
       category: "Progress Log Sync",
       severity: "warning",
