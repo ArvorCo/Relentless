@@ -12,7 +12,7 @@ import { existsSync, mkdirSync } from "node:fs";
 
 import { checkAgentHealth, getAllAgentNames, isValidAgentName } from "../src/agents";
 import { loadConfig, findRelentlessDir } from "../src/config";
-import { loadPRD, savePRD, parsePRDMarkdown, createPRD } from "../src/prd";
+import { loadPRD, savePRD, parsePRDMarkdown, createPRD, analyzeConsistency, formatReport } from "../src/prd";
 import { run } from "../src/execution/runner";
 import { runTUI } from "../src/tui/TUIRunner";
 import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
@@ -379,6 +379,45 @@ agents
       console.log(chalk.green("All agents healthy!"));
     } else {
       console.log(chalk.yellow("Some agents are not installed."));
+    }
+  });
+
+// Analyze command
+program
+  .command("analyze")
+  .description("Analyze cross-artifact consistency for a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (options) => {
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    const prdPath = join(featureDir, "prd.json");
+
+    if (!existsSync(prdPath)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found or has no prd.json`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    const prd = await loadPRD(prdPath);
+    const report = await analyzeConsistency(prdPath, prd);
+
+    const formatted = formatReport(report);
+    console.log(formatted);
+
+    // Exit with error code if there are critical issues
+    if (report.summary.critical > 0) {
+      console.log(chalk.red("\n❌ Critical issues found. Please address them before proceeding.\n"));
+      process.exit(1);
+    } else if (report.summary.warnings > 0) {
+      console.log(chalk.yellow("\n⚠️  Warnings found. Consider addressing them.\n"));
+    } else {
+      console.log(chalk.green("\n✅ No critical issues or warnings found!\n"));
     }
   });
 
