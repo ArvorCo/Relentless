@@ -263,3 +263,40 @@ Started: 2026-01-11T16:48:00.000Z
 - **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
 
 ---
+## 2026-01-11T17:45:00.000Z - US-008
+
+### What was implemented
+- Created comprehensive Dependency-Ordered Task Breakdown Skill in skills/tasks/SKILL.md
+- Skill generates phase structure: Setup → Foundation → Stories → Polish
+- Tasks formatted with IDs (T001+), phase markers, story labels [US-X]
+- Parallel tasks marked with [P] for tasks that can run concurrently
+- Ensures each story is independently testable with explicit verification tasks
+- Provides detailed examples for simple linear features and complex parallel features
+- Multi-agent support: Claude Code, Amp, Gemini, Codex, Droid
+
+### Files changed
+- skills/tasks/SKILL.md (created comprehensive skill documentation)
+- relentless/features/ghsk-ideas/prd.json (set US-008 passes: true)
+
+### Learnings for future iterations:
+- **4-phase structure**: Setup (dependencies) → Foundation (infrastructure) → Stories (features) → Polish (refinements)
+- **Task ID format**: T001, T002, T003... (3-digit zero-padded for clear ordering)
+- **Task format pattern**: `- [ ] **T[NNN]** [Phase X] [Story Label] Description [Parallel Marker]`
+- **Phase 0 (Setup)**: Project structure, dependencies, config - required by all other phases
+- **Phase 1 (Foundation)**: Core infrastructure, schemas, base utilities - referenced by multiple stories
+- **Phase 2 (Stories)**: User-facing features from PRD - maps 1:1 or 1:N to user stories
+- **Phase 3 (Polish)**: Refinements, optimizations, documentation - enhances existing functionality
+- **Parallel markers [P]**: Used when tasks touch different files, have no shared dependencies, can be verified independently
+- **Independent testability**: Each story includes explicit test/verification tasks (typecheck, lint)
+- **Dependency ordering**: Within phases, tasks sequential by default unless marked [P]; across phases, strict order
+- **Task granularity**: Right-sized tasks should take 15-60 minutes each
+- **Circular dependency detection**: Skill includes guidance for detecting and resolving circular dependencies
+- **Research task pattern**: Stories with research flag get two-phase breakdown (research → implementation)
+- **Template structure**: Comprehensive template with overview, phase sections, summary statistics
+- **Examples provided**: Simple linear feature and complex parallel feature examples for clarity
+- **Quality checklist**: 13-point verification checklist before saving tasks.md
+- **Multi-agent compatibility**: Works across agents using standard capabilities (file read, text analysis, file write)
+- **Common pitfalls**: Documented avoid/do patterns for task size, dependencies, testing, grouping
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+
+---
