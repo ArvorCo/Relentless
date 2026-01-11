@@ -133,7 +133,7 @@
         "Verify in terminal: Run analyze command and review output"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
