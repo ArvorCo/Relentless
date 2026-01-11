@@ -1,0 +1,109 @@
+# Progress Log: ghsk-ideas
+Started: 2026-01-11T16:48:00.000Z
+
+## Codebase Patterns
+
+### Binary Installation Pattern
+- Relentless uses package.json "bin" field to register global binary
+- bin/relentless.ts has #!/usr/bin/env bun shebang for direct execution
+- Global install: `bun install -g .` or from GitHub
+- Binary location after global install: checked in user's PATH
+- Alternative usage: bunx github:ArvorCo/Relentless for no-install execution
+
+### Documentation Update Strategy
+- Used systematic grep search to find all shell script references
+- Replaced shell script patterns (.sh, relentless.sh) with binary commands
+- Updated multiple locations: README, CLAUDE.md, scaffolder, skills
+- Ensured consistent command format: `relentless <command> --params`
+
+### Scaffolder Simplification
+- Removed shell script copying logic from scaffolder
+- Removed bin/ directory creation from init process
+- Simplified project structure: only config.json, prompt.md, and features/
+- Updated output messages to reflect binary-first approach
+
+---
+
+## 2026-01-11T19:00:00.000Z - US-000
+
+### What was implemented
+- Converted Relentless from shell script to globally-installable binary
+- Removed bin/relentless.sh completely
+- Made bin/relentless.ts executable (chmod +x)
+- Updated all documentation to use binary commands instead of shell script
+
+### Files changed
+- bin/relentless.sh (deleted)
+- bin/relentless.ts (made executable, already had correct shebang)
+- README.md (replaced all shell script references with binary commands)
+- CLAUDE.md (updated CLI usage patterns)
+- src/init/scaffolder.ts (removed shell script copying logic)
+- skills/relentless/SKILL.md (updated to use binary commands)
+- relentless/bin/relentless.sh (deleted from project's relentless folder)
+- relentless/features/ghsk-ideas/prd.json (set US-000 passes: true)
+
+### Learnings for future iterations:
+- **package.json bin field**: Already correctly configured, pointing to bin/relentless.ts
+- **Bun global install**: Works with `bun install -g .` but PATH verification may vary by system
+- **Binary execution**: Can run with ./bin/relentless.ts, bun run bin/relentless.ts, or globally after install
+- **Grep for cleanup**: Used grep to find all .sh references across codebase for thorough cleanup
+- **Scaffolder simplification**: Removed unnecessary bin/ directory creation, cleaner structure
+- **Documentation consistency**: Important to update ALL docs (README, CLAUDE.md, skills) in one pass
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+- **Shell script removal**: Two files to remove - source bin/relentless.sh and relentless/bin/relentless.sh
+
+---
+## 2026-01-11T20:15:00.000Z - US-001
+
+### What was implemented
+- Extended UserStory schema with dependencies, parallel, and phase fields
+- Implemented validateDependencies() with circular dependency detection using DFS algorithm
+- Updated getNextStory() to respect dependencies and only return stories with completed prerequisites
+- Updated parser to extract Dependencies, Parallel, and Phase fields from PRD markdown
+- Added support for parsing "Dependencies: US-001, US-002" format with comma or semicolon separators
+
+### Files changed
+- src/prd/types.ts (extended schema, added validateDependencies and areDependenciesMet functions)
+- src/prd/parser.ts (added dependency/parallel/phase parsing, updated createPRD mapping)
+- relentless/features/ghsk-ideas/prd.json (set US-001 passes: true)
+
+### Learnings for future iterations:
+- **Zod schema extensions**: Optional fields using .optional() work seamlessly with existing PRDs
+- **Dependency validation**: DFS algorithm is effective for circular dependency detection
+- **Parser pattern matching**: Used regex `/^\*\*Dependencies:?\*\*/i` for flexible markdown parsing
+- **Dependencies filtering**: getNextStory() now validates dependencies first, then filters stories
+- **areDependenciesMet helper**: Checks if all dependencies have passes: true before allowing execution
+- **Parser field extraction**: Dependencies split by comma/semicolon, parallel accepts true/yes values
+- **Backward compatibility**: Existing PRDs without dependencies work correctly (undefined treated as no dependencies)
+- **Type safety**: All changes passed typecheck with 0 errors - Zod schema validation ensures consistency
+
+---
+## 2026-01-11T21:30:00.000Z - US-002
+
+### What was implemented
+- Created comprehensive constitution.md template with clear structure for project governance
+- Extended config loader to read, parse, and validate constitution.md
+- Updated runner to include constitution in agent prompt context
+- Updated scaffolder to copy constitution template during init
+- Implemented MUST/SHOULD principle parsing and validation
+
+### Files changed
+- templates/constitution.md (created with comprehensive governance structure)
+- src/config/loader.ts (added constitution loading, parsing, and validation)
+- src/execution/runner.ts (updated buildPrompt to include constitution)
+- src/init/scaffolder.ts (added constitution template copying, updated output)
+- relentless/features/ghsk-ideas/prd.json (set US-002 passes: true)
+
+### Learnings for future iterations:
+- **Template structure**: Constitution uses MUST/SHOULD format for clear requirement levels
+- **Regex parsing**: Used `/\*\*MUST\*\*\s+(.+)/` and `/\*\*SHOULD\*\*\s+(.+)/` to extract principles
+- **Section tracking**: Parser tracks current section (## or ###) for principle attribution
+- **Validation strategy**: Checks for at least some principles, both MUST and SHOULD present, and no empty text
+- **Runner integration**: Constitution appended to prompt after base template, warns on validation issues
+- **Scaffolder pattern**: Constitution copied from templates/ to relentless/ during init
+- **relentlessRoot**: Defined as `import.meta.dir.replace("/src/init", "")` for template access
+- **Optional loading**: Constitution is optional - if not present, agents continue without it
+- **Typecheck and lint**: Both passed with 0 errors/warnings - clean implementation
+
+---
+
