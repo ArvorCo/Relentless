@@ -411,7 +411,8 @@ bun run lint
 
 ## References
 
-- [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) - Original inspiration
+- [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) - Original concept by Geoffrey Huntley
+- [Ralph by Snarktank](https://github.com/snarktank/ralph) - Reference implementation that inspired Relentless
 - [GitHub Spec Kit](https://github.com/github/spec-kit) - PRD structure reference
 
 ---
