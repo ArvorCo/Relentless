@@ -200,6 +200,12 @@ This generates `relentless/features/my-feature/prd.json`:
 # Set max iterations (default: 20)
 ./relentless/bin/relentless.sh --feature my-feature --max-iterations 30
 
+# Show status of all stories
+./relentless/bin/relentless.sh --status --feature my-feature
+
+# Reset a story to re-run it
+./relentless/bin/relentless.sh --reset US-005 --feature my-feature
+
 # Available agents: claude, amp, opencode, codex, droid, gemini, auto
 ```
 
