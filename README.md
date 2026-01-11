@@ -27,10 +27,10 @@ bun run github:ArvorCo/Relentless/bin/relentless.ts features create my-feature
 claude "Load the prd skill and create a PRD for [describe your feature]"
 
 # 4. Convert PRD to JSON
-bun run github:ArvorCo/Relentless/bin/relentless.ts convert relentless/features/my-feature/prd.md --feature my-feature
+./relentless/bin/relentless.sh --convert relentless/features/my-feature/prd.md --feature my-feature
 
-# 5. Run Relentless
-./relentless/bin/relentless.sh --feature my-feature
+# 5. Run Relentless (with beautiful TUI)
+./relentless/bin/relentless.sh --feature my-feature --tui
 ```
 
 **Alternative: Create PRD manually**
@@ -64,6 +64,13 @@ Each iteration spawns a **fresh agent instance** with clean context. Memory pers
 - **prd.json** - task completion status
 
 Evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/).
+
+### Features
+
+- **Beautiful TUI** - Real-time terminal interface with progress bars, story grid, and agent output
+- **Intelligent Agent Fallback** - Automatically switches agents when rate limits are hit
+- **Rate Limit Detection** - Detects limits for Claude, Codex, Amp, OpenCode, Gemini, and Droid
+- **Auto-Recovery** - Switches back to preferred agent when limits reset
 
 ---
 
@@ -194,6 +201,12 @@ This generates `relentless/features/my-feature/prd.json`:
 
 **Options:**
 ```bash
+# Run with beautiful terminal UI
+./relentless/bin/relentless.sh --feature my-feature --tui
+
+# Convert PRD markdown to JSON
+./relentless/bin/relentless.sh --convert prd.md --feature my-feature
+
 # Specify agent (default: claude)
 ./relentless/bin/relentless.sh --feature my-feature --agent amp
 
@@ -283,7 +296,7 @@ relentless features list
 relentless convert <prd.md> --feature <name>
 
 # Run orchestration for a feature
-relentless run --feature <name> [--agent <name>] [--max-iterations <n>]
+relentless run --feature <name> [--agent <name>] [--max-iterations <n>] [--tui]
 
 # Show status of all user stories
 relentless status --feature <name>
@@ -296,6 +309,25 @@ relentless agents list
 
 # Check agent health
 relentless agents doctor
+```
+
+### Shell Script Commands
+
+```bash
+# Convert PRD to JSON
+./relentless/bin/relentless.sh --convert <prd.md> --feature <name>
+
+# Run with beautiful TUI
+./relentless/bin/relentless.sh --feature <name> --tui
+
+# Run with standard output
+./relentless/bin/relentless.sh --feature <name>
+
+# Show status
+./relentless/bin/relentless.sh --status --feature <name>
+
+# Reset a story
+./relentless/bin/relentless.sh --reset <story-id> --feature <name>
 ```
 
 ---
@@ -312,6 +344,11 @@ relentless agents doctor
       "model": "sonnet",
       "dangerouslyAllowAll": true
     }
+  },
+  "fallback": {
+    "enabled": true,
+    "priority": ["claude", "codex", "amp", "opencode", "gemini"],
+    "autoRecovery": true
   },
   "execution": {
     "maxIterations": 20,
