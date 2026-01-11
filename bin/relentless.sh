@@ -144,6 +144,24 @@ else
     echo "  Agent: $AGENT"
     echo "═══════════════════════════════════════════════════════"
 
+    # Show progress status before starting
+    if command -v jq &> /dev/null; then
+      TOTAL=$(jq '.userStories | length' "$PRD_FILE")
+      COMPLETED=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE")
+      PENDING=$((TOTAL - COMPLETED))
+
+      # Get next pending story
+      NEXT_ID=$(jq -r '.userStories[] | select(.passes == false) | .id' "$PRD_FILE" | head -1)
+      NEXT_TITLE=$(jq -r --arg id "$NEXT_ID" '.userStories[] | select(.id == $id) | .title' "$PRD_FILE")
+
+      echo ""
+      echo "  Progress: $COMPLETED/$TOTAL stories complete ($PENDING remaining)"
+      if [ -n "$NEXT_ID" ] && [ "$NEXT_ID" != "null" ]; then
+        echo "  Next: $NEXT_ID - $NEXT_TITLE"
+      fi
+      echo ""
+    fi
+
     # Build prompt with feature path substitution
     PROMPT=$(cat "$PROMPT_FILE" | sed "s/<feature>/${FEATURE}/g")
 
