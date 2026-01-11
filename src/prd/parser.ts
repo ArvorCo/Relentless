@@ -90,6 +90,9 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
         priority: storyCount,
         passes: false,
         notes: "",
+        dependencies: undefined,
+        parallel: undefined,
+        phase: undefined,
       };
       inAcceptanceCriteria = false;
       descriptionLines = [];
@@ -105,6 +108,39 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
     // Parse story description (single line after **Description:**)
     if (currentStory && trimmed.startsWith("**Description:**")) {
       currentStory.description = trimmed.replace("**Description:**", "").trim();
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse dependencies (Dependencies: US-001, US-002)
+    if (currentStory && trimmed.match(/^\*\*Dependencies:?\*\*/i)) {
+      const deps = trimmed
+        .replace(/^\*\*Dependencies:?\*\*/i, "")
+        .trim()
+        .split(/[,;]/)
+        .map((d) => d.trim())
+        .filter(Boolean);
+      if (deps.length > 0) {
+        currentStory.dependencies = deps;
+      }
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse parallel flag (Parallel: true/yes)
+    if (currentStory && trimmed.match(/^\*\*Parallel:?\*\*/i)) {
+      const value = trimmed.replace(/^\*\*Parallel:?\*\*/i, "").trim().toLowerCase();
+      currentStory.parallel = value === "true" || value === "yes";
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse phase (Phase: Setup)
+    if (currentStory && trimmed.match(/^\*\*Phase:?\*\*/i)) {
+      const phase = trimmed.replace(/^\*\*Phase:?\*\*/i, "").trim();
+      if (phase) {
+        currentStory.phase = phase;
+      }
       inAcceptanceCriteria = false;
       continue;
     }
@@ -197,6 +233,9 @@ export function createPRD(parsed: Partial<PRD>): PRD {
       priority: story.priority ?? index + 1,
       passes: story.passes ?? false,
       notes: story.notes ?? "",
+      dependencies: story.dependencies,
+      parallel: story.parallel,
+      phase: story.phase,
     })),
   };
 
