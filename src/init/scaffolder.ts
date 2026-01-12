@@ -206,6 +206,17 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
 
   const sourceSkillsDir = join(relentlessRoot, ".claude", "skills");
 
+  if (!existsSync(sourceSkillsDir)) {
+    console.error(chalk.red(`\n❌ Error: Skills directory not found at ${sourceSkillsDir}`));
+    console.error(chalk.red(`   Relentless root: ${relentlessRoot}`));
+    console.error(chalk.red(`   This may indicate an installation problem.`));
+    console.error(chalk.dim(`\n   If you installed globally, the package may be at:`));
+    console.error(chalk.dim(`   - /usr/local/lib/node_modules/@arvorco/relentless`));
+    console.error(chalk.dim(`   - ~/.bun/install/global/node_modules/@arvorco/relentless`));
+    console.error(chalk.dim(`\n   Try reinstalling: npm install -g @arvorco/relentless\n`));
+    process.exit(1);
+  }
+
   if (existsSync(sourceSkillsDir)) {
     const skills = [
       "prd",
@@ -225,16 +236,27 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
       const sourcePath = join(sourceSkillsDir, skill);
       const destPath = join(skillsDir, skill);
 
-      if (existsSync(sourcePath)) {
-        if (existsSync(destPath) && !force) {
-          console.log(`  ${chalk.yellow("⚠")} .claude/skills/${skill} already exists, skipping`);
-        } else {
+      if (!existsSync(sourcePath)) {
+        console.log(`  ${chalk.red("✗")} .claude/skills/${skill} - source not found`);
+        continue;
+      }
+
+      if (existsSync(destPath) && !force) {
+        console.log(`  ${chalk.yellow("⚠")} .claude/skills/${skill} already exists, skipping`);
+      } else {
+        try {
           if (existsSync(destPath) && force) {
             await Bun.spawn(["rm", "-rf", destPath]).exited;
           }
-          await Bun.spawn(["cp", "-r", sourcePath, destPath]).exited;
+          const result = await Bun.spawn(["cp", "-r", sourcePath, destPath]).exited;
+          if (result !== 0) {
+            console.log(`  ${chalk.red("✗")} .claude/skills/${skill} - copy failed`);
+            continue;
+          }
           const action = force ? "updated" : "created";
           console.log(`  ${chalk.green("✓")} .claude/skills/${skill} (${action})`);
+        } catch (error) {
+          console.log(`  ${chalk.red("✗")} .claude/skills/${skill} - error: ${error}`);
         }
       }
     }
