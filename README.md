@@ -164,35 +164,46 @@ Five specialized skills for Claude Code, Amp, and other AI agents:
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) runtime
+- [Bun](https://bun.sh) runtime (recommended) or Node.js 20+
 - At least one AI coding agent installed (Claude Code, Amp, etc.)
 
 ```bash
-# Install Bun (if needed)
+# Install Bun (recommended)
 curl -fsSL https://bun.sh/install | bash
 ```
 
-### Option 1: Clone the Repository (Recommended)
+### Option 1: Install from npm (Recommended)
+
+```bash
+# Using npm
+npm install -g @arvorco/relentless
+
+# Using bun (faster)
+bun install -g @arvorco/relentless
+
+# Using bunx (no installation)
+bunx @arvorco/relentless init
+```
+
+### Option 2: Install from GitHub
+
+```bash
+# Latest stable release
+bun install -g github:ArvorCo/Relentless
+
+# Or run directly
+bunx github:ArvorCo/Relentless init
+```
+
+### Option 3: Clone for Development
 
 ```bash
 git clone https://github.com/ArvorCo/Relentless.git
 cd Relentless
 bun install
-```
 
-### Option 2: Install Globally
-
-```bash
-bun install -g github:ArvorCo/Relentless
-
-# Or install from npm when published
-bun install -g relentless
-```
-
-### Option 3: Run with bunx (No Installation)
-
-```bash
-bunx github:ArvorCo/Relentless init
+# Run locally
+bun run bin/relentless.ts --help
 ```
 
 ---

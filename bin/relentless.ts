@@ -179,9 +179,9 @@ program
       const checklistPath = join(featureDir, "checklist.md");
       if (existsSync(checklistPath)) {
         console.log(chalk.dim("  Merging checklist.md criteria..."));
-        const checklistContent = await Bun.file(checklistPath).text();
         // TODO: Parse checklist and merge into acceptance criteria
         // For now, just note that it exists
+        // const checklistContent = await Bun.file(checklistPath).text();
       }
     }
 

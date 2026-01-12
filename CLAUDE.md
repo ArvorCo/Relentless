@@ -90,3 +90,77 @@ relentless run --feature <name>
 - `.claude/skills/*/SKILL.md` - Skill implementations
 - `.claude/commands/relentless.*.md` - Command wrappers
 - `templates/` - Default templates for constitution, plan, etc.
+
+## Publishing to npm
+
+### Package Information
+- **Name:** `@arvorco/relentless`
+- **Registry:** https://www.npmjs.com/package/@arvorco/relentless
+- **Repository:** https://github.com/ArvorCo/Relentless
+
+### Publishing Workflow
+
+**Automated (Recommended):**
+```bash
+# Create a new release
+./scripts/release.sh
+
+# This will:
+# 1. Prompt for version bump (patch/minor/major)
+# 2. Update package.json
+# 3. Run typecheck and lint
+# 4. Create commit: chore(release): vX.Y.Z
+# 5. Create git tag
+# 6. Push to GitHub
+# 7. GitHub Actions automatically publishes to npm
+```
+
+**Manual (Fallback):**
+```bash
+# Login to npm first
+npm login
+
+# Publish manually
+./scripts/publish-manual.sh
+
+# This gives full control over the process
+```
+
+### Version Numbers (Semver)
+- **Patch** (0.1.0 → 0.1.1): Bug fixes, no new features
+- **Minor** (0.1.0 → 0.2.0): New features, backward compatible
+- **Major** (0.1.0 → 1.0.0): Breaking changes
+
+### GitHub Actions
+- **Workflow:** `.github/workflows/publish.yml`
+- **Trigger:** Commits with `chore(release):` or `chore: release` in message
+- **Actions:** Runs typecheck, lint, publishes to npm, creates GitHub release
+- **Setup:** Requires `NPM_TOKEN` secret in GitHub repository settings
+
+### What Gets Published
+- Package size: ~60 KB compressed, ~230 KB unpacked
+- Includes: `bin/`, `src/`, `.claude/`, `templates/`, docs
+- Excludes: `.github/`, `scripts/`, dev docs, internal features
+- See `PACKAGE_CONTENTS.md` for details
+
+### Checklist Before Publishing
+- [ ] All tests pass (`bun run typecheck`, `bun run lint`)
+- [ ] Documentation is up to date
+- [ ] No sensitive data in code
+- [ ] Version number follows semver
+- [ ] README has correct installation instructions
+- [ ] Git working directory is clean
+
+### Troubleshooting
+- **"ENEEDAUTH"**: Run `npm login` first
+- **"403 Forbidden"**: Check npm permissions for @arvorco scope
+- **"Version exists"**: Bump version in package.json
+- See `PUBLISHING_GUIDE.md` for complete troubleshooting
+
+### After Publishing
+Users install with:
+```bash
+npm install -g @arvorco/relentless
+# or
+bun install -g @arvorco/relentless
+```
