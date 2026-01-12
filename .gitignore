@@ -14,6 +14,7 @@ progress.txt
 # Dependencies
 node_modules/
 bun.lock
+package-lock.json
 
 # Build artifacts
 dist/
