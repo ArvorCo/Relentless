@@ -1,8 +1,11 @@
 {
-  "name": "relentless",
+  "name": "@arvorco/relentless",
   "version": "0.1.0",
   "description": "Universal AI agent orchestrator - works with Claude Code, Amp, OpenCode, Codex, Droid, and Gemini",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "relentless": "./bin/relentless.ts"
   },
@@ -14,6 +17,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@arvorco/relentless": "^0.1.0",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "figures": "^6.0.0",

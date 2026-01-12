@@ -1,0 +1,71 @@
+name: Publish to npm
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'LICENSE'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    # Only run if commit message contains version bump
+    if: contains(github.event.head_commit.message, 'chore: release') || contains(github.event.head_commit.message, 'chore(release)')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+          
+      - name: Install dependencies
+        run: bun install
+        
+      - name: Run type check
+        run: bun run typecheck
+        
+      - name: Run linter
+        run: bun run lint
+        continue-on-error: true # Don't fail if linting has warnings
+        
+      - name: Setup Node.js (for npm publish)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          release_name: Release v${{ steps.version.outputs.version }}
+          body: |
+            Published version ${{ steps.version.outputs.version }} to npm
+            
+            Install with:
+            ```bash
+            npm install -g @arvorco/relentless@${{ steps.version.outputs.version }}
+            # or
+            bun install -g @arvorco/relentless@${{ steps.version.outputs.version }}
+            ```
+          draft: false
+          prerelease: false

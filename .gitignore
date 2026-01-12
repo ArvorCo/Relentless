@@ -8,7 +8,21 @@ progress.txt
 
 # OS files
 .DS_Store
+*.swp
+*.swo
 
 # Dependencies
 node_modules/
 bun.lock
+
+# Build artifacts
+dist/
+*.tgz
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test output
+coverage/
+.nyc_output/

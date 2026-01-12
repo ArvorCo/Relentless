@@ -20,6 +20,10 @@
 **For Claude Code, Amp, or OpenCode users** (Recommended - Full Skills Support):
 ```bash
 # 1. Install Relentless globally
+npm install -g @arvorco/relentless
+# or with bun
+bun install -g @arvorco/relentless
+# or directly from GitHub
 bun install -g github:ArvorCo/Relentless
 
 # 2. Initialize in your project
@@ -45,7 +49,9 @@ relentless run --feature 003-user-auth --tui
 **For Droid, Codex, or other agents** (Manual Workflow):
 ```bash
 # 1. Install and initialize
-bun install -g github:ArvorCo/Relentless
+npm install -g @arvorco/relentless
+# or
+bun install -g @arvorco/relentless
 cd your-project
 relentless init
 

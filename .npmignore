@@ -1,0 +1,65 @@
+# Development and CI/CD files
+.github/
+scripts/
+*.log
+.DS_Store
+
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Maintainer documentation (not needed by end users)
+CLAUDE.md
+AGENTS.md
+COMMIT_MESSAGE.md
+PUBLISHING.md
+PUBLISHING_GUIDE.md
+REFACTOR_SUMMARY.md
+CHANGES_SUMMARY.md
+
+# Development examples and tests
+prompt.md
+*.test.ts
+test/
+tests/
+examples/
+
+# Relentless working files (generated during usage)
+prd.json
+progress.txt
+.last-branch
+archive/
+relentless/features/*
+!relentless/features/.gitkeep
+
+# Old structure (not needed in package)
+.specify/
+skills/
+ralph.sh
+
+# Old/backup files
+*.old.md
+*.backup
+
+# Build artifacts
+node_modules/
+dist/
+*.tgz
+bun.lock
+*.lock
+
+# Files to INCLUDE in package (override above if needed):
+# !README.md - already included by default
+# !LICENSE - already included by default
+# !GEMINI_SETUP.md - included (useful for users)
+# !.claude/ - included (needed for skills)
+# !templates/ - included (needed for templates)
+# !bin/ - included (needed for CLI)
+# !src/ - included (needed for source)
