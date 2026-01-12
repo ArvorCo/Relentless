@@ -51,11 +51,9 @@ dist/
 bun.lock
 *.lock
 
-# Files to INCLUDE in package (override above if needed):
-# !README.md - already included by default
-# !LICENSE - already included by default
-# !GEMINI_SETUP.md - included (useful for users)
-# !.claude/ - included (needed for skills)
-# !templates/ - included (needed for templates)
-# !bin/ - included (needed for CLI)
-# !src/ - included (needed for source)
+# Files to INCLUDE in package (explicitly include despite other rules):
+!.claude/
+!.claude/skills/
+!.claude/commands/
+!templates/
+# README, LICENSE, bin/, src/ are included by default
