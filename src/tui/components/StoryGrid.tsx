@@ -63,23 +63,55 @@ export function StoryGrid({
                   ? colors.success
                   : colors.dim;
 
+              const priorityColor =
+                story.priority <= 2 ? colors.error : story.priority <= 5 ? colors.warning : colors.dim;
+
               return (
                 <Box key={colIdx} width="50%">
+                  {/* Status symbol */}
                   <Text color={symbolColor}>{symbol} </Text>
+
+                  {/* Story ID */}
                   <Text
                     color={story.passes ? colors.success : isCurrent ? colors.warning : undefined}
                     dimColor={story.passes}
                   >
-                    {story.id.padEnd(8)}
+                    {story.id.padEnd(9)}
                   </Text>
+
+                  {/* Priority badge */}
+                  <Text color={priorityColor} bold={story.priority <= 3}>
+                    P{story.priority}{" "}
+                  </Text>
+
+                  {/* Title (longer) */}
                   <Text
-                    color={colors.dim}
+                    color={story.passes ? colors.dim : undefined}
                     dimColor={story.passes}
                     strikethrough={story.passes}
                     wrap="truncate"
                   >
-                    {story.title.substring(0, 25)}
+                    {story.title.substring(0, 40)}
                   </Text>
+
+                  {/* Acceptance criteria count */}
+                  <Text color={colors.dim} dimColor>
+                    {" "}
+                    ({story.criteriaCount}c)
+                  </Text>
+
+                  {/* Research indicator */}
+                  {story.research && (
+                    <Text color={colors.dim}> 🔍</Text>
+                  )}
+
+                  {/* Phase badge */}
+                  {story.phase && (
+                    <Text color={colors.dim} dimColor>
+                      {" "}
+                      [{story.phase}]
+                    </Text>
+                  )}
                 </Box>
               );
             })}

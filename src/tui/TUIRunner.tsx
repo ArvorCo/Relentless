@@ -113,6 +113,10 @@ function TUIRunnerComponent({
             id: s.id,
             title: s.title,
             passes: s.passes,
+            priority: s.priority,
+            criteriaCount: s.acceptanceCriteria.length,
+            research: s.research,
+            phase: s.phase,
           })),
           agents: agentStates,
         }));
@@ -153,7 +157,15 @@ function TUIRunnerComponent({
           // Update current story
           setState((prev) => ({
             ...prev,
-            currentStory: { id: story.id, title: story.title, passes: story.passes },
+            currentStory: {
+              id: story.id,
+              title: story.title,
+              passes: story.passes,
+              priority: story.priority,
+              criteriaCount: story.acceptanceCriteria.length,
+              research: story.research,
+              phase: story.phase,
+            },
             elapsedSeconds: 0,
           }));
 
@@ -334,6 +346,10 @@ function TUIRunnerComponent({
               id: s.id,
               title: s.title,
               passes: s.passes,
+              priority: s.priority,
+              criteriaCount: s.acceptanceCriteria.length,
+              research: s.research,
+              phase: s.phase,
             })),
           }));
 

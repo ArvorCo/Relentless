@@ -10,6 +10,10 @@ export interface Story {
   id: string;
   title: string;
   passes: boolean;
+  priority: number;
+  criteriaCount: number;
+  research?: boolean;
+  phase?: string;
 }
 
 export interface AgentState {
