@@ -28,8 +28,24 @@ import { DEFAULT_CONFIG } from "../config/schema";
 
 /**
  * Get the relentless root directory
+ * Works for both:
+ * - Development: /path/to/relentless/src/init -> /path/to/relentless
+ * - Global install: /usr/local/lib/node_modules/@arvorco/relentless/src/init -> /usr/local/lib/node_modules/@arvorco/relentless
  */
-const relentlessRoot = import.meta.dir.replace("/src/init", "");
+function getRelentlessRoot(): string {
+  // import.meta.dir is the directory of this file (src/init/)
+  const currentDir = import.meta.dir;
+  
+  // Remove /src/init from the end
+  if (currentDir.endsWith("/src/init")) {
+    return currentDir.replace("/src/init", "");
+  }
+  
+  // Fallback: go up two directories
+  return join(currentDir, "..", "..");
+}
+
+const relentlessRoot = getRelentlessRoot();
 
 /**
  * Files to create in the relentless/ directory
