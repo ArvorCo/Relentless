@@ -37,14 +37,43 @@ export function StoryGrid({
     rows.push(row);
   }
 
-  // Constrain to maxRows
-  const visibleRows = maxRows ? rows.slice(0, maxRows) : rows;
+  // Window around current story to show context
+  let visibleRows = rows;
+  let startRow = 0;
+  let endRow = rows.length;
+
+  if (maxRows && rows.length > maxRows) {
+    // Find the row containing the current story
+    const currentRowIdx = currentStoryId
+      ? rows.findIndex((row) => row.some((story) => story.id === currentStoryId))
+      : -1;
+
+    if (currentRowIdx >= 0) {
+      // Center the window around the current story
+      const half = Math.floor(maxRows / 2);
+      startRow = Math.max(0, currentRowIdx - half);
+      
+      // Adjust if window goes past the end
+      if (startRow + maxRows > rows.length) {
+        startRow = Math.max(0, rows.length - maxRows);
+      }
+      
+      endRow = Math.min(rows.length, startRow + maxRows);
+      visibleRows = rows.slice(startRow, endRow);
+    } else {
+      // No current story, just show first N rows
+      visibleRows = rows.slice(0, maxRows);
+      endRow = Math.min(rows.length, maxRows);
+    }
+  }
 
   return (
     <Box flexDirection="column" paddingY={1}>
       <Box paddingX={1}>
         <Text color={colors.dim} bold>
-          ── Stories ({stories.length}) ──
+          {visibleRows.length < rows.length
+            ? `── Stories (rows ${startRow + 1}-${endRow} of ${rows.length}, ${stories.length} total) ──`
+            : `── Stories (${stories.length}) ──`}
         </Text>
       </Box>
       <Box flexDirection="column" paddingX={1}>
