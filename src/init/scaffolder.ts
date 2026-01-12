@@ -127,8 +127,8 @@ patterns: []
 /**
  * Initialize Relentless in a project
  */
-export async function initProject(projectDir: string = process.cwd()): Promise<void> {
-  console.log(chalk.bold.blue("\n🚀 Initializing Relentless\n"));
+export async function initProject(projectDir: string = process.cwd(), force: boolean = false): Promise<void> {
+  console.log(chalk.bold.blue(`\n🚀 ${force ? "Reinstalling" : "Initializing"} Relentless\n`));
 
   // Check installed agents
   console.log(chalk.dim("Detecting installed agents..."));
@@ -161,13 +161,14 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   for (const [filename, contentFn] of Object.entries(RELENTLESS_FILES)) {
     const path = join(relentlessDir, filename);
 
-    if (existsSync(path)) {
+    if (existsSync(path) && !force) {
       console.log(`  ${chalk.yellow("⚠")} relentless/${filename} already exists, skipping`);
       continue;
     }
 
     await Bun.write(path, contentFn());
-    console.log(`  ${chalk.green("✓")} relentless/${filename}`);
+    const action = existsSync(path) && force ? "updated" : "created";
+    console.log(`  ${chalk.green("✓")} relentless/${filename} ${force ? `(${action})` : ""}`);
   }
 
   // Note: constitution.md is NOT copied - it should be created by /relentless.constitution command
@@ -208,11 +209,17 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
       const sourcePath = join(sourceSkillsDir, skill);
       const destPath = join(skillsDir, skill);
 
-      if (existsSync(sourcePath) && !existsSync(destPath)) {
-        await Bun.spawn(["cp", "-r", sourcePath, destPath]).exited;
-        console.log(`  ${chalk.green("✓")} .claude/skills/${skill}`);
-      } else if (existsSync(destPath)) {
-        console.log(`  ${chalk.yellow("⚠")} .claude/skills/${skill} already exists, skipping`);
+      if (existsSync(sourcePath)) {
+        if (existsSync(destPath) && !force) {
+          console.log(`  ${chalk.yellow("⚠")} .claude/skills/${skill} already exists, skipping`);
+        } else {
+          if (existsSync(destPath) && force) {
+            await Bun.spawn(["rm", "-rf", destPath]).exited;
+          }
+          await Bun.spawn(["cp", "-r", sourcePath, destPath]).exited;
+          const action = force ? "updated" : "created";
+          console.log(`  ${chalk.green("✓")} .claude/skills/${skill} (${action})`);
+        }
       }
     }
   }
@@ -243,12 +250,15 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
       const sourcePath = join(sourceCommandsDir, command);
       const destPath = join(commandsDir, command);
 
-      if (existsSync(sourcePath) && !existsSync(destPath)) {
-        const content = await Bun.file(sourcePath).text();
-        await Bun.write(destPath, content);
-        console.log(`  ${chalk.green("✓")} .claude/commands/${command}`);
-      } else if (existsSync(destPath)) {
-        console.log(`  ${chalk.yellow("⚠")} .claude/commands/${command} already exists, skipping`);
+      if (existsSync(sourcePath)) {
+        if (existsSync(destPath) && !force) {
+          console.log(`  ${chalk.yellow("⚠")} .claude/commands/${command} already exists, skipping`);
+        } else {
+          const content = await Bun.file(sourcePath).text();
+          await Bun.write(destPath, content);
+          const action = existsSync(destPath) && force ? "updated" : "created";
+          console.log(`  ${chalk.green("✓")} .claude/commands/${command} (${action})`);
+        }
       }
     }
   }

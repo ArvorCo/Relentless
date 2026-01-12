@@ -30,8 +30,9 @@ program
   .command("init")
   .description("Initialize Relentless in the current project")
   .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("-f, --force", "Force reinstall - overwrite existing files", false)
   .action(async (options) => {
-    await initProject(options.dir);
+    await initProject(options.dir, options.force);
   });
 
 // Run command
