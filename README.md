@@ -71,9 +71,9 @@ relentless run --feature 001-user-auth --tui
 
 See [Supported Agents](#supported-agents) section for detailed workflows per agent.
 
-### Legacy PRD Workflow (Still Supported)
+### Ralph Wiggum Method (Classic Workflow)
 
-You can still use the original workflow with direct PRD creation:
+You can still use the original Ralph Wiggum workflow with direct PRD creation:
 
 ```bash
 # 1. Install and initialize
