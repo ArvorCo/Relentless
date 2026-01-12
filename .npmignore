@@ -21,7 +21,6 @@ AGENTS.md
 docs/
 
 # Development examples and tests
-prompt.md
 *.test.ts
 test/
 tests/
