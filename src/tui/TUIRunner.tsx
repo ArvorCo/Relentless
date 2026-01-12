@@ -73,11 +73,16 @@ function TUIRunnerComponent({
     return () => clearInterval(interval);
   }, [state.isRunning]);
 
-  // Add output line
+  // Add output line (strips newlines to prevent rendering issues)
   const addOutput = useCallback((line: string) => {
+    // Remove leading/trailing newlines and split if line contains embedded newlines
+    const cleanLines = line.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+    
+    if (cleanLines.length === 0) return; // Skip empty lines
+    
     setState((prev) => ({
       ...prev,
-      outputLines: [...prev.outputLines.slice(-100), line], // Keep last 100 lines
+      outputLines: [...prev.outputLines.slice(-100), ...cleanLines], // Keep last 100 lines
     }));
   }, []);
 
@@ -152,7 +157,7 @@ function TUIRunnerComponent({
             elapsedSeconds: 0,
           }));
 
-          addOutput(`\n--- Iteration ${i}/${maxIterations} ---`);
+          addOutput(`--- Iteration ${i}/${maxIterations} ---`);
           addOutput(`Story: ${story.id} - ${story.title}`);
 
           // Select agent
@@ -350,7 +355,7 @@ function TUIRunnerComponent({
         }));
 
         if (!success) {
-          addOutput(`\n⚠️ Reached max iterations (${maxIterations}) without completing all stories.`);
+          addOutput(`⚠️ Reached max iterations (${maxIterations}) without completing all stories.`);
         }
 
         onComplete(success);
