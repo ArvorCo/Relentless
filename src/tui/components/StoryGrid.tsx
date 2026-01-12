@@ -37,46 +37,18 @@ export function StoryGrid({
     rows.push(row);
   }
 
-  // Constrain rows to prevent TUI from overflowing terminal height.
-  // When constrained, keep the current story visible by windowing around its row.
-  const totalRows = rows.length;
-  const clampedMaxRows = maxRows === undefined ? undefined : Math.max(0, maxRows);
-
-  let visibleRows = rows;
-  let startRow = 0;
-
-  if (clampedMaxRows !== undefined && totalRows > clampedMaxRows) {
-    const currentRowIdx = currentStoryId
-      ? rows.findIndex((r) => r.some((s) => s.id === currentStoryId))
-      : -1;
-
-    const windowSize = clampedMaxRows;
-    const half = Math.floor(windowSize / 2);
-
-    startRow = currentRowIdx >= 0 ? Math.max(0, currentRowIdx - half) : 0;
-    if (startRow + windowSize > totalRows) {
-      startRow = Math.max(0, totalRows - windowSize);
-    }
-
-    visibleRows = rows.slice(startRow, startRow + windowSize);
-  }
-  
-  // DEBUG: Log StoryGrid rendering
-  console.error(`[StoryGrid DEBUG] maxRows=${maxRows}, totalRows=${totalRows}, visibleRows=${visibleRows.length}, stories=${stories.length}`);
+  // Constrain to maxRows
+  const visibleRows = maxRows ? rows.slice(0, maxRows) : rows;
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor={colors.dim}>
-      <Box paddingX={1} borderBottom borderColor={colors.dim}>
+    <Box flexDirection="column" paddingY={1}>
+      <Box paddingX={1}>
         <Text color={colors.dim} bold>
-          {visibleRows.length < totalRows
-            ? `Stories (${startRow + 1}-${startRow + visibleRows.length} of ${totalRows} rows)`
-            : "Stories"}
+          ── Stories ({stories.length}) ──
         </Text>
       </Box>
-      <Box flexDirection="column" paddingX={1} paddingY={0}>
-        {visibleRows.map((row, visibleRowIdx) => {
-          const rowIdx = startRow + visibleRowIdx;
-          return (
+      <Box flexDirection="column" paddingX={1}>
+        {visibleRows.map((row, rowIdx) => (
           <Box key={rowIdx} flexDirection="row">
             {row.map((story, colIdx) => {
               const isCurrent = story.id === currentStoryId;
@@ -112,8 +84,7 @@ export function StoryGrid({
               );
             })}
           </Box>
-          );
-        })}
+        ))}
       </Box>
     </Box>
   );

@@ -21,27 +21,25 @@ export function AgentOutput({
   const displayLines = clampedMaxLines > 0 ? lines.slice(-clampedMaxLines) : [];
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor={colors.dim}>
-      <Box paddingX={1} borderBottom borderColor={colors.dim}>
+    <Box flexDirection="column" paddingY={1}>
+      <Box paddingX={1}>
         <Text color={colors.dim} bold>
-          Agent Output
+          ── Agent Output ──
         </Text>
       </Box>
-      {clampedMaxLines > 0 && (
-        <Box flexDirection="column" paddingX={1} height={clampedMaxLines}>
-          {displayLines.length > 0 ? (
-            displayLines.map((line, i) => (
-              <Text key={i} color={colors.dim} wrap="truncate">
-                {line}
-              </Text>
-            ))
-          ) : (
-            <Text color={colors.dim} dimColor>
-              Waiting for agent output...
+      <Box flexDirection="column" paddingX={1}>
+        {displayLines.length > 0 ? (
+          displayLines.slice(0, clampedMaxLines).map((line, i) => (
+            <Text key={i} color={colors.dim} wrap="truncate">
+              {line}
             </Text>
-          )}
-        </Box>
-      )}
+          ))
+        ) : (
+          <Text color={colors.dim} dimColor>
+            Waiting for agent output...
+          </Text>
+        )}
+      </Box>
     </Box>
   );
 }

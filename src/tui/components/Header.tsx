@@ -16,9 +16,8 @@ interface HeaderProps {
 export function Header({ agent }: HeaderProps): React.ReactElement {
   return (
     <Box
-      borderStyle="single"
-      borderColor={colors.primary}
       paddingX={1}
+      paddingY={1}
       flexDirection="row"
       justifyContent="space-between"
     >

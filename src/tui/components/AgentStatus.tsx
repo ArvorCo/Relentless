@@ -31,9 +31,8 @@ export function AgentStatus({
 
   return (
     <Box
-      borderStyle="single"
-      borderColor={colors.dim}
       paddingX={1}
+      paddingY={1}
       flexDirection="row"
       justifyContent="space-between"
     >
