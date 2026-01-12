@@ -51,21 +51,24 @@ jobs:
         id: version
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
         
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          release_name: Release v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
           body: |
             Published version ${{ steps.version.outputs.version }} to npm
             
-            Install with:
+            ## Installation
+            
             ```bash
             npm install -g @arvorco/relentless@${{ steps.version.outputs.version }}
             # or
             bun install -g @arvorco/relentless@${{ steps.version.outputs.version }}
             ```
+            
+            ## What's Changed
+            
+            See commits since last release for details.
           draft: false
           prerelease: false
