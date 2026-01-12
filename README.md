@@ -15,8 +15,9 @@
 
 ## Quick Start
 
-### Basic Workflow
+### Choose Your Workflow
 
+**For Claude Code, Amp, or OpenCode users** (Recommended - Full Skills Support):
 ```bash
 # 1. Install Relentless globally
 bun install -g github:ArvorCo/Relentless
@@ -25,37 +26,61 @@ bun install -g github:ArvorCo/Relentless
 cd your-project
 relentless init
 
-# 3. Create a feature
-relentless features create my-feature
+# 3. Create constitution (personalized governance)
+/relentless.constitution
 
-# 4. Create PRD using Claude Code skill (recommended)
-claude "Load the prd skill and create a PRD for [describe your feature]"
+# 4. Create feature specification
+/relentless.specify Add user authentication with OAuth2
 
-# 5. Convert PRD to JSON
-relentless convert relentless/features/my-feature/prd.md --feature my-feature
+# 5. Generate plan, tasks, and checklist
+/relentless.plan I'm using React, TypeScript, PostgreSQL
+/relentless.tasks
+/relentless.checklist
 
-# 6. Run Relentless (with beautiful TUI)
-relentless run --feature my-feature --tui
+# 6. Convert tasks to JSON and run
+relentless convert relentless/features/003-user-auth/tasks.md --feature 003-user-auth
+relentless run --feature 003-user-auth --tui
 ```
 
-### Advanced Workflow (with Spec Kit)
+**For Droid, Codex, or other agents** (Manual Workflow):
+```bash
+# 1. Install and initialize
+bun install -g github:ArvorCo/Relentless
+cd your-project
+relentless init
 
-For structured planning with hierarchical tasks, quality checklists, and interactive clarification:
+# 2. Create feature
+relentless features create user-auth
+
+# 3. Manually create or prompt agent to create files:
+# - relentless/constitution.md
+# - relentless/features/001-user-auth/spec.md
+# - relentless/features/001-user-auth/plan.md
+# - relentless/features/001-user-auth/tasks.md
+
+# 4. Convert and run
+relentless convert relentless/features/001-user-auth/tasks.md --feature 001-user-auth
+relentless run --feature 001-user-auth --tui
+```
+
+See [Supported Agents](#supported-agents) section for detailed workflows per agent.
+
+### Legacy PRD Workflow (Still Supported)
+
+You can still use the original workflow with direct PRD creation:
 
 ```bash
-# 1-2. Install and initialize (same as above)
+# 1. Install and initialize
+bun install -g github:ArvorCo/Relentless
+cd your-project
+relentless init
 
-# 3. Create feature specification with Claude Code
-/speckit.specify Add user authentication with OAuth2 support
+# 2. Create PRD using prd skill (Claude/Amp only)
+claude "Load the prd skill and create a PRD for user authentication"
 
-# 4. Generate technical plan, tasks, and checklist
-/speckit.plan I'm using React, TypeScript, PostgreSQL
-/speckit.tasks
-/speckit.checklist
-
-# 5. Convert to PRD and run
-relentless convert relentless/features/003-user-auth/spec.md --feature 003-user-auth
-relentless run --feature 003-user-auth --tui
+# 3. Convert and run
+relentless convert relentless/features/user-auth/prd.md --feature user-auth
+relentless run --feature user-auth --tui
 ```
 
 **Alternative: Create PRD manually**
@@ -99,9 +124,9 @@ Evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/).
 - **Auto-Recovery** - Switches back to preferred agent when limits reset
 - **Auto-Numbered Branches** - Automatic feature numbering (001-feature, 002-feature, etc.)
 
-#### Specification & Planning (Spec Kit Integration)
-- **Interactive Specification** - `/speckit.specify` command for creating feature specs from natural language
-- **Technical Planning** - `/speckit.plan` command for generating implementation plans
+#### Specification & Planning (Relentless Commands Integration)
+- **Interactive Specification** - `/relentless.specify` command for creating feature specs from natural language
+- **Technical Planning** - `/relentless.plan` command for generating implementation plans
 - **Hierarchical Task Breakdown** - 4-phase structure (Setup → Foundation → Stories → Polish) with dependency ordering
 - **Quality Checklists** - Domain-specific validation checklists generated from PRD requirements
 - **Interactive Clarification** - Systematic ambiguity detection with targeted questions and multiple-choice options
@@ -319,16 +344,16 @@ your-project/
 │   │   ├── checklist/SKILL.md
 │   │   ├── clarify/SKILL.md
 │   │   └── relentless/SKILL.md
-│   └── commands/                  # Spec Kit commands
-│       ├── speckit.specify.md
-│       ├── speckit.plan.md
-│       ├── speckit.tasks.md
-│       ├── speckit.checklist.md
-│       ├── speckit.clarify.md
-│       ├── speckit.constitution.md
-│       ├── speckit.analyze.md
-│       ├── speckit.implement.md
-│       └── speckit.taskstoissues.md
+│   └── commands/                  # Relentless Commands commands
+│       ├── relentless.specify.md
+│       ├── relentless.plan.md
+│       ├── relentless.tasks.md
+│       ├── relentless.checklist.md
+│       ├── relentless.clarify.md
+│       ├── relentless.constitution.md
+│       ├── relentless.analyze.md
+│       ├── relentless.implement.md
+│       └── relentless.taskstoissues.md
 └── templates/                     # Templates copied from Relentless
     ├── prompt.md
     ├── plan.md
@@ -336,30 +361,97 @@ your-project/
     └── progress.txt
 ```
 
-**Note:** Files marked as "(optional)" are created when using the Spec Kit workflow or specific CLI options (`--with-plan`, etc.).
+**Note:** Files marked as "(optional)" are created when using the Relentless Commands workflow or specific CLI options (`--with-plan`, etc.).
 
 ---
 
 ## Supported Agents
 
-| Agent | Command | Skills Support |
-|-------|---------|----------------|
-| **Claude Code** | `claude` | Full |
-| **Amp** | `amp` | Full |
-| **OpenCode** | `opencode` | Via agents |
-| **Codex** | `codex` | Manual |
-| **Droid** | `droid` | Prompting |
-| **Gemini** | `gemini` | Extensions |
+Relentless works with multiple AI coding agents. Feature generation workflow varies by agent capabilities:
 
-### Check Which Agents Are Installed
+### Tier 1: Full Skills Support (Recommended)
 
+Full `/relentless.*` command support with interactive workflows:
+
+| Agent | Command | Status |
+|-------|---------|--------|
+| **Claude Code** | `claude` | ✅ Full skills support |
+| **Amp** | `amp` | ✅ Full skills support |
+| **OpenCode** | `opencode` | ✅ Full skills support |
+
+**Workflow:**
 ```bash
-relentless agents list
+/relentless.constitution
+/relentless.specify Add user authentication
+/relentless.plan
+/relentless.tasks
+/relentless.checklist
+relentless convert tasks.md --feature 003-user-auth
+relentless run --feature 003-user-auth --tui
 ```
 
-### Verify Agent Health
+### Tier 2: Extensions/Hybrid Support
+
+Support through extensions or alternative mechanisms:
+
+| Agent | Command | Status |
+|-------|---------|--------|
+| **Gemini** | `gemini` | 🔄 Extensions (see below) |
+
+**Gemini Setup:** See [GEMINI_SETUP.md](./GEMINI_SETUP.md) for extensions integration guide.
+
+### Tier 3: Manual/CLI Workflow
+
+Use CLI commands and manual file creation:
+
+| Agent | Command | Status |
+|-------|---------|--------|
+| **Droid** | `droid` | 📝 Manual workflow |
+| **Codex** | `codex` | 📝 Manual workflow |
+
+**Manual Workflow:**
+```bash
+# 1. Initialize and create feature structure
+relentless init
+relentless features create user-auth --with-plan
+
+# 2. Create constitution manually or prompt agent
+# Manual: Edit relentless/constitution.md
+# Or prompt:
+droid "Create relentless/constitution.md with governance rules for a TypeScript/React project with strict testing"
+
+# 3. Create specification files by prompting agent
+droid "Create relentless/features/001-user-auth/spec.md with feature specification for user authentication with OAuth2"
+
+# 4. Create technical plan
+droid "Create relentless/features/001-user-auth/plan.md with technical implementation plan using React, TypeScript, PostgreSQL"
+
+# 5. Create user stories (most important!)
+droid "Create relentless/features/001-user-auth/tasks.md with user stories in format:
+### US-001: Title
+**Description:** As a [user], I want [goal] so that [benefit].
+**Acceptance Criteria:**
+- [ ] Specific criterion
+- [ ] Typecheck passes
+- [ ] Tests pass"
+
+# 6. Convert and run orchestration
+relentless convert relentless/features/001-user-auth/tasks.md --feature 001-user-auth
+relentless run --feature 001-user-auth --tui
+```
+
+**Pro Tip for Droid/Codex:** Reference the skill files for detailed instructions:
+```bash
+droid "Read .claude/skills/tasks/SKILL.md and create tasks.md following that format"
+```
+
+### Check Agent Availability
 
 ```bash
+# List installed agents
+relentless agents list
+
+# Check agent health
 relentless agents doctor
 ```
 
@@ -422,37 +514,37 @@ relentless agents list
 relentless agents doctor
 ```
 
-### Spec Kit Commands (For Claude Code & Compatible Agents)
+### Relentless Commands Commands (For Claude Code & Compatible Agents)
 
 These commands are available when using Claude Code or other agents that support custom commands:
 
 ```bash
 # Create or update feature specification
-/speckit.specify <feature description>
+/relentless.specify <feature description>
 
 # Generate technical implementation plan
-/speckit.plan [options]
+/relentless.plan [options]
 
 # Generate dependency-ordered task breakdown
-/speckit.tasks
+/relentless.tasks
 
 # Generate domain-specific quality checklist
-/speckit.checklist
+/relentless.checklist
 
 # Clarify ambiguities in PRD
-/speckit.clarify
+/relentless.clarify
 
 # Manage project constitution
-/speckit.constitution
+/relentless.constitution
 
 # Analyze cross-artifact consistency
-/speckit.analyze
+/relentless.analyze
 
 # Convert tasks to GitHub issues
-/speckit.taskstoissues
+/relentless.taskstoissues
 
 # Execute implementation workflow
-/speckit.implement
+/relentless.implement
 ```
 
 ### Alternative: Run with bunx (No Installation)
@@ -470,13 +562,13 @@ bunx github:ArvorCo/Relentless status --feature <name>
 
 ---
 
-## Spec Kit Integration (Optional but Recommended)
+## Relentless Commands Integration (Optional but Recommended)
 
-Relentless now includes comprehensive Spec Kit-inspired features for structured specification, planning, and quality assurance. These features work with Claude Code and other compatible AI agents.
+Relentless now includes comprehensive Relentless Commands-inspired features for structured specification, planning, and quality assurance. These features work with Claude Code and other compatible AI agents.
 
 ### Overview
 
-The Spec Kit workflow provides:
+The Relentless Commands workflow provides:
 1. **Interactive Specification** - Natural language to structured specs
 2. **Technical Planning** - Implementation design and architecture
 3. **Hierarchical Task Breakdown** - Dependency-ordered, phase-structured tasks
@@ -487,10 +579,10 @@ The Spec Kit workflow provides:
 
 #### 1. Create Feature Specification
 
-Use the `/speckit.specify` command to create a feature spec from a natural language description:
+Use the `/relentless.specify` command to create a feature spec from a natural language description:
 
 ```bash
-/speckit.specify Add user authentication with email/password and OAuth2 support
+/relentless.specify Add user authentication with email/password and OAuth2 support
 ```
 
 This will:
@@ -507,10 +599,10 @@ This will:
 
 **Optional: Clarify Ambiguities**
 
-If the spec has unclear areas, use `/speckit.clarify` to systematically resolve them:
+If the spec has unclear areas, use `/relentless.clarify` to systematically resolve them:
 
 ```bash
-/speckit.clarify
+/relentless.clarify
 ```
 
 This scans for 9 types of ambiguities:
@@ -526,10 +618,10 @@ This scans for 9 types of ambiguities:
 
 #### 2. Generate Technical Plan
 
-Create an implementation plan using `/speckit.plan`:
+Create an implementation plan using `/relentless.plan`:
 
 ```bash
-/speckit.plan I'm building with React, TypeScript, and PostgreSQL
+/relentless.plan I'm building with React, TypeScript, and PostgreSQL
 ```
 
 This generates:
@@ -547,7 +639,7 @@ Saved to: `relentless/features/<feature-name>/plan.md`
 Break down the plan into dependency-ordered tasks:
 
 ```bash
-/speckit.tasks
+/relentless.tasks
 ```
 
 **Hierarchical 4-Phase Structure:**
@@ -598,7 +690,7 @@ Saved to: `relentless/features/<feature-name>/tasks.md`
 Create a domain-specific quality checklist:
 
 ```bash
-/speckit.checklist
+/relentless.checklist
 ```
 
 This generates 20-40 validation items across 5-7 categories:
@@ -680,7 +772,7 @@ Each task should take 15-60 minutes:
 Create a project constitution to enforce coding standards:
 
 ```bash
-/speckit.constitution
+/relentless.constitution
 ```
 
 The constitution defines:
@@ -735,19 +827,19 @@ claude "Load the relentless skill and show me the next incomplete story"
 relentless init
 
 # 2. Create feature specification (Claude Code)
-/speckit.specify Add user authentication with OAuth2 and 2FA support
+/relentless.specify Add user authentication with OAuth2 and 2FA support
 
 # 3. Clarify any ambiguities (if needed)
-/speckit.clarify
+/relentless.clarify
 
 # 4. Generate technical plan
-/speckit.plan I'm using React, Node.js, PostgreSQL
+/relentless.plan I'm using React, Node.js, PostgreSQL
 
 # 5. Generate task breakdown
-/speckit.tasks
+/relentless.tasks
 
 # 6. Generate quality checklist
-/speckit.checklist
+/relentless.checklist
 
 # 7. Convert spec to PRD for orchestration
 relentless convert relentless/features/003-user-auth/spec.md --feature 003-user-auth
@@ -1062,7 +1154,7 @@ bun run lint
 
 - [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) - Original concept by Geoffrey Huntley
 - [Ralph by Snarktank](https://github.com/snarktank/ralph) - Reference implementation that inspired Relentless
-- [GitHub Spec Kit](https://github.com/github/spec-kit) - Specification workflow and structure inspiration for hierarchical planning, quality checklists, and interactive clarification features
+- [GitHub Relentless Commands](https://github.com/github/spec-kit) - Specification workflow and structure inspiration for hierarchical planning, quality checklists, and interactive clarification features
 
 ---
 

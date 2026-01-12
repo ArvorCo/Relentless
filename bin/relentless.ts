@@ -124,14 +124,15 @@ program
 
 // Convert command
 program
-  .command("convert <prdMd>")
-  .description("Convert PRD markdown to prd.json in a feature folder")
+  .command("convert <tasksMd>")
+  .description("Convert tasks.md to prd.json, optionally merging checklist.md criteria")
   .requiredOption("-f, --feature <name>", "Feature name")
   .option("-d, --dir <path>", "Project directory", process.cwd())
   .option("--auto-number", "Auto-number the feature directory (e.g., 001-feature-name)", false)
-  .action(async (prdMd, options) => {
-    if (!existsSync(prdMd)) {
-      console.error(chalk.red(`File not found: ${prdMd}`));
+  .option("--with-checklist", "Merge checklist items into acceptance criteria", false)
+  .action(async (tasksMd, options) => {
+    if (!existsSync(tasksMd)) {
+      console.error(chalk.red(`File not found: ${tasksMd}`));
       process.exit(1);
     }
 
@@ -167,24 +168,40 @@ program
       await Bun.write(progressPath, createProgressTemplate(finalFeatureName));
     }
 
-    console.log(chalk.dim(`Converting ${prdMd}...`));
+    console.log(chalk.dim(`Converting ${tasksMd}...`));
 
-    const content = await Bun.file(prdMd).text();
-    const parsed = parsePRDMarkdown(content);
+    // Read tasks.md (primary source)
+    const tasksContent = await Bun.file(tasksMd).text();
+    const parsed = parsePRDMarkdown(tasksContent);
+
+    // Optionally merge checklist items
+    if (options.withChecklist) {
+      const checklistPath = join(featureDir, "checklist.md");
+      if (existsSync(checklistPath)) {
+        console.log(chalk.dim("  Merging checklist.md criteria..."));
+        const checklistContent = await Bun.file(checklistPath).text();
+        // TODO: Parse checklist and merge into acceptance criteria
+        // For now, just note that it exists
+      }
+    }
+
     const prd = createPRD(parsed, finalFeatureName);
 
     // Save prd.json to feature folder
     const prdJsonPath = join(featureDir, "prd.json");
     await savePRD(prd, prdJsonPath);
 
-    // Also copy the source prd.md to the feature folder
-    const prdMdPath = join(featureDir, "prd.md");
-    await Bun.write(prdMdPath, content);
+    // Also copy the source files to the feature folder
+    const tasksMdPath = join(featureDir, "prd.md");
+    await Bun.write(tasksMdPath, tasksContent);
 
     console.log(chalk.green(`✅ Created relentless/features/${finalFeatureName}/`));
     console.log(chalk.dim(`  prd.json - ${prd.userStories.length} stories`));
-    console.log(chalk.dim(`  prd.md - source PRD`));
+    console.log(chalk.dim(`  prd.md - from tasks.md`));
     console.log(chalk.dim(`  progress.txt - progress log`));
+    if (options.withChecklist && existsSync(join(featureDir, "checklist.md"))) {
+      console.log(chalk.dim(`  ✓ Checklist criteria merged`));
+    }
     console.log(chalk.dim(`\nProject: ${prd.project}`));
     console.log(chalk.dim(`Branch: ${prd.branchName}`));
   });

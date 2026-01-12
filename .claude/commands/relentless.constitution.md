@@ -1,24 +1,20 @@
 ---
-description: Create or update the project constitution from interactive or provided principle inputs, ensuring all dependent templates stay in sync.
+description: Create or update the project constitution - personalized governance and coding principles.
 handoffs: 
   - label: Build Specification
-    agent: speckit.specify
-    prompt: Implement the feature specification based on the updated constitution. I want to build...
+    agent: relentless.specify
+    prompt: Create a feature specification. I want to build...
 ---
 
-## User Input
+Load the constitution skill and create or update the project constitution at `relentless/constitution.md`.
 
-```text
-$ARGUMENTS
-```
+**Context:** $ARGUMENTS
 
-You **MUST** consider the user input before proceeding (if not empty).
-
-## Outline
-
-You are updating the project constitution at `.specify/memory/constitution.md`. This file is a TEMPLATE containing placeholder tokens in square brackets (e.g. `[PROJECT_NAME]`, `[PRINCIPLE_1_NAME]`). Your job is to (a) collect/derive concrete values, (b) fill the template precisely, and (c) propagate any amendments across dependent artifacts.
-
-Follow this execution flow:
+The constitution skill will:
+1. Ask about your project's coding philosophy and standards
+2. Generate a personalized constitution based on your answers
+3. Save to `relentless/constitution.md`
+4. Ensure consistency with project standards
 
 1. Load the existing constitution template at `.specify/memory/constitution.md`.
    - Identify every placeholder token of the form `[ALL_CAPS_IDENTIFIER]`.

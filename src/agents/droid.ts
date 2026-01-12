@@ -39,7 +39,8 @@ export const droidAdapter: AgentAdapter = {
     const startTime = Date.now();
 
     // Droid reads from stdin when piped or redirected.
-    const proc = Bun.spawn(["droid", "exec"], {
+    // Use --auto high for high risk tolerance by default
+    const proc = Bun.spawn(["droid", "exec", "--auto", "high"], {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
       stdout: "pipe",

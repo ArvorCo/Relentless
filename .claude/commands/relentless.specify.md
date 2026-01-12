@@ -1,28 +1,24 @@
 ---
-description: Create or update the feature specification from a natural language feature description.
+description: Create feature specification from natural language description.
 handoffs: 
   - label: Build Technical Plan
-    agent: speckit.plan
+    agent: relentless.plan
     prompt: Create a plan for the spec. I am building with...
-  - label: Clarify Spec Requirements
-    agent: speckit.clarify
+  - label: Clarify Requirements
+    agent: relentless.clarify
     prompt: Clarify specification requirements
     send: true
 ---
 
-## User Input
+Load the specify skill and create a feature specification in `relentless/features/NNN-feature-name/`.
 
-```text
-$ARGUMENTS
-```
+**Feature Description:** $ARGUMENTS
 
-You **MUST** consider the user input before proceeding (if not empty).
-
-## Outline
-
-The text the user typed after `/speckit.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `$ARGUMENTS` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
-
-Given that feature description, do this:
+The specify skill will:
+1. Create numbered feature directory and branch
+2. Generate structured specification from your description
+3. Validate specification quality
+4. Save to `spec.md`
 
 1. **Generate a concise short name** (2-4 words) for the branch:
    - Analyze the feature description and extract the most meaningful keywords
@@ -136,7 +132,7 @@ Given that feature description, do this:
       
       ## Notes
       
-      - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`
+      - Items marked incomplete require spec updates before `/relentless.clarify` or `/relentless.plan`
       ```
 
    b. **Run Validation Check**: Review the spec against each checklist item:
@@ -190,7 +186,7 @@ Given that feature description, do this:
 
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
 
-7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/speckit.clarify` or `/speckit.plan`).
+7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/relentless.clarify` or `/relentless.plan`).
 
 **NOTE:** The script creates and checks out the new branch and initializes the spec file before writing.
 

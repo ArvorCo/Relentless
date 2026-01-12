@@ -170,17 +170,8 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
     console.log(`  ${chalk.green("✓")} relentless/${filename}`);
   }
 
-  // Copy constitution template
-  const constitutionSourcePath = join(relentlessRoot, "templates", "constitution.md");
-  const constitutionDestPath = join(relentlessDir, "constitution.md");
-
-  if (existsSync(constitutionSourcePath) && !existsSync(constitutionDestPath)) {
-    const constitutionContent = await Bun.file(constitutionSourcePath).text();
-    await Bun.write(constitutionDestPath, constitutionContent);
-    console.log(`  ${chalk.green("✓")} relentless/constitution.md`);
-  } else if (existsSync(constitutionDestPath)) {
-    console.log(`  ${chalk.yellow("⚠")} relentless/constitution.md already exists, skipping`);
-  }
+  // Note: constitution.md is NOT copied - it should be created by /relentless.constitution command
+  // This ensures each project gets a personalized constitution
 
   // Create features directory with .gitkeep
   const gitkeepPath = join(featuresDir, ".gitkeep");
@@ -196,10 +187,24 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
     mkdirSync(skillsDir, { recursive: true });
   }
 
-  const sourceSkillsDir = join(relentlessRoot, "skills");
+  const sourceSkillsDir = join(relentlessRoot, ".claude", "skills");
 
   if (existsSync(sourceSkillsDir)) {
-    for (const skill of ["prd", "relentless"]) {
+    const skills = [
+      "prd",
+      "relentless",
+      "constitution",
+      "specify",
+      "plan",
+      "tasks",
+      "checklist",
+      "clarify",
+      "analyze",
+      "implement",
+      "taskstoissues",
+    ];
+
+    for (const skill of skills) {
       const sourcePath = join(sourceSkillsDir, skill);
       const destPath = join(skillsDir, skill);
 
@@ -208,6 +213,42 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
         console.log(`  ${chalk.green("✓")} .claude/skills/${skill}`);
       } else if (existsSync(destPath)) {
         console.log(`  ${chalk.yellow("⚠")} .claude/skills/${skill} already exists, skipping`);
+      }
+    }
+  }
+
+  // Copy commands to .claude/commands/ (for Claude Code)
+  console.log(chalk.dim("\nInstalling commands..."));
+  const commandsDir = join(projectDir, ".claude", "commands");
+  if (!existsSync(commandsDir)) {
+    mkdirSync(commandsDir, { recursive: true });
+  }
+
+  const sourceCommandsDir = join(relentlessRoot, ".claude", "commands");
+
+  if (existsSync(sourceCommandsDir)) {
+    const commands = [
+      "relentless.analyze.md",
+      "relentless.checklist.md",
+      "relentless.clarify.md",
+      "relentless.constitution.md",
+      "relentless.implement.md",
+      "relentless.plan.md",
+      "relentless.specify.md",
+      "relentless.tasks.md",
+      "relentless.taskstoissues.md",
+    ];
+
+    for (const command of commands) {
+      const sourcePath = join(sourceCommandsDir, command);
+      const destPath = join(commandsDir, command);
+
+      if (existsSync(sourcePath) && !existsSync(destPath)) {
+        const content = await Bun.file(sourcePath).text();
+        await Bun.write(destPath, content);
+        console.log(`  ${chalk.green("✓")} .claude/commands/${command}`);
+      } else if (existsSync(destPath)) {
+        console.log(`  ${chalk.yellow("⚠")} .claude/commands/${command} already exists, skipping`);
       }
     }
   }
@@ -226,12 +267,17 @@ export async function initProject(projectDir: string = process.cwd()): Promise<v
   console.log(chalk.dim("          └── progress.txt # Progress log\n"));
 
   console.log("Next steps:");
-  console.log(chalk.dim("1. Create a PRD:"));
-  console.log(`   ${chalk.cyan('claude "Load the prd skill and create a PRD for [your feature]"')}`);
-  console.log(chalk.dim("\n2. Convert to JSON:"));
-  console.log(`   ${chalk.cyan("relentless convert relentless/features/<feature>/prd.md --feature <feature-name>")}`);
-  console.log(chalk.dim("\n3. Run Relentless:"));
-  console.log(`   ${chalk.cyan("relentless run --feature <feature-name>")}`);
+  console.log(chalk.dim("1. Create project constitution (recommended):"));
+  console.log(`   ${chalk.cyan("/relentless.constitution")}`);
+  console.log(chalk.dim("\n2. Create a feature specification:"));
+  console.log(`   ${chalk.cyan("/relentless.specify Add user authentication")}`);
+  console.log(chalk.dim("\n3. Generate plan, tasks, and checklist:"));
+  console.log(`   ${chalk.cyan("/relentless.plan")}`);
+  console.log(`   ${chalk.cyan("/relentless.tasks")}`);
+  console.log(`   ${chalk.cyan("/relentless.checklist")}`);
+  console.log(chalk.dim("\n4. Convert to JSON and run:"));
+  console.log(`   ${chalk.cyan("relentless convert relentless/features/NNN-feature/tasks.md --feature NNN-feature")}`);
+  console.log(`   ${chalk.cyan("relentless run --feature NNN-feature --tui")}`);
   console.log("");
 }
 

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This feature integrates sophisticated specification-driven development capabilities from speckit into relentless while maintaining its agent-agnostic simplicity. The integration creates a professional, globally-installed binary with powerful enhancements for dependency-ordered tasks, constitution-based governance, quality checklists, consistency analysis, and enhanced orchestration.
+This feature integrates sophisticated specification-driven development capabilities inspired by GitHub's Spec Kit into relentless while maintaining its agent-agnostic simplicity. We're forking and adapting these concepts as relentless-native commands (relentless.plan, relentless.constitution, etc.) to create a professional, globally-installed binary with powerful enhancements for dependency-ordered tasks, constitution-based governance, quality checklists, consistency analysis, and enhanced orchestration.
 
 ## User Stories
 
