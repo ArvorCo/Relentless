@@ -18,12 +18,16 @@ import { run } from "../src/execution/runner";
 import { runTUI } from "../src/tui/TUIRunner";
 import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
 
+// Read version from package.json dynamically
+const packageJson = await Bun.file(join(import.meta.dir, "..", "package.json")).json();
+const version = packageJson.version;
+
 const program = new Command();
 
 program
   .name("relentless")
   .description("Universal AI agent orchestrator - works with Claude Code, Amp, OpenCode, Codex, Droid, and Gemini")
-  .version("0.1.0");
+  .version(version);
 
 // Init command
 program
