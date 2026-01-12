@@ -1,6 +1,6 @@
 # Development and CI/CD files
 .github/
-scripts/
+/scripts/
 *.log
 .DS_Store
 
