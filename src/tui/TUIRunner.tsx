@@ -388,6 +388,9 @@ function sleep(ms: number): Promise<void> {
  * Run the TUI
  */
 export async function runTUI(options: TUIRunnerOptions): Promise<boolean> {
+  // Clear terminal before starting TUI to prevent rendering artifacts
+  process.stdout.write('\x1B[2J\x1B[0f');
+  
   return new Promise((resolve) => {
     const { unmount } = render(
       <TUIRunnerComponent
