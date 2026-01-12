@@ -105,6 +105,16 @@ async function buildPrompt(
     prompt += planContent;
   }
 
+  // Load and append checklist.md if available
+  const checklistPath = join(dirname(progressPath), "checklist.md");
+  if (existsSync(checklistPath)) {
+    const checklistContent = await Bun.file(checklistPath).text();
+    prompt += `\n\n## Quality Checklist\n\n`;
+    prompt += `The following quality checks must be validated before marking stories as complete:\n\n`;
+    prompt += checklistContent;
+    prompt += `\n\nIMPORTANT: Review this checklist after implementing each story and verify all applicable items.\n`;
+  }
+
   // Load and append research findings if available
   if (story?.id) {
     const researchPath = join(dirname(progressPath), "research", `${story.id}.md`);
