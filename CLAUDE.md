@@ -90,6 +90,25 @@ relentless run --feature <name>
 - `.claude/skills/*/SKILL.md` - Skill implementations
 - `.claude/commands/relentless.*.md` - Command wrappers
 - `templates/` - Default templates for constitution, plan, etc.
+- `docs/` - Additional documentation (Gemini setup, etc.)
+
+### Documentation Guidelines
+
+**Root Directory:**
+Keep only essential files in the root:
+- `README.md` - User-facing documentation
+- `CLAUDE.md` - Developer/maintainer guide
+- `AGENTS.md` - Symlink to CLAUDE.md
+- `LICENSE` - MIT license
+
+**docs/ Directory:**
+All other documentation files should go in `docs/`:
+- Setup guides (e.g., `docs/GEMINI_SETUP.md`)
+- Internal documentation
+- Architecture diagrams
+- Development notes
+- Never create temporary .md files in root (COMMIT_MESSAGE.md, RELEASE_READY.md, etc.)
+- Always use `docs/` for any documentation beyond README and CLAUDE.md
 
 ## Publishing to npm
 

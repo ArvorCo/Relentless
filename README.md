@@ -415,7 +415,7 @@ Support through extensions or alternative mechanisms:
 |-------|---------|--------|
 | **Gemini** | `gemini` | 🔄 Extensions (see below) |
 
-**Gemini Setup:** See [GEMINI_SETUP.md](./GEMINI_SETUP.md) for extensions integration guide.
+**Gemini Setup:** See [docs/GEMINI_SETUP.md](./docs/GEMINI_SETUP.md) for extensions integration guide.
 
 ### Tier 3: Manual/CLI Workflow
 

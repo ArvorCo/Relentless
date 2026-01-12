@@ -18,11 +18,7 @@ scripts/
 # Maintainer documentation (not needed by end users)
 CLAUDE.md
 AGENTS.md
-COMMIT_MESSAGE.md
-PUBLISHING.md
-PUBLISHING_GUIDE.md
-REFACTOR_SUMMARY.md
-CHANGES_SUMMARY.md
+docs/
 
 # Development examples and tests
 prompt.md
