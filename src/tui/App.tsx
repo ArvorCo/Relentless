@@ -21,13 +21,25 @@ interface AppProps {
 
 export function App({ state }: AppProps): React.ReactElement {
   const { stdout } = useStdout();
-  const [terminalRows, setTerminalRows] = React.useState(() => stdout.rows ?? 24);
+  
+  // DEBUG: Log stdout properties
+  React.useEffect(() => {
+    console.error(`[TUI DEBUG] stdout.rows=${stdout.rows}, stdout.columns=${stdout.columns}, isTTY=${stdout.isTTY}`);
+  }, [stdout.rows, stdout.columns, stdout.isTTY]);
+  
+  const [terminalRows, setTerminalRows] = React.useState(() => {
+    const rows = stdout.rows ?? 24;
+    console.error(`[TUI DEBUG] Initial terminalRows: ${rows}`);
+    return rows;
+  });
 
   React.useEffect(() => {
     if (!stdout.isTTY) return;
 
     const handleResize = () => {
-      setTerminalRows(stdout.rows ?? 24);
+      const newRows = stdout.rows ?? 24;
+      console.error(`[TUI DEBUG] Resize: ${newRows} rows`);
+      setTerminalRows(newRows);
     };
 
     stdout.on("resize", handleResize);
@@ -53,6 +65,9 @@ export function App({ state }: AppProps): React.ReactElement {
     agentOutputLines -= 1;
     storyGridRows = 1;
   }
+  
+  // DEBUG: Log calculated values
+  console.error(`[TUI DEBUG] terminalRows=${terminalRows}, contentBudget=${contentBudget}, agentOutputLines=${agentOutputLines}, storyGridRows=${storyGridRows}, totalStories=${totalCount}`);
 
   return (
     <Box flexDirection="column" width="100%">

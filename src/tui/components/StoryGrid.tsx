@@ -60,6 +60,9 @@ export function StoryGrid({
 
     visibleRows = rows.slice(startRow, startRow + windowSize);
   }
+  
+  // DEBUG: Log StoryGrid rendering
+  console.error(`[StoryGrid DEBUG] maxRows=${maxRows}, totalRows=${totalRows}, visibleRows=${visibleRows.length}, stories=${stories.length}`);
 
   return (
     <Box flexDirection="column" borderStyle="single" borderColor={colors.dim}>
