@@ -35,9 +35,7 @@ archive/
 relentless/features/*
 !relentless/features/.gitkeep
 
-# Old structure (not needed in package)
-skills/
-ralph.sh
+# Old structure (already removed from repo)
 
 # Old/backup files
 *.old.md
