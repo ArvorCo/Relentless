@@ -36,7 +36,6 @@ relentless/features/*
 !relentless/features/.gitkeep
 
 # Old structure (not needed in package)
-.specify/
 skills/
 ralph.sh
 
