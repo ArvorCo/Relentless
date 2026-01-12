@@ -32,14 +32,14 @@ export function CurrentStory({
 }: CurrentStoryProps): React.ReactElement {
   if (!story) {
     return (
-      <Box paddingY={1}>
+      <Box>
         <Text color={colors.dim}>No story in progress</Text>
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="column" paddingY={1}>
+    <Box flexDirection="column">
       <Box>
         <Text color={colors.dim}>Current Story: </Text>
         <Text color={colors.warning} bold>

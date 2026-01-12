@@ -6,7 +6,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import { colors, borders } from "../theme.js";
+import { colors } from "../theme.js";
 
 interface AgentOutputProps {
   lines: string[];
@@ -17,8 +17,8 @@ export function AgentOutput({
   lines,
   maxLines = 8,
 }: AgentOutputProps): React.ReactElement {
-  // Take last N lines for display
-  const displayLines = lines.slice(-maxLines);
+  const clampedMaxLines = Math.max(0, maxLines);
+  const displayLines = clampedMaxLines > 0 ? lines.slice(-clampedMaxLines) : [];
 
   return (
     <Box flexDirection="column" borderStyle="single" borderColor={colors.dim}>
@@ -27,19 +27,21 @@ export function AgentOutput({
           Agent Output
         </Text>
       </Box>
-      <Box flexDirection="column" paddingX={1} height={maxLines}>
-        {displayLines.length > 0 ? (
-          displayLines.map((line, i) => (
-            <Text key={i} color={colors.dim} wrap="truncate">
-              {line}
+      {clampedMaxLines > 0 && (
+        <Box flexDirection="column" paddingX={1} height={clampedMaxLines}>
+          {displayLines.length > 0 ? (
+            displayLines.map((line, i) => (
+              <Text key={i} color={colors.dim} wrap="truncate">
+                {line}
+              </Text>
+            ))
+          ) : (
+            <Text color={colors.dim} dimColor>
+              Waiting for agent output...
             </Text>
-          ))
-        ) : (
-          <Text color={colors.dim} dimColor>
-            Waiting for agent output...
-          </Text>
-        )}
-      </Box>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }

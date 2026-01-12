@@ -13,12 +13,14 @@ interface StoryGridProps {
   stories: Story[];
   currentStoryId?: string;
   columns?: number;
+  maxRows?: number;
 }
 
 export function StoryGrid({
   stories,
   currentStoryId,
   columns = 2,
+  maxRows,
 }: StoryGridProps): React.ReactElement {
   // Split stories into columns
   const rows: Story[][] = [];
@@ -35,15 +37,43 @@ export function StoryGrid({
     rows.push(row);
   }
 
+  // Constrain rows to prevent TUI from overflowing terminal height.
+  // When constrained, keep the current story visible by windowing around its row.
+  const totalRows = rows.length;
+  const clampedMaxRows = maxRows === undefined ? undefined : Math.max(0, maxRows);
+
+  let visibleRows = rows;
+  let startRow = 0;
+
+  if (clampedMaxRows !== undefined && totalRows > clampedMaxRows) {
+    const currentRowIdx = currentStoryId
+      ? rows.findIndex((r) => r.some((s) => s.id === currentStoryId))
+      : -1;
+
+    const windowSize = clampedMaxRows;
+    const half = Math.floor(windowSize / 2);
+
+    startRow = currentRowIdx >= 0 ? Math.max(0, currentRowIdx - half) : 0;
+    if (startRow + windowSize > totalRows) {
+      startRow = Math.max(0, totalRows - windowSize);
+    }
+
+    visibleRows = rows.slice(startRow, startRow + windowSize);
+  }
+
   return (
     <Box flexDirection="column" borderStyle="single" borderColor={colors.dim}>
       <Box paddingX={1} borderBottom borderColor={colors.dim}>
         <Text color={colors.dim} bold>
-          Stories
+          {visibleRows.length < totalRows
+            ? `Stories (${startRow + 1}-${startRow + visibleRows.length} of ${totalRows} rows)`
+            : "Stories"}
         </Text>
       </Box>
       <Box flexDirection="column" paddingX={1} paddingY={0}>
-        {rows.map((row, rowIdx) => (
+        {visibleRows.map((row, visibleRowIdx) => {
+          const rowIdx = startRow + visibleRowIdx;
+          return (
           <Box key={rowIdx} flexDirection="row">
             {row.map((story, colIdx) => {
               const isCurrent = story.id === currentStoryId;
@@ -79,7 +109,8 @@ export function StoryGrid({
               );
             })}
           </Box>
-        ))}
+          );
+        })}
       </Box>
     </Box>
   );
