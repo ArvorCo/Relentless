@@ -20,12 +20,6 @@ export function AgentOutput({
   // Take last N lines for display
   const displayLines = lines.slice(-maxLines);
 
-  // Pad to maintain consistent height
-  const paddedLines = [...displayLines];
-  while (paddedLines.length < maxLines) {
-    paddedLines.push("");
-  }
-
   return (
     <Box flexDirection="column" borderStyle="single" borderColor={colors.dim}>
       <Box paddingX={1} borderBottom borderColor={colors.dim}>
@@ -33,12 +27,18 @@ export function AgentOutput({
           Agent Output
         </Text>
       </Box>
-      <Box flexDirection="column" paddingX={1} paddingY={0}>
-        {paddedLines.map((line, i) => (
-          <Text key={i} color={colors.dim} wrap="truncate">
-            {line || " "}
+      <Box flexDirection="column" paddingX={1} height={maxLines}>
+        {displayLines.length > 0 ? (
+          displayLines.map((line, i) => (
+            <Text key={i} color={colors.dim} wrap="truncate">
+              {line}
+            </Text>
+          ))
+        ) : (
+          <Text color={colors.dim} dimColor>
+            Waiting for agent output...
           </Text>
-        ))}
+        )}
       </Box>
     </Box>
   );
