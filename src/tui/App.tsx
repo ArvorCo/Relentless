@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text, useStdout } from "ink";
 import { Header } from "./components/Header.js";
 import { ProgressBar } from "./components/ProgressBar.js";
 import { CurrentStory } from "./components/CurrentStory.js";
@@ -20,8 +20,23 @@ interface AppProps {
 }
 
 export function App({ state }: AppProps): React.ReactElement {
+  const { stdout } = useStdout();
+  const terminalRows = stdout.rows ?? 24;
+  
   const completedCount = state.stories.filter((s) => s.passes).length;
   const totalCount = state.stories.length;
+  
+  // Calculate available rows for stories based on terminal height
+  // Chrome: Header(2) + Feature/Progress(2) + CurrentStory(2) + AgentOutputHeader(1) + AgentStatusFooter(2) + Padding(2) = ~11 lines
+  // AgentOutput: 6 lines
+  // Remaining space for stories
+  const chromeHeight = 11;
+  const agentOutputLines = 6;
+  const availableForStories = Math.max(8, terminalRows - chromeHeight - agentOutputLines);
+  
+  // Calculate story rows needed for 2-column layout
+  const storyRows = Math.ceil(totalCount / 2);
+  const maxStoryRows = Math.min(storyRows, availableForStories);
 
   return (
     <Box flexDirection="column" width="100%">
@@ -50,13 +65,13 @@ export function App({ state }: AppProps): React.ReactElement {
       </Box>
 
       {/* Agent output */}
-      <AgentOutput lines={state.outputLines} maxLines={8} />
+      <AgentOutput lines={state.outputLines} maxLines={agentOutputLines} />
 
       {/* Story grid */}
       <StoryGrid
         stories={state.stories}
         currentStoryId={state.currentStory?.id}
-        maxRows={8}
+        maxRows={maxStoryRows}
       />
 
       {/* Agent status footer */}
