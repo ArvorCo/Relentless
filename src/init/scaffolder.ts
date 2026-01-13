@@ -145,6 +145,13 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
 
   const sourceSkillsDir = join(relentlessRoot, ".claude", "skills");
 
+  // Check if we're running in the relentless project itself (source == destination)
+  // This prevents accidentally deleting our own source files with -f flag
+  const isRelentlessProject = skillsDir === sourceSkillsDir;
+  if (isRelentlessProject) {
+    console.log(chalk.yellow("  ⚠ Running in Relentless project itself - skipping skill copy to avoid self-destruction"));
+  }
+
   if (!existsSync(sourceSkillsDir)) {
     console.error(chalk.red(`\n❌ Error: Skills directory not found at ${sourceSkillsDir}`));
     console.error(chalk.red(`   Relentless root: ${relentlessRoot}`));
@@ -171,7 +178,7 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
     "taskstoissues",
   ];
 
-  if (existsSync(sourceSkillsDir)) {
+  if (existsSync(sourceSkillsDir) && !isRelentlessProject) {
     for (const skill of skills) {
       const sourcePath = join(sourceSkillsDir, skill);
       const destPath = join(skillsDir, skill);
@@ -363,6 +370,12 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
 
   const sourceCommandsDir = join(relentlessRoot, ".claude", "commands");
 
+  // Check if we're running in the relentless project itself (source == destination)
+  const isRelentlessProjectCommands = commandsDir === sourceCommandsDir;
+  if (isRelentlessProjectCommands) {
+    console.log(chalk.yellow("  ⚠ Running in Relentless project itself - skipping command copy to avoid self-destruction"));
+  }
+
   // List of commands to install (used for Claude, OpenCode, Factory, and Codex)
   const commands = [
     "relentless.analyze.md",
@@ -376,7 +389,7 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
     "relentless.taskstoissues.md",
   ];
 
-  if (existsSync(sourceCommandsDir)) {
+  if (existsSync(sourceCommandsDir) && !isRelentlessProjectCommands) {
     for (const command of commands) {
       const sourcePath = join(sourceCommandsDir, command);
       const destPath = join(commandsDir, command);
