@@ -119,7 +119,7 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
         .trim()
         .split(/[,;]/)
         .map((d) => d.trim())
-        .filter(Boolean);
+        .filter((d) => d && !["none", "n/a", "-", "na"].includes(d.toLowerCase()));
       if (deps.length > 0) {
         currentStory.dependencies = deps;
       }

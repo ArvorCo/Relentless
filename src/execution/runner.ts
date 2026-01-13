@@ -12,8 +12,10 @@ import { getAgent, getInstalledAgents } from "../agents/registry";
 import type { RelentlessConfig } from "../config/schema";
 import { loadConstitution, validateConstitution } from "../config/loader";
 import { loadPRD, getNextStory, isComplete, countStories } from "../prd";
+import type { UserStory } from "../prd/types";
 import { loadProgress, updateProgressMetadata, syncPatternsFromContent } from "../prd/progress";
 import { routeStory } from "./router";
+import { buildStoryPromptAddition } from "./story-prompt";
 
 export interface RunOptions {
   /** Agent to use (or "auto" for smart routing) */
@@ -60,7 +62,7 @@ async function buildPrompt(
   promptPath: string,
   workingDirectory: string,
   progressPath: string,
-  story?: { id: string; research?: boolean }
+  story?: UserStory
 ): Promise<string> {
   if (!existsSync(promptPath)) {
     throw new Error(`Prompt file not found: ${promptPath}`);
@@ -124,6 +126,13 @@ async function buildPrompt(
       prompt += `The following research was conducted before implementation:\n\n`;
       prompt += researchContent;
     }
+  }
+
+  // Add story-specific workflow instructions
+  if (story) {
+    const featureDir = dirname(progressPath);
+    const storyInstructions = await buildStoryPromptAddition(story, featureDir);
+    prompt += storyInstructions;
   }
 
   return prompt;
