@@ -7,6 +7,11 @@ description: "Execute implementation workflow phase by phase. Use after analysis
 
 Guide systematic implementation of features using TDD and quality-first approach.
 
+> **Note:** This skill uses generic placeholders. Adapt commands and paths to your project:
+> - Quality commands: Check your `package.json`, `Makefile`, or build config
+> - File paths: Adjust based on your project structure
+> - Examples show common conventions - your project may differ
+
 ---
 
 ## The Job
@@ -17,27 +22,32 @@ Implement user stories one at a time, following strict TDD and updating all trac
 
 ## Before You Start
 
-1. **Read the Constitution** - Review `relentless/constitution.md` for project principles
-2. **Read prompt.md** - Review `relentless/prompt.md` for workflow guidelines
+1. **Read the Constitution** - Review your project's constitution (if exists) for governance principles
+2. **Read prompt.md** - Review workflow guidelines (if exists)
 3. **Read progress.txt** - Check learnings from previous iterations
 4. **Review artifacts** - Ensure spec.md, plan.md, tasks.md, checklist.md exist
-5. **Run `/relentless.analyze`** - Must pass with no CRITICAL issues
+5. **Identify Quality Commands** - Find your project's typecheck, lint, and test commands
 
 ---
 
 ## CRITICAL: Quality Gates (Non-Negotiable)
 
-Before marking ANY story as complete, ALL checks must pass:
+Before marking ANY story as complete, ALL quality checks must pass.
+
+**Find your project's commands** (examples for different ecosystems):
 
 ```bash
-# TypeScript strict mode check
-bun run typecheck
+# JavaScript/TypeScript (npm/yarn/bun/pnpm):
+npm run typecheck && npm run lint && npm test
 
-# ESLint with zero warnings policy
-bun run lint
+# Python:
+mypy . && ruff check . && pytest
 
-# All tests must pass
-bun test
+# Go:
+go build ./... && golangci-lint run && go test ./...
+
+# Rust:
+cargo check && cargo clippy && cargo test
 ```
 
 **If ANY check fails, DO NOT mark the story as complete. Fix the issues first.**
@@ -52,19 +62,19 @@ For EVERY story, follow strict Test-Driven Development:
 ```bash
 # Create test file if needed
 # Write tests that define expected behavior
-bun test  # Tests MUST fail initially
+# Run your test command - tests MUST fail initially
 ```
 
 ### Step 2: Implement Minimum Code (GREEN)
 ```bash
 # Write only enough code to pass tests
-bun test  # Tests MUST pass
+# Run tests - they MUST pass now
 ```
 
 ### Step 3: Refactor
 ```bash
 # Clean up while keeping tests green
-bun test  # Tests MUST still pass
+# Run tests - they MUST still pass
 ```
 
 **Do NOT skip TDD. Tests are contracts that validate your implementation.**
@@ -83,7 +93,7 @@ For each story (in dependency order):
 ### 2. Find Relevant Checklist Items
 - Open `checklist.md`
 - Find items tagged with `[US-XXX]` for this story
-- Note constitution compliance items `[Constitution]`
+- Note any governance/compliance items
 
 ### 3. Implement with TDD
 Follow the TDD workflow above for each acceptance criterion.
@@ -110,9 +120,8 @@ For each verified checklist item:
 
 ### 6. Run Quality Checks
 ```bash
-bun run typecheck  # 0 errors required
-bun run lint       # 0 warnings required
-bun test           # All tests must pass
+# Run your project's quality commands
+# All must pass with 0 errors/warnings
 ```
 
 ### 7. Commit Changes
@@ -142,17 +151,14 @@ Append progress entry:
 - Key decisions made
 
 **Files Changed:**
-- path/to/file.ts (new/modified)
+- path/to/file (new/modified)
 
 **Tests Added:**
-- path/to/file.test.ts
+- path/to/test.file
 
 **Learnings:**
 - Patterns discovered
 - Gotchas encountered
-
-**Constitution Compliance:**
-- Principle N: How it was followed
 
 ---
 ```
@@ -165,23 +171,23 @@ Append progress entry:
 **Current:** US-001: Test Infrastructure Setup
 
 **Acceptance Criteria:**
-- [ ] `bun test` command runs successfully
-- [ ] Test files with pattern `*.test.ts` are auto-discovered
-- [ ] `bun test --coverage` shows coverage report
-- [ ] Typecheck passes
-- [ ] Lint passes
+- [ ] Test command runs successfully
+- [ ] Test files are auto-discovered
+- [ ] Coverage report available
+- [ ] Type checking passes
+- [ ] Linting passes
 
 **Relevant Checklist Items:**
-- [ ] CHK-001 [US-001] `bun test` command executes successfully
-- [ ] CHK-002 [US-001] Test files with `*.test.ts` pattern are auto-discovered
-- [ ] CHK-007 [Constitution] Tests written BEFORE implementation
+- [ ] CHK-001 [US-001] Test command executes successfully
+- [ ] CHK-002 [US-001] Test files are auto-discovered
+- [ ] CHK-007 Tests written BEFORE implementation
 
 **Implementation Steps:**
 1. Write a simple failing test first
-2. Configure bun test runner
+2. Configure test runner for your project
 3. Verify test discovery works
-4. Run `bun run typecheck` - must pass
-5. Run `bun run lint` - must pass with 0 warnings
+4. Run type checking - must pass
+5. Run linting - must pass with 0 warnings
 6. Update tasks.md - check off completed criteria
 7. Update checklist.md - mark verified items
 8. Commit: "feat: US-001 - Test Infrastructure Setup"
@@ -238,5 +244,4 @@ After completing each story, these files MUST be updated:
 
 ---
 
-*Reference: See `relentless/prompt.md` for additional guidelines*
-*Reference: See `relentless/constitution.md` for project principles*
+*Adapt all commands and paths to your project's specific setup*

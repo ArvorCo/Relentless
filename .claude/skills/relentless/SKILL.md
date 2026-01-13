@@ -237,18 +237,21 @@ After creating relentless/prd.json, run the orchestrator:
 
 ```bash
 # With Claude Code (default)
-./relentless/bin/relentless.sh
+relentless run --feature <feature-name>
 
 # With a specific agent
-./relentless/bin/relentless.sh --agent amp
-./relentless/bin/relentless.sh --agent codex
-./relentless/bin/relentless.sh --agent gemini
+relentless run --feature <feature-name> --agent amp
+relentless run --feature <feature-name> --agent codex
+relentless run --feature <feature-name> --agent gemini
 
 # Smart routing (auto-select best agent per story)
-./relentless/bin/relentless.sh --agent auto
+relentless run --feature <feature-name> --agent auto
 
 # Custom max iterations
-./relentless/bin/relentless.sh --max-iterations 30
+relentless run --feature <feature-name> --max-iterations 30
+
+# With TUI interface
+relentless run --feature <feature-name> --tui
 ```
 
 ---
