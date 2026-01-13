@@ -48,7 +48,7 @@ This will output JSON with:
 
 ## Step 3: Generate Specification
 
-Using the template at `templates/spec-template.md`, create a specification with:
+Using the template at `templates/spec.md`, create a specification with:
 
 ### Required Sections:
 

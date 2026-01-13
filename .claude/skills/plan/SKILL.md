@@ -38,7 +38,7 @@ Read these files:
 
 ## Step 3: Generate Technical Plan
 
-Using the template at `templates/plan-template.md`, create a plan with:
+Using the template at `templates/plan.md`, create a plan with:
 
 ### Required Sections:
 

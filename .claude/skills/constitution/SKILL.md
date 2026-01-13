@@ -54,7 +54,7 @@ Ask essential questions about the project:
 
 ## Step 2: Generate Constitution
 
-Load the template from `templates/constitution-template.md` and:
+Load the template from `templates/constitution.md` and:
 
 1. Replace all `[PLACEHOLDER]` tokens with concrete values from user answers
 2. Add/remove principles based on project needs (template is a starting point)

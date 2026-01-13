@@ -414,7 +414,7 @@ export async function createFeature(
 
   // Copy plan.md template if requested
   if (options.withPlan) {
-    const planSourcePath = join(relentlessRoot, "templates", "plan.md");
+    const planSourcePath = join(relentlessRoot, ".claude", "skills", "plan", "templates", "plan.md");
     const planDestPath = join(featureDir, "plan.md");
 
     if (existsSync(planSourcePath)) {
