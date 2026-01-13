@@ -27,3 +27,10 @@ npm-debug.log*
 # Test output
 coverage/
 .nyc_output/
+
+# Agent folders (created by relentless init, not for this repo)
+.amp/
+.codex/
+.factory/
+.gemini/
+.opencode/
