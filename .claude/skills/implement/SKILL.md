@@ -5,137 +5,238 @@ description: "Execute implementation workflow phase by phase. Use after analysis
 
 # Implementation Workflow Executor
 
-Guide systematic implementation of features using the task breakdown.
+Guide systematic implementation of features using TDD and quality-first approach.
 
 ---
 
 ## The Job
 
-Guide user through implementing tasks in correct order following dependencies.
+Implement user stories one at a time, following strict TDD and updating all tracking files.
 
 ---
 
-## Prerequisites
+## Before You Start
 
-Before starting:
-- `/relentless.analyze` must pass (no CRITICAL issues)
-- All artifacts exist (spec, plan, tasks, checklist)
-- Constitution reviewed
-
----
-
-## Implementation Flow
-
-### Phase 0: Setup
-1. Review `tasks.md` for setup tasks
-2. Install dependencies
-3. Create directory structure
-4. Initialize configuration
-
-### Phase 1: Foundation
-1. Implement data models
-2. Create base utilities
-3. Set up infrastructure
-4. Tests for foundation
-
-### Phase 2: User Stories
-For each story in dependency order:
-1. Read story acceptance criteria
-2. Implement functionality
-3. Write tests
-4. Run quality checks (typecheck, lint)
-5. Verify against checklist
-6. Commit changes
-7. Mark story complete in prd.json
-
-### Phase 3: Polish
-1. Performance optimization
-2. Error handling improvements
-3. Documentation
-4. Final quality checks
+1. **Read the Constitution** - Review `relentless/constitution.md` for project principles
+2. **Read prompt.md** - Review `relentless/prompt.md` for workflow guidelines
+3. **Read progress.txt** - Check learnings from previous iterations
+4. **Review artifacts** - Ensure spec.md, plan.md, tasks.md, checklist.md exist
+5. **Run `/relentless.analyze`** - Must pass with no CRITICAL issues
 
 ---
 
-## Per-Story Workflow
+## CRITICAL: Quality Gates (Non-Negotiable)
 
-```markdown
-**Current:** US-001: Create User Registration Endpoint
+Before marking ANY story as complete, ALL checks must pass:
 
-**Acceptance Criteria:**
-- [ ] POST /api/auth/register endpoint exists
-- [ ] Email validation works
-- [ ] Password requirements enforced
-- [ ] Password hashed before storage
-- [ ] Confirmation email sent
-- [ ] Returns 201 with user ID
-- [ ] Returns 400 for invalid input
-- [ ] Typecheck passes
-- [ ] Tests pass
+```bash
+# TypeScript strict mode check
+bun run typecheck
 
-**Checklist Items:**
-- CHK-001: User table created
-- CHK-006: Password hashing uses bcrypt
-- CHK-011: Returns correct status codes
+# ESLint with zero warnings policy
+bun run lint
 
-**Steps:**
-1. Create endpoint handler
-2. Implement validation
-3. Add password hashing
-4. Integrate email service
-5. Write unit tests
-6. Write integration tests
-7. Run typecheck
-8. Run tests
-9. Verify checklist items
-10. Commit with message: "feat: US-001 - Create User Registration Endpoint"
+# All tests must pass
+bun test
 ```
 
----
-
-## Quality Gates
-
-Before marking story complete:
-- [ ] All acceptance criteria checked
-- [ ] Typecheck passes
-- [ ] Linter passes
-- [ ] Tests pass
-- [ ] Relevant checklist items verified
-- [ ] Code committed
+**If ANY check fails, DO NOT mark the story as complete. Fix the issues first.**
 
 ---
 
-## Progress Tracking
+## TDD Workflow (MANDATORY)
 
-Update `progress.txt` after each story:
+For EVERY story, follow strict Test-Driven Development:
 
+### Step 1: Write Failing Tests First (RED)
+```bash
+# Create test file if needed
+# Write tests that define expected behavior
+bun test  # Tests MUST fail initially
+```
+
+### Step 2: Implement Minimum Code (GREEN)
+```bash
+# Write only enough code to pass tests
+bun test  # Tests MUST pass
+```
+
+### Step 3: Refactor
+```bash
+# Clean up while keeping tests green
+bun test  # Tests MUST still pass
+```
+
+**Do NOT skip TDD. Tests are contracts that validate your implementation.**
+
+---
+
+## Per-Story Implementation Flow
+
+For each story (in dependency order):
+
+### 1. Identify the Story
+- Read `prd.json` to find the next story where `passes: false`
+- Check dependencies are met (dependent stories have `passes: true`)
+- Read the story's acceptance criteria
+
+### 2. Find Relevant Checklist Items
+- Open `checklist.md`
+- Find items tagged with `[US-XXX]` for this story
+- Note constitution compliance items `[Constitution]`
+
+### 3. Implement with TDD
+Follow the TDD workflow above for each acceptance criterion.
+
+### 4. Update tasks.md
+As you complete each criterion:
 ```markdown
-## 2026-01-11 - US-001
-- Implemented user registration endpoint
-- Added email validation and password hashing
-- Email service integration working
-- All tests passing
+# Change from:
+- [ ] Criterion text
 
-**Learnings:**
-- Bcrypt cost factor 12 provides good balance
-- Email validation regex from validator.js works well
-- Nodemailer setup straightforward
+# To:
+- [x] Criterion text
+```
+
+### 5. Update checklist.md
+For each verified checklist item:
+```markdown
+# Change from:
+- [ ] CHK-XXX [US-001] Description
+
+# To:
+- [x] CHK-XXX [US-001] Description
+```
+
+### 6. Run Quality Checks
+```bash
+bun run typecheck  # 0 errors required
+bun run lint       # 0 warnings required
+bun test           # All tests must pass
+```
+
+### 7. Commit Changes
+```bash
+git add -A
+git commit -m "feat: US-XXX - Story Title"
+```
+
+### 8. Update prd.json
+Set the story's `passes` field to `true`:
+```json
+{
+  "id": "US-001",
+  "title": "...",
+  "passes": true,  // <- Change from false to true
+  ...
+}
+```
+
+### 9. Update progress.txt
+Append progress entry:
+```markdown
+## [Date] - US-XXX: Story Title
+
+**Implemented:**
+- What was built
+- Key decisions made
 
 **Files Changed:**
-- src/api/auth/register.ts (new)
-- src/services/user.service.ts (new)
-- src/utils/password.ts (new)
-- tests/auth/register.test.ts (new)
+- path/to/file.ts (new/modified)
+
+**Tests Added:**
+- path/to/file.test.ts
+
+**Learnings:**
+- Patterns discovered
+- Gotchas encountered
+
+**Constitution Compliance:**
+- Principle N: How it was followed
 
 ---
 ```
+
+---
+
+## Example Per-Story Workflow
+
+```markdown
+**Current:** US-001: Test Infrastructure Setup
+
+**Acceptance Criteria:**
+- [ ] `bun test` command runs successfully
+- [ ] Test files with pattern `*.test.ts` are auto-discovered
+- [ ] `bun test --coverage` shows coverage report
+- [ ] Typecheck passes
+- [ ] Lint passes
+
+**Relevant Checklist Items:**
+- [ ] CHK-001 [US-001] `bun test` command executes successfully
+- [ ] CHK-002 [US-001] Test files with `*.test.ts` pattern are auto-discovered
+- [ ] CHK-007 [Constitution] Tests written BEFORE implementation
+
+**Implementation Steps:**
+1. Write a simple failing test first
+2. Configure bun test runner
+3. Verify test discovery works
+4. Run `bun run typecheck` - must pass
+5. Run `bun run lint` - must pass with 0 warnings
+6. Update tasks.md - check off completed criteria
+7. Update checklist.md - mark verified items
+8. Commit: "feat: US-001 - Test Infrastructure Setup"
+9. Update prd.json: set passes: true
+10. Update progress.txt with learnings
+```
+
+---
+
+## File Update Summary
+
+After completing each story, these files MUST be updated:
+
+| File | Update |
+|------|--------|
+| `tasks.md` | Check off `- [x]` completed acceptance criteria |
+| `checklist.md` | Check off `- [x]` verified checklist items |
+| `prd.json` | Set `"passes": true` for the story |
+| `progress.txt` | Append progress entry with learnings |
+
+---
+
+## Implementation Phases
+
+### Phase 0: Setup
+- Infrastructure, tooling, configuration
+- Usually US-001 type stories
+
+### Phase 1: Foundation
+- Data models, types, schemas
+- Base utilities and helpers
+- Core infrastructure
+
+### Phase 2: User Stories
+- Feature implementation
+- Follow dependency order strictly
+
+### Phase 3: Polish
+- E2E tests
+- Documentation
+- Performance optimization
 
 ---
 
 ## Notes
 
 - Work on ONE story at a time
-- Follow dependency order
-- Don't skip quality checks
-- Commit frequently
-- Update progress after each story
-- This is a guided workflow, not automated
+- Follow dependency order strictly
+- Never skip TDD - tests come FIRST
+- Never skip quality checks
+- Commit after each story
+- Update ALL tracking files
+- This is a guided workflow for manual implementation
+
+---
+
+*Reference: See `relentless/prompt.md` for additional guidelines*
+*Reference: See `relentless/constitution.md` for project principles*

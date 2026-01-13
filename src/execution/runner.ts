@@ -98,6 +98,15 @@ async function buildPrompt(
     }
   }
 
+  // Load and append spec.md if available
+  const specPath = join(dirname(progressPath), "spec.md");
+  if (existsSync(specPath)) {
+    const specContent = await Bun.file(specPath).text();
+    prompt += `\n\n## Feature Specification\n\n`;
+    prompt += `The following specification defines the requirements for this feature:\n\n`;
+    prompt += specContent;
+  }
+
   // Load and append plan.md if available
   const planPath = join(dirname(progressPath), "plan.md");
   if (existsSync(planPath)) {
@@ -105,6 +114,17 @@ async function buildPrompt(
     prompt += `\n\n## Technical Planning Document\n\n`;
     prompt += `The following technical plan has been created for this feature:\n\n`;
     prompt += planContent;
+  }
+
+  // Load and append tasks.md if available
+  const tasksPath = join(dirname(progressPath), "tasks.md");
+  if (existsSync(tasksPath)) {
+    const tasksContent = await Bun.file(tasksPath).text();
+    prompt += `\n\n## User Stories and Tasks\n\n`;
+    prompt += `The following tasks file contains all user stories with their acceptance criteria.\n`;
+    prompt += `**IMPORTANT:** Update the checkboxes in this file as you complete each criterion.\n`;
+    prompt += `Change \`- [ ]\` to \`- [x]\` for completed items.\n\n`;
+    prompt += tasksContent;
   }
 
   // Load and append checklist.md if available
