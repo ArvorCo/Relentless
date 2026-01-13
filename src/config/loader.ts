@@ -141,6 +141,7 @@ export function parseConstitution(content: string): Constitution {
   const sections = new Set<string>();
 
   let currentSection = "";
+  let currentLevel: PrincipleLevel | null = null;
   const lines = content.split("\n");
 
   for (const line of lines) {
@@ -148,12 +149,37 @@ export function parseConstitution(content: string): Constitution {
     if (line.startsWith("## ")) {
       currentSection = line.replace("## ", "").trim();
       sections.add(currentSection);
+      currentLevel = null;
     } else if (line.startsWith("### ")) {
       currentSection = line.replace("### ", "").trim();
       sections.add(currentSection);
+      currentLevel = null;
     }
 
-    // Extract MUST principles
+    // Detect MUST/SHOULD headers (format: **MUST:** or **SHOULD:**)
+    if (line.match(/^\*\*MUST:?\*\*:?\s*$/i)) {
+      currentLevel = "MUST";
+      continue;
+    }
+    if (line.match(/^\*\*SHOULD:?\*\*:?\s*$/i)) {
+      currentLevel = "SHOULD";
+      continue;
+    }
+
+    // Extract bullet points under current level
+    if (currentLevel && line.match(/^-\s+.+/)) {
+      const text = line.replace(/^-\s+/, "").trim();
+      if (text) {
+        principles.push({
+          level: currentLevel,
+          text,
+          section: currentSection,
+        });
+      }
+      continue;
+    }
+
+    // Extract inline MUST/SHOULD (format: **MUST** text or **SHOULD** text)
     const mustMatch = line.match(/\*\*MUST\*\*\s+(.+)/);
     if (mustMatch) {
       principles.push({
@@ -163,7 +189,6 @@ export function parseConstitution(content: string): Constitution {
       });
     }
 
-    // Extract SHOULD principles
     const shouldMatch = line.match(/\*\*SHOULD\*\*\s+(.+)/);
     if (shouldMatch) {
       principles.push({
@@ -171,6 +196,11 @@ export function parseConstitution(content: string): Constitution {
         text: shouldMatch[1].trim(),
         section: currentSection,
       });
+    }
+
+    // Reset level on empty line or **Rationale** or other header
+    if (line.trim() === "" || line.match(/^\*\*[^MS]/)) {
+      currentLevel = null;
     }
   }
 
