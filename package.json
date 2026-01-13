@@ -1,6 +1,6 @@
 {
   "name": "@arvorco/relentless",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "description": "Universal AI agent orchestrator - works with Claude Code, Amp, OpenCode, Codex, Droid, and Gemini",
   "type": "module",
   "publishConfig": {
