@@ -156,21 +156,22 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
     process.exit(1);
   }
 
-  if (existsSync(sourceSkillsDir)) {
-    const skills = [
-      "prd",
-      "relentless",
-      "constitution",
-      "specify",
-      "plan",
-      "tasks",
-      "checklist",
-      "clarify",
-      "analyze",
-      "implement",
-      "taskstoissues",
-    ];
+  // List of skills to install (used for both Claude Code and Amp)
+  const skills = [
+    "prd",
+    "relentless",
+    "constitution",
+    "specify",
+    "plan",
+    "tasks",
+    "checklist",
+    "clarify",
+    "analyze",
+    "implement",
+    "taskstoissues",
+  ];
 
+  if (existsSync(sourceSkillsDir)) {
     for (const skill of skills) {
       const sourcePath = join(sourceSkillsDir, skill);
       const destPath = join(skillsDir, skill);
@@ -196,6 +197,44 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
           console.log(`  ${chalk.green("✓")} .claude/skills/${skill} (${action})`);
         } catch (error) {
           console.log(`  ${chalk.red("✗")} .claude/skills/${skill} - error: ${error}`);
+        }
+      }
+    }
+  }
+
+  // Copy skills to .amp/skills/ if Amp is installed
+  const ampInstalled = installed.some((a) => a.name === "amp");
+  if (ampInstalled) {
+    console.log(chalk.dim("\nInstalling skills for Amp..."));
+    const ampSkillsDir = join(projectDir, ".amp", "skills");
+    if (!existsSync(ampSkillsDir)) {
+      mkdirSync(ampSkillsDir, { recursive: true });
+    }
+
+    for (const skill of skills) {
+      const sourcePath = join(sourceSkillsDir, skill);
+      const destPath = join(ampSkillsDir, skill);
+
+      if (!existsSync(sourcePath)) {
+        continue;
+      }
+
+      if (existsSync(destPath) && !force) {
+        console.log(`  ${chalk.yellow("⚠")} .amp/skills/${skill} already exists, skipping`);
+      } else {
+        try {
+          if (existsSync(destPath) && force) {
+            await Bun.spawn(["rm", "-rf", destPath]).exited;
+          }
+          const result = await Bun.spawn(["cp", "-r", sourcePath, destPath]).exited;
+          if (result !== 0) {
+            console.log(`  ${chalk.red("✗")} .amp/skills/${skill} - copy failed`);
+            continue;
+          }
+          const action = force ? "updated" : "created";
+          console.log(`  ${chalk.green("✓")} .amp/skills/${skill} (${action})`);
+        } catch (error) {
+          console.log(`  ${chalk.red("✗")} .amp/skills/${skill} - error: ${error}`);
         }
       }
     }

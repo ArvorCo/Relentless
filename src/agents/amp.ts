@@ -94,22 +94,35 @@ export const ampAdapter: AgentAdapter = {
 
   async installSkills(projectPath: string): Promise<void> {
     // Amp can install skills globally via amp skill add
-    // For project-local, we copy to the project
+    // For project-local, we copy to the project's .amp/skills/
     const skillsDir = `${projectPath}/.amp/skills`;
     await Bun.spawn(["mkdir", "-p", skillsDir]).exited;
 
     const relentlessRoot = import.meta.dir.replace("/src/agents", "");
-    await Bun.spawn([
-      "cp",
-      "-r",
-      `${relentlessRoot}/skills/prd`,
-      `${skillsDir}/`,
-    ]).exited;
-    await Bun.spawn([
-      "cp",
-      "-r",
-      `${relentlessRoot}/skills/relentless`,
-      `${skillsDir}/`,
-    ]).exited;
+    const sourceSkillsDir = `${relentlessRoot}/.claude/skills`;
+
+    // Copy all skills
+    const skills = [
+      "prd",
+      "relentless",
+      "constitution",
+      "specify",
+      "plan",
+      "tasks",
+      "checklist",
+      "clarify",
+      "analyze",
+      "implement",
+      "taskstoissues",
+    ];
+
+    for (const skill of skills) {
+      await Bun.spawn([
+        "cp",
+        "-r",
+        `${sourceSkillsDir}/${skill}`,
+        `${skillsDir}/`,
+      ]).exited;
+    }
   },
 };
