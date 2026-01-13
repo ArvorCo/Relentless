@@ -70,8 +70,8 @@ async function buildPrompt(
 
   let prompt = await Bun.file(promptPath).text();
 
-  // Load and append constitution if available
-  const constitution = await loadConstitution(workingDirectory);
+  // Load and append constitution if available (pass undefined to auto-find)
+  const constitution = await loadConstitution();
   if (constitution) {
     // Validate constitution
     const validation = validateConstitution(constitution);
@@ -90,7 +90,7 @@ async function buildPrompt(
 
   // Load and append progress patterns if available
   const progress = await loadProgress(progressPath);
-  if (progress && progress.metadata.patterns.length > 0) {
+  if (progress?.metadata?.patterns && progress.metadata.patterns.length > 0) {
     prompt += `\n\n## Learned Patterns from Previous Iterations\n\n`;
     prompt += `The following patterns were discovered in previous iterations:\n\n`;
     for (const pattern of progress.metadata.patterns) {
