@@ -240,6 +240,120 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
     }
   }
 
+  // Copy skills to .opencode/skill/ if OpenCode is installed (SINGULAR!)
+  const opencodeInstalled = installed.some((a) => a.name === "opencode");
+  if (opencodeInstalled) {
+    console.log(chalk.dim("\nInstalling skills for OpenCode..."));
+    const opencodeSkillsDir = join(projectDir, ".opencode", "skill");
+    if (!existsSync(opencodeSkillsDir)) {
+      mkdirSync(opencodeSkillsDir, { recursive: true });
+    }
+
+    for (const skill of skills) {
+      const sourcePath = join(sourceSkillsDir, skill);
+      const destPath = join(opencodeSkillsDir, skill);
+
+      if (!existsSync(sourcePath)) {
+        continue;
+      }
+
+      if (existsSync(destPath) && !force) {
+        console.log(`  ${chalk.yellow("⚠")} .opencode/skill/${skill} already exists, skipping`);
+      } else {
+        try {
+          if (existsSync(destPath) && force) {
+            await Bun.spawn(["rm", "-rf", destPath]).exited;
+          }
+          const result = await Bun.spawn(["cp", "-r", sourcePath, destPath]).exited;
+          if (result !== 0) {
+            console.log(`  ${chalk.red("✗")} .opencode/skill/${skill} - copy failed`);
+            continue;
+          }
+          const action = force ? "updated" : "created";
+          console.log(`  ${chalk.green("✓")} .opencode/skill/${skill} (${action})`);
+        } catch (error) {
+          console.log(`  ${chalk.red("✗")} .opencode/skill/${skill} - error: ${error}`);
+        }
+      }
+    }
+  }
+
+  // Copy skills to .codex/skills/ if Codex is installed
+  const codexInstalled = installed.some((a) => a.name === "codex");
+  if (codexInstalled) {
+    console.log(chalk.dim("\nInstalling skills for Codex..."));
+    const codexSkillsDir = join(projectDir, ".codex", "skills");
+    if (!existsSync(codexSkillsDir)) {
+      mkdirSync(codexSkillsDir, { recursive: true });
+    }
+
+    for (const skill of skills) {
+      const sourcePath = join(sourceSkillsDir, skill);
+      const destPath = join(codexSkillsDir, skill);
+
+      if (!existsSync(sourcePath)) {
+        continue;
+      }
+
+      if (existsSync(destPath) && !force) {
+        console.log(`  ${chalk.yellow("⚠")} .codex/skills/${skill} already exists, skipping`);
+      } else {
+        try {
+          if (existsSync(destPath) && force) {
+            await Bun.spawn(["rm", "-rf", destPath]).exited;
+          }
+          const result = await Bun.spawn(["cp", "-r", sourcePath, destPath]).exited;
+          if (result !== 0) {
+            console.log(`  ${chalk.red("✗")} .codex/skills/${skill} - copy failed`);
+            continue;
+          }
+          const action = force ? "updated" : "created";
+          console.log(`  ${chalk.green("✓")} .codex/skills/${skill} (${action})`);
+        } catch (error) {
+          console.log(`  ${chalk.red("✗")} .codex/skills/${skill} - error: ${error}`);
+        }
+      }
+    }
+  }
+
+  // Copy skills to .factory/skills/ if Droid (Factory) is installed
+  const droidInstalled = installed.some((a) => a.name === "droid");
+  if (droidInstalled) {
+    console.log(chalk.dim("\nInstalling skills for Droid (Factory)..."));
+    const factorySkillsDir = join(projectDir, ".factory", "skills");
+    if (!existsSync(factorySkillsDir)) {
+      mkdirSync(factorySkillsDir, { recursive: true });
+    }
+
+    for (const skill of skills) {
+      const sourcePath = join(sourceSkillsDir, skill);
+      const destPath = join(factorySkillsDir, skill);
+
+      if (!existsSync(sourcePath)) {
+        continue;
+      }
+
+      if (existsSync(destPath) && !force) {
+        console.log(`  ${chalk.yellow("⚠")} .factory/skills/${skill} already exists, skipping`);
+      } else {
+        try {
+          if (existsSync(destPath) && force) {
+            await Bun.spawn(["rm", "-rf", destPath]).exited;
+          }
+          const result = await Bun.spawn(["cp", "-r", sourcePath, destPath]).exited;
+          if (result !== 0) {
+            console.log(`  ${chalk.red("✗")} .factory/skills/${skill} - copy failed`);
+            continue;
+          }
+          const action = force ? "updated" : "created";
+          console.log(`  ${chalk.green("✓")} .factory/skills/${skill} (${action})`);
+        } catch (error) {
+          console.log(`  ${chalk.red("✗")} .factory/skills/${skill} - error: ${error}`);
+        }
+      }
+    }
+  }
+
   // Copy commands to .claude/commands/ (for Claude Code)
   console.log(chalk.dim("\nInstalling commands..."));
   const commandsDir = join(projectDir, ".claude", "commands");
@@ -249,19 +363,20 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
 
   const sourceCommandsDir = join(relentlessRoot, ".claude", "commands");
 
-  if (existsSync(sourceCommandsDir)) {
-    const commands = [
-      "relentless.analyze.md",
-      "relentless.checklist.md",
-      "relentless.clarify.md",
-      "relentless.constitution.md",
-      "relentless.implement.md",
-      "relentless.plan.md",
-      "relentless.specify.md",
-      "relentless.tasks.md",
-      "relentless.taskstoissues.md",
-    ];
+  // List of commands to install (used for Claude, OpenCode, Factory, and Codex)
+  const commands = [
+    "relentless.analyze.md",
+    "relentless.checklist.md",
+    "relentless.clarify.md",
+    "relentless.constitution.md",
+    "relentless.implement.md",
+    "relentless.plan.md",
+    "relentless.specify.md",
+    "relentless.tasks.md",
+    "relentless.taskstoissues.md",
+  ];
 
+  if (existsSync(sourceCommandsDir)) {
     for (const command of commands) {
       const sourcePath = join(sourceCommandsDir, command);
       const destPath = join(commandsDir, command);
@@ -276,6 +391,144 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
           console.log(`  ${chalk.green("✓")} .claude/commands/${command} (${action})`);
         }
       }
+    }
+  }
+
+  // Copy commands to .opencode/command/ if OpenCode is installed (SINGULAR!)
+  if (opencodeInstalled && existsSync(sourceCommandsDir)) {
+    console.log(chalk.dim("\nInstalling commands for OpenCode..."));
+    const opencodeCommandsDir = join(projectDir, ".opencode", "command");
+    if (!existsSync(opencodeCommandsDir)) {
+      mkdirSync(opencodeCommandsDir, { recursive: true });
+    }
+
+    for (const command of commands) {
+      const sourcePath = join(sourceCommandsDir, command);
+      const destPath = join(opencodeCommandsDir, command);
+
+      if (existsSync(sourcePath)) {
+        if (existsSync(destPath) && !force) {
+          console.log(`  ${chalk.yellow("⚠")} .opencode/command/${command} already exists, skipping`);
+        } else {
+          const content = await Bun.file(sourcePath).text();
+          await Bun.write(destPath, content);
+          const action = existsSync(destPath) && force ? "updated" : "created";
+          console.log(`  ${chalk.green("✓")} .opencode/command/${command} (${action})`);
+        }
+      }
+    }
+  }
+
+  // Copy commands to .factory/commands/ if Droid (Factory) is installed
+  if (droidInstalled && existsSync(sourceCommandsDir)) {
+    console.log(chalk.dim("\nInstalling commands for Droid (Factory)..."));
+    const factoryCommandsDir = join(projectDir, ".factory", "commands");
+    if (!existsSync(factoryCommandsDir)) {
+      mkdirSync(factoryCommandsDir, { recursive: true });
+    }
+
+    for (const command of commands) {
+      const sourcePath = join(sourceCommandsDir, command);
+      const destPath = join(factoryCommandsDir, command);
+
+      if (existsSync(sourcePath)) {
+        if (existsSync(destPath) && !force) {
+          console.log(`  ${chalk.yellow("⚠")} .factory/commands/${command} already exists, skipping`);
+        } else {
+          const content = await Bun.file(sourcePath).text();
+          await Bun.write(destPath, content);
+          const action = existsSync(destPath) && force ? "updated" : "created";
+          console.log(`  ${chalk.green("✓")} .factory/commands/${command} (${action})`);
+        }
+      }
+    }
+  }
+
+  // Copy prompts to ~/.codex/prompts/ if Codex is installed (user-level only)
+  if (codexInstalled && existsSync(sourceCommandsDir)) {
+    console.log(chalk.dim("\nInstalling prompts for Codex (user-level)..."));
+    const homeDir = process.env.HOME || process.env.USERPROFILE || "";
+    const codexPromptsDir = join(homeDir, ".codex", "prompts");
+    if (!existsSync(codexPromptsDir)) {
+      mkdirSync(codexPromptsDir, { recursive: true });
+    }
+
+    for (const command of commands) {
+      const sourcePath = join(sourceCommandsDir, command);
+      // Codex prompts are invoked as /prompts:name, so we keep the same filename
+      const destPath = join(codexPromptsDir, command);
+
+      if (existsSync(sourcePath)) {
+        if (existsSync(destPath) && !force) {
+          console.log(`  ${chalk.yellow("⚠")} ~/.codex/prompts/${command} already exists, skipping`);
+        } else {
+          const content = await Bun.file(sourcePath).text();
+          await Bun.write(destPath, content);
+          const action = existsSync(destPath) && force ? "updated" : "created";
+          console.log(`  ${chalk.green("✓")} ~/.codex/prompts/${command} (${action})`);
+        }
+      }
+    }
+  }
+
+  // Create .gemini/GEMINI.md context file if Gemini is installed
+  const geminiInstalled = installed.some((a) => a.name === "gemini");
+  if (geminiInstalled) {
+    console.log(chalk.dim("\nInstalling context for Gemini..."));
+    const geminiDir = join(projectDir, ".gemini");
+    if (!existsSync(geminiDir)) {
+      mkdirSync(geminiDir, { recursive: true });
+    }
+
+    const geminiContextPath = join(geminiDir, "GEMINI.md");
+    const geminiContextContent = `# Relentless - Universal AI Agent Orchestrator
+
+This project uses Relentless for feature-driven development with AI agents.
+
+## Available Skills
+
+The following skills are available in \`.claude/skills/\`:
+
+- **prd** - Generate Product Requirements Documents
+- **constitution** - Create project governance and coding principles
+- **specify** - Create feature specifications
+- **plan** - Generate technical implementation plans
+- **tasks** - Generate user stories and tasks
+- **checklist** - Generate quality validation checklists
+- **clarify** - Resolve ambiguities in specifications
+- **analyze** - Analyze consistency across artifacts
+- **implement** - Execute implementation workflows
+- **taskstoissues** - Convert user stories to GitHub issues
+
+## Workflow
+
+1. Run \`/relentless.constitution\` to create project governance
+2. Run \`/relentless.specify "feature description"\` to create a feature spec
+3. Run \`/relentless.plan\` to generate technical plan
+4. Run \`/relentless.tasks\` to generate user stories
+5. Run \`/relentless.checklist\` to generate quality checklist
+
+## Feature Directory Structure
+
+\`\`\`
+relentless/features/<feature-name>/
+├── spec.md       # Feature specification
+├── plan.md       # Technical plan
+├── tasks.md      # User stories
+├── checklist.md  # Quality checklist
+├── prd.json      # PRD JSON (for orchestrator)
+└── progress.txt  # Progress log
+\`\`\`
+
+For full documentation, see: https://github.com/ArvorCo/Relentless
+`;
+
+    if (existsSync(geminiContextPath) && !force) {
+      console.log(`  ${chalk.yellow("⚠")} .gemini/GEMINI.md already exists, skipping`);
+    } else {
+      await Bun.write(geminiContextPath, geminiContextContent);
+      const action = existsSync(geminiContextPath) && force ? "updated" : "created";
+      console.log(`  ${chalk.green("✓")} .gemini/GEMINI.md (${action})`);
     }
   }
 

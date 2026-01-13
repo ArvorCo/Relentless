@@ -10,7 +10,8 @@ import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./
 export const droidAdapter: AgentAdapter = {
   name: "droid",
   displayName: "Factory Droid",
-  hasSkillSupport: false, // No skill system, uses prompting
+  hasSkillSupport: true,
+  skillInstallCommand: "droid skill install <skill-name>",
 
   async isInstalled(): Promise<boolean> {
     try {
@@ -86,5 +87,38 @@ export const droidAdapter: AgentAdapter = {
     }
 
     return { limited: false };
+  },
+
+  async installSkills(projectPath: string): Promise<void> {
+    // Factory uses .factory/skills/ for skills (PLURAL)
+    const skillsDir = `${projectPath}/.factory/skills`;
+    await Bun.spawn(["mkdir", "-p", skillsDir]).exited;
+
+    const relentlessRoot = import.meta.dir.replace("/src/agents", "");
+    const sourceSkillsDir = `${relentlessRoot}/.claude/skills`;
+
+    // Copy all skills
+    const skills = [
+      "prd",
+      "relentless",
+      "constitution",
+      "specify",
+      "plan",
+      "tasks",
+      "checklist",
+      "clarify",
+      "analyze",
+      "implement",
+      "taskstoissues",
+    ];
+
+    for (const skill of skills) {
+      await Bun.spawn([
+        "cp",
+        "-r",
+        `${sourceSkillsDir}/${skill}`,
+        `${skillsDir}/`,
+      ]).exited;
+    }
   },
 };

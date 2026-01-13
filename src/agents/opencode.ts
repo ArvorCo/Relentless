@@ -10,7 +10,8 @@ import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./
 export const opencodeAdapter: AgentAdapter = {
   name: "opencode",
   displayName: "OpenCode",
-  hasSkillSupport: false, // Uses agent system, different from skills
+  hasSkillSupport: true,
+  skillInstallCommand: "opencode skill add <skill-name>",
 
   async isInstalled(): Promise<boolean> {
     try {
@@ -84,5 +85,38 @@ export const opencodeAdapter: AgentAdapter = {
     }
 
     return { limited: false };
+  },
+
+  async installSkills(projectPath: string): Promise<void> {
+    // OpenCode uses .opencode/skill/ (SINGULAR!) for skills
+    const skillsDir = `${projectPath}/.opencode/skill`;
+    await Bun.spawn(["mkdir", "-p", skillsDir]).exited;
+
+    const relentlessRoot = import.meta.dir.replace("/src/agents", "");
+    const sourceSkillsDir = `${relentlessRoot}/.claude/skills`;
+
+    // Copy all skills
+    const skills = [
+      "prd",
+      "relentless",
+      "constitution",
+      "specify",
+      "plan",
+      "tasks",
+      "checklist",
+      "clarify",
+      "analyze",
+      "implement",
+      "taskstoissues",
+    ];
+
+    for (const skill of skills) {
+      await Bun.spawn([
+        "cp",
+        "-r",
+        `${sourceSkillsDir}/${skill}`,
+        `${skillsDir}/`,
+      ]).exited;
+    }
   },
 };

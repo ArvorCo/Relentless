@@ -10,7 +10,8 @@ import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./
 export const codexAdapter: AgentAdapter = {
   name: "codex",
   displayName: "OpenAI Codex",
-  hasSkillSupport: false, // Uses SKILL.md but requires manual setup
+  hasSkillSupport: true,
+  skillInstallCommand: "codex skill add <skill-name>",
 
   async isInstalled(): Promise<boolean> {
     try {
@@ -85,5 +86,38 @@ export const codexAdapter: AgentAdapter = {
     }
 
     return { limited: false };
+  },
+
+  async installSkills(projectPath: string): Promise<void> {
+    // Codex uses .codex/skills/ for project-level skills
+    const skillsDir = `${projectPath}/.codex/skills`;
+    await Bun.spawn(["mkdir", "-p", skillsDir]).exited;
+
+    const relentlessRoot = import.meta.dir.replace("/src/agents", "");
+    const sourceSkillsDir = `${relentlessRoot}/.claude/skills`;
+
+    // Copy all skills
+    const skills = [
+      "prd",
+      "relentless",
+      "constitution",
+      "specify",
+      "plan",
+      "tasks",
+      "checklist",
+      "clarify",
+      "analyze",
+      "implement",
+      "taskstoissues",
+    ];
+
+    for (const skill of skills) {
+      await Bun.spawn([
+        "cp",
+        "-r",
+        `${sourceSkillsDir}/${skill}`,
+        `${skillsDir}/`,
+      ]).exited;
+    }
   },
 };
