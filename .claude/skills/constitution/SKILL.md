@@ -90,7 +90,11 @@ Read and analyze project documentation:
 
 ## Step 4: Generate Personalized Prompt
 
-Using the generic template from relentless, create a personalized `prompt.md` with:
+Load the base template from `templates/prompt.md` and personalize it:
+
+**Base Template Location:** `templates/prompt.md`
+
+Create a personalized `prompt.md` with:
 
 **Section 1: Quality Gates**
 ```markdown

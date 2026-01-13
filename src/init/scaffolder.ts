@@ -49,9 +49,17 @@ const relentlessRoot = getRelentlessRoot();
 
 /**
  * Files to create in the relentless/ directory
+ * These can be force-updated with -f flag
  */
 const RELENTLESS_FILES: Record<string, () => string> = {
   "config.json": () => JSON.stringify(DEFAULT_CONFIG, null, 2),
+};
+
+/**
+ * Files that should NEVER be overwritten, even with -f flag
+ * These are personalized files that users customize for their project
+ */
+const PROTECTED_FILES: Record<string, () => string> = {
   "prompt.md": () => PROMPT_TEMPLATE,
 };
 
@@ -171,7 +179,7 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
     }
   }
 
-  // Create relentless files
+  // Create relentless files (can be force-updated)
   console.log(chalk.dim("\nCreating relentless files..."));
 
   for (const [filename, contentFn] of Object.entries(RELENTLESS_FILES)) {
@@ -185,6 +193,19 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
     await Bun.write(path, contentFn());
     const action = existsSync(path) && force ? "updated" : "created";
     console.log(`  ${chalk.green("✓")} relentless/${filename} ${force ? `(${action})` : ""}`);
+  }
+
+  // Create protected files (NEVER overwritten, even with -f)
+  for (const [filename, contentFn] of Object.entries(PROTECTED_FILES)) {
+    const path = join(relentlessDir, filename);
+
+    if (existsSync(path)) {
+      console.log(`  ${chalk.yellow("⚠")} relentless/${filename} already exists (protected, not overwriting)`);
+      continue;
+    }
+
+    await Bun.write(path, contentFn());
+    console.log(`  ${chalk.green("✓")} relentless/${filename} (created)`);
   }
 
   // Note: constitution.md is NOT copied - it should be created by /relentless.constitution command
