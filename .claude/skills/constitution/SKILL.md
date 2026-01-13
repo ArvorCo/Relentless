@@ -12,9 +12,10 @@ Create a personalized project constitution that defines your team's coding princ
 ## The Job
 
 1. Ask the user about their project's coding philosophy and standards
-2. Generate a personalized constitution based on their answers
-3. Save to `relentless/constitution.md`
-4. Ensure consistency with project templates and documentation
+2. Analyze the project structure and documentation
+3. Generate personalized constitution based on their answers → `relentless/constitution.md`
+4. Generate personalized agent prompt based on the same analysis → `relentless/prompt.md`
+5. Ensure consistency with project templates and documentation
 
 **Important:** The constitution is the foundation for all feature work - create this before generating features.
 
@@ -67,31 +68,126 @@ Load the template from `templates/constitution-template.md` and:
 
 ---
 
-## Step 3: Validate & Save
+## Step 3: Analyze Project Structure
+
+Read and analyze project documentation:
+
+**Core Files:**
+- `README.md` - Project overview, setup instructions
+- `AGENTS.md` or `CLAUDE.md` - Developer guidelines
+- `package.json` - Scripts, dependencies, tech stack
+- `CONTRIBUTING.md` - Contribution workflow (if exists)
+
+**Extract:**
+- Tech stack (TypeScript, React, Node, etc.)
+- Testing framework (vitest, jest, playwright)
+- Quality commands (`typecheck`, `lint`, `test`)
+- Build system (bun, npm, turbo, vite)
+- Linting setup (eslint, biome)
+- File structure patterns
+
+---
+
+## Step 4: Generate Personalized Prompt
+
+Using the generic template from relentless, create a personalized `prompt.md` with:
+
+**Section 1: Quality Gates**
+```markdown
+## CRITICAL: Quality Gates (Non-Negotiable)
+
+Before marking ANY story as complete:
+
+\`\`\`bash
+# TypeScript (detected from package.json)
+[actual typecheck command from package.json scripts]
+
+# Linting (detected from package.json)
+[actual lint command from package.json scripts]
+
+# Tests (detected from package.json)
+[actual test command from package.json scripts]
+\`\`\`
+
+**If ANY check fails, DO NOT mark the story as complete.**
+```
+
+**Section 2: Project-Specific Patterns** (from README/AGENTS.md)
+- Monorepo structure (if applicable)
+- Component locations
+- Test file patterns
+- Database/backend info
+- Styling approach
+
+**Section 3: TDD Workflow** (if tests exist)
+- Test-first workflow
+- Test location patterns
+- Test commands
+
+**Section 4: Common Pitfalls** (from AGENTS.md/docs)
+- Project-specific gotchas
+- Known issues
+- Best practices
+
+**Footer:**
+```markdown
+---
+**Personalized for [Project Name]**
+**Generated:** [date]
+**Re-generate:** /relentless.constitution
+```
+
+Save to: `relentless/prompt.md`
+
+---
+
+## Step 5: Validate & Save
 
 Before saving:
-- No `[PLACEHOLDER]` tokens remain (unless explicitly marked as TODO)
+
+**Constitution:**
+- No `[PLACEHOLDER]` tokens remain
 - All dates in ISO format (YYYY-MM-DD)
 - Principles are declarative and testable
 - Version format is semantic (X.Y.Z)
 
-Save to: `relentless/constitution.md`
+**Prompt:**
+- All quality commands are actual commands from package.json
+- File patterns match project structure
+- No generic placeholders remain
+
+Save both files:
+- `relentless/constitution.md`
+- `relentless/prompt.md`
 
 ---
 
-## Step 4: Report
+## Step 6: Report
 
 Output summary:
-- Constitution version created
-- Number of principles defined
-- Key MUST/SHOULD rules
-- Next steps: "Now create your first feature with `/relentless.specify`"
+```
+✓ Created constitution.md
+  - Version: 1.0.0
+  - Principles: [count]
+  - Key rules: [summary]
+
+✓ Created prompt.md
+  - Quality gates: [count]
+  - Tech stack: [detected stack]
+  - Test framework: [detected]
+
+Next steps:
+1. Review both files
+2. Create your first feature: /relentless.specify "feature description"
+```
 
 ---
 
-## Updating Existing Constitution
+## Updating Existing Files
 
-If `relentless/constitution.md` exists:
+If `relentless/constitution.md` or `relentless/prompt.md` exist:
+
+**For Constitution Updates:**
 1. Load current version
 2. Ask what needs to change
 3. Increment version appropriately:
@@ -100,6 +196,15 @@ If `relentless/constitution.md` exists:
    - **PATCH**: Clarifications, typo fixes
 4. Update `LAST_AMENDED_DATE` to today
 5. Add amendment notes at top
+
+**For Prompt Updates:**
+1. Re-analyze project structure (package.json, docs)
+2. Detect any new quality commands or patterns
+3. Regenerate personalized sections
+4. Preserve any manual customizations in comments
+5. Update "Generated" date
+
+**Both files can be regenerated at any time by running `/relentless.constitution` again.**
 
 ---
 

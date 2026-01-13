@@ -57,64 +57,64 @@ const RELENTLESS_FILES: Record<string, () => string> = {
 
 const PROMPT_TEMPLATE = `# Relentless Agent Instructions
 
-You are an autonomous coding agent working on a software project.
+You are an autonomous coding agent. Follow these instructions exactly.
 
-## Before You Start
+**⚠️ This is a generic template. Personalize it for your project using:**
+\`\`\`bash
+/relentless.prompt
+\`\`\`
 
-1. **Review the codebase** - Understand the current state, architecture, and patterns
-2. **Read progress.txt** - Check the Codebase Patterns section for learnings from previous iterations
-3. **Read the PRD** - Understand what needs to be done
+---
 
-## Your Task
+## Your Task (Per Iteration)
 
-1. Read the PRD at \`relentless/features/<feature>/prd.json\`
-2. Read the progress log at \`relentless/features/<feature>/progress.txt\`
-3. Check you're on the correct branch from PRD \`branchName\`. If not, check it out or create from main.
-4. Pick the **highest priority** user story where \`passes: false\`
-5. **Review relevant code** before implementing - understand existing patterns
-6. Implement that single user story
-7. Run quality checks (typecheck, lint, test - whatever your project requires)
-8. If checks pass, commit ALL changes with message: \`feat: [Story ID] - [Story Title]\`
-9. Update the PRD to set \`passes: true\` for the completed story
-10. Append your progress to \`relentless/features/<feature>/progress.txt\`
+1. Read \`relentless/features/<feature>/prd.json\`
+2. Read \`relentless/features/<feature>/progress.txt\`
+3. Check you're on the correct branch from PRD \`branchName\`
+4. Pick the **highest priority** story where \`passes: false\`
+5. Review existing code to understand patterns
+6. Implement the story
+7. Run quality checks (typecheck, lint, test)
+8. If ALL checks pass, commit: \`feat: [Story ID] - [Story Title]\`
+9. Update PRD: set \`passes: true\`
+10. Append progress to \`progress.txt\`
+
+---
+
+## Quality Requirements
+
+Before marking a story complete:
+- [ ] All quality checks pass (typecheck, lint, test)
+- [ ] Zero errors and zero warnings
+- [ ] No debug code (console.log, debugger)
+- [ ] No unused imports or variables
+- [ ] Follows existing patterns
+
+---
 
 ## Progress Report Format
 
-APPEND to progress.txt (never replace, always append):
+APPEND to progress.txt:
 \`\`\`
 ## [Date/Time] - [Story ID]
 - What was implemented
 - Files changed
-- **Learnings for future iterations:**
-  - Patterns discovered
-  - Gotchas encountered
-  - Useful context
+- Learnings for future iterations
 ---
 \`\`\`
 
-## Quality Requirements
-
-- ALL commits must pass your project's quality checks (typecheck, lint, test)
-- Do NOT commit broken code
-- Keep changes focused and minimal
-- Follow existing code patterns
-- Review code before modifying it
+---
 
 ## Stop Condition
 
-After completing a user story, check if ALL stories have \`passes: true\`.
+After completing a story, check if ALL stories have \`passes: true\`.
 
-If ALL stories are complete and passing, reply with:
+If ALL complete:
+\`\`\`
 <promise>COMPLETE</promise>
+\`\`\`
 
-If there are still stories with \`passes: false\`, end your response normally (another iteration will pick up the next story).
-
-## Important
-
-- Work on ONE story per iteration
-- Review existing code before implementing
-- Commit frequently
-- Keep CI green
+Otherwise, end normally (next iteration continues).
 `;
 
 /**

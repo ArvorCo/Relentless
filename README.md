@@ -30,8 +30,11 @@ bun install -g github:ArvorCo/Relentless
 cd your-project
 relentless init
 
-# 3. Create constitution (personalized governance)
+# 3. Create constitution and prompt (personalized governance + agent instructions)
 /relentless.constitution
+# This creates BOTH:
+# - relentless/constitution.md (project principles)
+# - relentless/prompt.md (personalized agent instructions)
 
 # 4. Create feature specification
 /relentless.specify Add user authentication with OAuth2
