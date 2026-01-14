@@ -7,7 +7,13 @@
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { findRelentlessDir } from "../config";
-import { addToQueue, loadQueue, type QueueItem } from "../queue";
+import {
+  addToQueue,
+  loadQueue,
+  removeFromQueue,
+  clearQueue,
+  type QueueItem,
+} from "../queue";
 
 /** Result of a queue add operation */
 export interface QueueAddResult {
@@ -266,4 +272,135 @@ export function formatQueueList(options: FormatQueueListOptions): string {
   }
 
   return lines.join("\n");
+}
+
+/** Result of a queue remove operation */
+export interface QueueRemoveResult {
+  success: boolean;
+  message?: string;
+  removedContent?: string;
+  error?: string;
+}
+
+/** Options for queueRemove function */
+export interface QueueRemoveOptions {
+  index: number;
+  featurePath: string;
+}
+
+/**
+ * Removes an item from the queue by 1-based index.
+ *
+ * @param options - The queue remove options
+ * @returns The result of the operation
+ */
+export async function queueRemove(
+  options: QueueRemoveOptions
+): Promise<QueueRemoveResult> {
+  const { index, featurePath } = options;
+
+  // Validate feature path exists
+  if (!existsSync(featurePath)) {
+    return {
+      success: false,
+      error: `Feature path not found: ${featurePath}`,
+    };
+  }
+
+  // Validate index is positive
+  if (index < 1) {
+    return {
+      success: false,
+      error: `Invalid index: ${index}. Index must be 1 or greater`,
+    };
+  }
+
+  // Load queue to check state
+  const state = await loadQueue(featurePath);
+  const queueLength = state.pending.length;
+
+  // Handle empty queue
+  if (queueLength === 0) {
+    return {
+      success: false,
+      error: "Queue is empty",
+    };
+  }
+
+  // Validate index against queue length
+  if (index > queueLength) {
+    const itemWord = queueLength === 1 ? "item" : "items";
+    return {
+      success: false,
+      error: `Invalid index: ${index}. Queue has ${queueLength} ${itemWord}`,
+    };
+  }
+
+  // Remove the item
+  const removedItem = await removeFromQueue(featurePath, index);
+
+  if (!removedItem) {
+    return {
+      success: false,
+      error: `Failed to remove item at index ${index}`,
+    };
+  }
+
+  return {
+    success: true,
+    message: `Removed: ${removedItem.content}`,
+    removedContent: removedItem.content,
+  };
+}
+
+/** Result of a queue clear operation */
+export interface QueueClearResult {
+  success: boolean;
+  message?: string;
+  clearedCount: number;
+  error?: string;
+}
+
+/** Options for queueClear function */
+export interface QueueClearOptions {
+  featurePath: string;
+}
+
+/**
+ * Clears all items from the queue.
+ *
+ * @param options - The queue clear options
+ * @returns The result of the operation
+ */
+export async function queueClear(
+  options: QueueClearOptions
+): Promise<QueueClearResult> {
+  const { featurePath } = options;
+
+  // Validate feature path exists
+  if (!existsSync(featurePath)) {
+    return {
+      success: false,
+      clearedCount: 0,
+      error: `Feature path not found: ${featurePath}`,
+    };
+  }
+
+  // Clear the queue
+  const count = await clearQueue(featurePath);
+
+  if (count === 0) {
+    return {
+      success: true,
+      clearedCount: 0,
+      message: "Queue is already empty",
+    };
+  }
+
+  const itemWord = count === 1 ? "item" : "items";
+  return {
+    success: true,
+    clearedCount: count,
+    message: `Cleared ${count} ${itemWord} from queue`,
+  };
 }
