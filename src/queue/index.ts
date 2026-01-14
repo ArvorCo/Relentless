@@ -28,3 +28,6 @@ export { parseQueueLine, parseCommand, formatQueueLine } from "./parser";
 
 // Export writer functions
 export { addToQueue, removeFromQueue, clearQueue } from "./writer";
+
+// Export loader functions
+export { loadQueue } from "./loader";

@@ -52,6 +52,8 @@ export const QueueStateSchema = z.object({
   processed: z.array(QueueItemSchema),
   /** Last time queue was checked (ISO timestamp) */
   lastChecked: z.string().datetime().optional(),
+  /** Warnings from loading (e.g., malformed lines) */
+  warnings: z.array(z.string()).optional(),
 });
 export type QueueState = z.infer<typeof QueueStateSchema>;
 
