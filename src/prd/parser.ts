@@ -279,3 +279,70 @@ export async function savePRD(prd: PRD, path: string): Promise<void> {
   const content = JSON.stringify(validated, null, 2);
   await Bun.write(path, content);
 }
+
+/**
+ * Result of marking a story as skipped
+ */
+export interface MarkSkippedResult {
+  success: boolean;
+  error?: string;
+  alreadySkipped?: boolean;
+}
+
+/**
+ * Mark a story as skipped in the PRD file
+ *
+ * @param prdPath - Path to the prd.json file
+ * @param storyId - The ID of the story to skip
+ * @returns Result indicating success or failure
+ */
+export async function markStoryAsSkipped(
+  prdPath: string,
+  storyId: string
+): Promise<MarkSkippedResult> {
+  // Load current PRD
+  const prd = await loadPRD(prdPath);
+
+  // Find the story
+  const storyIndex = prd.userStories.findIndex((s) => s.id === storyId);
+  if (storyIndex === -1) {
+    return {
+      success: false,
+      error: `Story ${storyId} not found in PRD`,
+    };
+  }
+
+  const story = prd.userStories[storyIndex];
+
+  // Check if story is already completed
+  if (story.passes) {
+    return {
+      success: false,
+      error: `Story ${storyId} is already completed and cannot be skipped`,
+    };
+  }
+
+  // Check if already skipped
+  if (story.skipped) {
+    return {
+      success: true,
+      alreadySkipped: true,
+    };
+  }
+
+  // Mark as skipped
+  prd.userStories[storyIndex] = {
+    ...story,
+    skipped: true,
+    notes: story.notes
+      ? `${story.notes}\n[SKIPPED] ${new Date().toISOString().split("T")[0]}`
+      : `[SKIPPED] ${new Date().toISOString().split("T")[0]}`,
+  };
+
+  // Save the updated PRD
+  await savePRD(prd, prdPath);
+
+  return {
+    success: true,
+  };
+}

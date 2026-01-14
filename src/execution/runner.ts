@@ -11,7 +11,7 @@ import type { AgentAdapter, AgentName } from "../agents/types";
 import { getAgent, getInstalledAgents } from "../agents/registry";
 import type { RelentlessConfig } from "../config/schema";
 import { loadConstitution, validateConstitution } from "../config/loader";
-import { loadPRD, getNextStory, isComplete, countStories } from "../prd";
+import { loadPRD, getNextStory, isComplete, countStories, markStoryAsSkipped } from "../prd";
 import type { UserStory } from "../prd/types";
 import { loadProgress, updateProgressMetadata, syncPatternsFromContent, appendProgress } from "../prd/progress";
 import { routeStory } from "./router";
@@ -27,6 +27,12 @@ import {
   logAbortToProgress,
   formatAbortMessage,
   generateAbortSummary,
+  shouldSkip,
+  getSkipCommands,
+  handleSkipCommand,
+  logSkipToProgress,
+  logSkipRejectedToProgress,
+  formatSkipMessage,
 } from "./commands";
 
 export interface RunOptions {
@@ -551,7 +557,36 @@ export async function run(options: RunOptions): Promise<RunResult> {
         };
       }
 
-      // TODO: Handle SKIP, PRIORITY commands in future stories (US-011 to US-012)
+      // Handle SKIP command(s)
+      if (shouldSkip(queueResult.commands)) {
+        const skipCommands = getSkipCommands(queueResult.commands);
+        for (const skipCmd of skipCommands) {
+          // Check if trying to skip the current story in progress
+          const action = handleSkipCommand(skipCmd.storyId, story.id);
+
+          if (action.rejected) {
+            // Log rejection to console and progress.txt
+            console.log(chalk.yellow(`\n  ${formatSkipMessage(action.storyId, true)}`));
+            if (existsSync(progressPath)) {
+              await logSkipRejectedToProgress(progressPath, action.storyId);
+            }
+          } else {
+            // Mark story as skipped in PRD
+            const skipResult = await markStoryAsSkipped(options.prdPath, action.storyId);
+
+            if (skipResult.success) {
+              console.log(chalk.cyan(`\n  ${formatSkipMessage(action.storyId, false)}`));
+              if (existsSync(progressPath)) {
+                await logSkipToProgress(progressPath, action.storyId, action.customReason);
+              }
+            } else if (skipResult.error) {
+              console.log(chalk.yellow(`\n  ⚠️  ${skipResult.error}`));
+            }
+          }
+        }
+      }
+
+      // TODO: Handle PRIORITY command in future story (US-012)
     } catch (queueError) {
       console.warn(chalk.yellow(`  ⚠️  Queue processing error: ${queueError}`));
     }

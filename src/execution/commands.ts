@@ -239,3 +239,153 @@ Progress Summary:
   Duration: ${durationStr}
 `;
 }
+
+// ============================================================================
+// SKIP Command Functions
+// ============================================================================
+
+/**
+ * Skip action returned by handleSkipCommand
+ */
+export interface SkipAction {
+  type: "skip";
+  storyId: string;
+  rejected: boolean;
+  reason?: string;
+  customReason?: string;
+}
+
+/**
+ * Check if any SKIP command exists in the command list
+ *
+ * @param commands - List of commands from queue processing
+ * @returns true if SKIP command is present
+ */
+export function shouldSkip(
+  commands: Array<{ type: QueueCommandType; storyId?: string }>
+): boolean {
+  return commands.some((cmd) => cmd.type === "SKIP");
+}
+
+/**
+ * Get all SKIP commands from the command list
+ *
+ * @param commands - List of commands from queue processing
+ * @returns Array of SKIP commands with story IDs
+ */
+export function getSkipCommands(
+  commands: Array<{ type: QueueCommandType; storyId?: string }>
+): Array<{ type: "SKIP"; storyId: string }> {
+  return commands
+    .filter((cmd): cmd is { type: "SKIP"; storyId: string } =>
+      cmd.type === "SKIP" && cmd.storyId !== undefined
+    );
+}
+
+/**
+ * Handle SKIP command - creates action object
+ *
+ * Checks if the story is currently in progress. If so, rejects the skip.
+ *
+ * @param storyId - The story ID to skip
+ * @param currentStoryId - The story currently in progress (or null if none)
+ * @param customReason - Optional custom reason for the skip
+ * @returns SkipAction object
+ */
+export function handleSkipCommand(
+  storyId: string,
+  currentStoryId: string | null,
+  customReason?: string
+): SkipAction {
+  // Check if trying to skip the story currently in progress
+  if (currentStoryId && storyId === currentStoryId) {
+    return {
+      type: "skip",
+      storyId,
+      rejected: true,
+      reason: `Cannot skip ${storyId}: story is currently in progress. Wait for iteration to complete.`,
+    };
+  }
+
+  return {
+    type: "skip",
+    storyId,
+    rejected: false,
+    customReason,
+  };
+}
+
+/**
+ * Log skip event to progress.txt
+ *
+ * @param progressPath - Path to progress.txt file
+ * @param storyId - The story ID that was skipped
+ * @param reason - Optional custom reason for the skip
+ */
+export async function logSkipToProgress(
+  progressPath: string,
+  storyId: string,
+  reason?: string
+): Promise<void> {
+  const timestamp = new Date().toISOString().split("T")[0];
+  const reasonText = reason ?? "User requested skip via [SKIP] command";
+  const entry = `
+## Skip Event - ${timestamp}
+
+Story ${storyId} was skipped.
+${reasonText}
+
+---
+`;
+
+  await appendProgress(progressPath, entry);
+}
+
+/**
+ * Log rejected skip event to progress.txt
+ *
+ * @param progressPath - Path to progress.txt file
+ * @param storyId - The story ID that was attempted to skip
+ */
+export async function logSkipRejectedToProgress(
+  progressPath: string,
+  storyId: string
+): Promise<void> {
+  const timestamp = new Date().toISOString().split("T")[0];
+  const entry = `
+## Skip Rejected - ${timestamp}
+
+Attempted to skip ${storyId} but story is currently in progress.
+Skip command was ignored. Wait for the current iteration to complete.
+
+---
+`;
+
+  await appendProgress(progressPath, entry);
+}
+
+/**
+ * Format skip message for display
+ *
+ * @param storyId - The story ID being skipped
+ * @param rejected - Whether the skip was rejected
+ * @param tuiMode - Whether to format for TUI display
+ * @returns Formatted skip message
+ */
+export function formatSkipMessage(
+  storyId: string,
+  rejected: boolean,
+  tuiMode = false
+): string {
+  if (rejected) {
+    if (tuiMode) {
+      return `⚠️  Cannot skip ${storyId}: story is currently in progress`;
+    }
+    return `⚠️  Cannot skip ${storyId}: story is currently in progress. Wait for iteration to complete.`;
+  }
+
+  if (tuiMode) {
+    return `⏭️  Skipped ${storyId}`;
+  }
+  return `⏭️  Skipped ${storyId}`;
+}
