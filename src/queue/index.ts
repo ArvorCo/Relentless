@@ -34,3 +34,12 @@ export { loadQueue } from "./loader";
 
 // Export processor functions
 export { processQueue } from "./processor";
+
+// Export lock functions
+export {
+  acquireQueueLock,
+  releaseQueueLock,
+  isQueueLocked,
+  setLockTimeout,
+  getLockTimeout,
+} from "./lock";

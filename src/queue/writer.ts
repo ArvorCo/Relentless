@@ -3,6 +3,7 @@
  *
  * Functions for writing to the queue file.
  * Uses atomic writes (temp file + rename) to prevent corruption.
+ * Implements a write queue for concurrent safety.
  *
  * Queue file location: <featurePath>/.queue.txt
  */
@@ -11,6 +12,41 @@ import { join } from "node:path";
 import { rename, unlink } from "node:fs/promises";
 import type { QueueItem } from "./types";
 import { parseQueueLine, parseCommand, formatQueueLine } from "./parser";
+
+/**
+ * Write queue for serializing concurrent writes per feature path.
+ * Ensures writes complete in order and prevents race conditions.
+ */
+const writeQueues = new Map<string, Promise<void>>();
+
+/**
+ * Execute a write operation with serialization.
+ * Ensures concurrent writes to the same feature path are executed sequentially.
+ *
+ * @param featurePath - Path to the feature directory
+ * @param operation - The write operation to execute
+ * @returns The result of the operation
+ */
+async function withWriteQueue<T>(
+  featurePath: string,
+  operation: () => Promise<T>
+): Promise<T> {
+  // Get the current queue for this path
+  const currentQueue = writeQueues.get(featurePath) ?? Promise.resolve();
+
+  // Create a new promise that waits for the current queue then executes the operation
+  let result: T;
+  const newQueue = currentQueue.then(async () => {
+    result = await operation();
+  });
+
+  // Update the queue
+  writeQueues.set(featurePath, newQueue.catch(() => {}));
+
+  // Wait for our operation to complete
+  await newQueue;
+  return result!;
+}
 
 /** Queue file name */
 const QUEUE_FILE = ".queue.txt";
@@ -26,47 +62,49 @@ export async function addToQueue(
   featurePath: string,
   content: string
 ): Promise<QueueItem> {
-  const queuePath = join(featurePath, QUEUE_FILE);
-  const timestamp = new Date().toISOString();
+  return withWriteQueue(featurePath, async () => {
+    const queuePath = join(featurePath, QUEUE_FILE);
+    const timestamp = new Date().toISOString();
 
-  // Create the queue item
-  const parsedCommand = parseCommand(content);
-  const id = `${timestamp.replace(/[:.]/g, "-")}-${Date.now() % 1000}`;
+    // Create the queue item
+    const parsedCommand = parseCommand(content);
+    const id = `${timestamp.replace(/[:.]/g, "-")}-${Date.now() % 1000}`;
 
-  const item: QueueItem = parsedCommand
-    ? {
-        id,
-        content,
-        type: "command",
-        command: parsedCommand.type,
-        targetStoryId: parsedCommand.storyId,
-        addedAt: timestamp,
-      }
-    : {
-        id,
-        content,
-        type: "prompt",
-        addedAt: timestamp,
-      };
+    const item: QueueItem = parsedCommand
+      ? {
+          id,
+          content,
+          type: "command",
+          command: parsedCommand.type,
+          targetStoryId: parsedCommand.storyId,
+          addedAt: timestamp,
+        }
+      : {
+          id,
+          content,
+          type: "prompt",
+          addedAt: timestamp,
+        };
 
-  // Format the line to add
-  const newLine = formatQueueLine(item) + "\n";
+    // Format the line to add
+    const newLine = formatQueueLine(item) + "\n";
 
-  // Read existing content (if any)
-  let existingContent = "";
-  const queueFile = Bun.file(queuePath);
-  if (await queueFile.exists()) {
-    existingContent = await queueFile.text();
-  }
+    // Read existing content (if any)
+    let existingContent = "";
+    const queueFile = Bun.file(queuePath);
+    if (await queueFile.exists()) {
+      existingContent = await queueFile.text();
+    }
 
-  // Atomic write: write to temp file, then rename
-  const tempPath = `${queuePath}.tmp`;
-  const newContent = existingContent + newLine;
+    // Atomic write: write to temp file, then rename
+    const tempPath = `${queuePath}.tmp`;
+    const newContent = existingContent + newLine;
 
-  await Bun.write(tempPath, newContent);
-  await rename(tempPath, queuePath);
+    await Bun.write(tempPath, newContent);
+    await rename(tempPath, queuePath);
 
-  return item;
+    return item;
+  });
 }
 
 /**
@@ -80,50 +118,52 @@ export async function removeFromQueue(
   featurePath: string,
   index: number
 ): Promise<QueueItem | null> {
-  const queuePath = join(featurePath, QUEUE_FILE);
-
-  // Validate index
+  // Validate index early (no need for write queue)
   if (index < 1) {
     return null;
   }
 
-  // Read existing content
-  const queueFile = Bun.file(queuePath);
-  if (!(await queueFile.exists())) {
-    return null;
-  }
+  return withWriteQueue(featurePath, async () => {
+    const queuePath = join(featurePath, QUEUE_FILE);
 
-  const content = await queueFile.text();
-  const lines = content.split("\n").filter((line) => line.trim());
+    // Read existing content
+    const queueFile = Bun.file(queuePath);
+    if (!(await queueFile.exists())) {
+      return null;
+    }
 
-  // Validate index against queue length
-  if (index > lines.length) {
-    return null;
-  }
+    const content = await queueFile.text();
+    const lines = content.split("\n").filter((line) => line.trim());
 
-  // Empty queue
-  if (lines.length === 0) {
-    return null;
-  }
+    // Validate index against queue length
+    if (index > lines.length) {
+      return null;
+    }
 
-  // Parse the item being removed
-  const removedLine = lines[index - 1];
-  const removedItem = parseQueueLine(removedLine);
+    // Empty queue
+    if (lines.length === 0) {
+      return null;
+    }
 
-  if (!removedItem) {
-    return null;
-  }
+    // Parse the item being removed
+    const removedLine = lines[index - 1];
+    const removedItem = parseQueueLine(removedLine);
 
-  // Remove the item
-  const newLines = lines.filter((_, i) => i !== index - 1);
-  const newContent = newLines.length > 0 ? newLines.join("\n") + "\n" : "";
+    if (!removedItem) {
+      return null;
+    }
 
-  // Atomic write
-  const tempPath = `${queuePath}.tmp`;
-  await Bun.write(tempPath, newContent);
-  await rename(tempPath, queuePath);
+    // Remove the item
+    const newLines = lines.filter((_, i) => i !== index - 1);
+    const newContent = newLines.length > 0 ? newLines.join("\n") + "\n" : "";
 
-  return removedItem;
+    // Atomic write
+    const tempPath = `${queuePath}.tmp`;
+    await Bun.write(tempPath, newContent);
+    await rename(tempPath, queuePath);
+
+    return removedItem;
+  });
 }
 
 /**
@@ -133,36 +173,38 @@ export async function removeFromQueue(
  * @returns Number of items cleared
  */
 export async function clearQueue(featurePath: string): Promise<number> {
-  const queuePath = join(featurePath, QUEUE_FILE);
+  return withWriteQueue(featurePath, async () => {
+    const queuePath = join(featurePath, QUEUE_FILE);
 
-  // Read existing content to count items
-  const queueFile = Bun.file(queuePath);
-  let count = 0;
+    // Read existing content to count items
+    const queueFile = Bun.file(queuePath);
+    let count = 0;
 
-  if (await queueFile.exists()) {
-    const content = await queueFile.text();
-    const lines = content.split("\n").filter((line) => line.trim());
+    if (await queueFile.exists()) {
+      const content = await queueFile.text();
+      const lines = content.split("\n").filter((line) => line.trim());
 
-    // Count valid queue lines
-    for (const line of lines) {
-      const item = parseQueueLine(line);
-      if (item) {
-        count++;
+      // Count valid queue lines
+      for (const line of lines) {
+        const item = parseQueueLine(line);
+        if (item) {
+          count++;
+        }
       }
     }
-  }
 
-  // Write empty file (atomic)
-  const tempPath = `${queuePath}.tmp`;
-  await Bun.write(tempPath, "");
-  await rename(tempPath, queuePath);
+    // Write empty file (atomic)
+    const tempPath = `${queuePath}.tmp`;
+    await Bun.write(tempPath, "");
+    await rename(tempPath, queuePath);
 
-  // Clean up any lingering temp file (shouldn't exist, but just in case)
-  try {
-    await unlink(`${queuePath}.tmp`);
-  } catch {
-    // Ignore if temp file doesn't exist
-  }
+    // Clean up any lingering temp file (shouldn't exist, but just in case)
+    try {
+      await unlink(`${queuePath}.tmp`);
+    } catch {
+      // Ignore if temp file doesn't exist
+    }
 
-  return count;
+    return count;
+  });
 }

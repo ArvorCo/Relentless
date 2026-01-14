@@ -25,6 +25,7 @@ const COMMANDS_WITH_STORY_ID = ["SKIP", "PRIORITY"] as const;
  */
 const QUEUE_LINE_PATTERN = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s*\|\s*(.+)$/;
 const COMMAND_PATTERN = /^\[\s*([A-Za-z]+)(?:\s+([^\]]+))?\s*\]$/;
+const PROCESSED_AT_PATTERN = /\s*\|\s*processedAt:(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)$/;
 
 /**
  * Parse a single queue line into a QueueItem
@@ -45,8 +46,17 @@ export function parseQueueLine(line: string): QueueItem | null {
     return null;
   }
 
-  const [, timestamp, content] = match;
-  const trimmedContent = content.trim();
+  const [, timestamp, rawContent] = match;
+  let trimmedContent = rawContent.trim();
+  let processedAt: string | undefined;
+
+  // Check for processedAt suffix (from processed queue file)
+  const processedMatch = trimmedContent.match(PROCESSED_AT_PATTERN);
+  if (processedMatch) {
+    processedAt = processedMatch[1];
+    // Remove the processedAt suffix from content
+    trimmedContent = trimmedContent.replace(PROCESSED_AT_PATTERN, "").trim();
+  }
 
   // Generate unique ID from timestamp
   const id = `${timestamp.replace(/[:.]/g, "-")}-${Date.now() % 1000}`;
@@ -55,7 +65,7 @@ export function parseQueueLine(line: string): QueueItem | null {
   const parsedCommand = parseCommand(trimmedContent);
 
   if (parsedCommand) {
-    return {
+    const item: QueueItem = {
       id,
       content: trimmedContent,
       type: "command",
@@ -63,15 +73,23 @@ export function parseQueueLine(line: string): QueueItem | null {
       targetStoryId: parsedCommand.storyId,
       addedAt: timestamp,
     };
+    if (processedAt) {
+      item.processedAt = processedAt;
+    }
+    return item;
   }
 
   // Regular prompt
-  return {
+  const item: QueueItem = {
     id,
     content: trimmedContent,
     type: "prompt",
     addedAt: timestamp,
   };
+  if (processedAt) {
+    item.processedAt = processedAt;
+  }
+  return item;
 }
 
 /**
