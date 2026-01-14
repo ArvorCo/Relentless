@@ -4,12 +4,11 @@
 
 This is the Relentless codebase - a universal AI agent orchestrator that works with multiple AI coding agents (Claude Code, Amp, OpenCode, Codex, Droid, Gemini).
 
-**Recent Major Refactoring (January 2026):**
-- Forked GitHub Spec Kit-inspired commands as native Relentless commands
-- All `/speckit.*` commands renamed to `/relentless.*`
-- Implemented skills architecture: commands are thin wrappers, logic in skills
-- Multi-tier agent support: Full (Claude/Amp/OpenCode), Extensions (Gemini), Manual (Droid/Codex)
-- See [REFACTOR_SUMMARY.md](./REFACTOR_SUMMARY.md) and [CHANGES_SUMMARY.md](./CHANGES_SUMMARY.md) for details
+**Recent Major Updates (January 2026):**
+- **v0.2.0**: Multi-agent skills installation - all 6 agents now get skills via `relentless init`
+- Skills architecture: commands are thin wrappers, logic in `.claude/skills/`
+- Agent-specific folders: `.amp/skills/`, `.opencode/skill/`, `.codex/skills/`, `.factory/skills/`, `.gemini/GEMINI.md`
+- Full support: Claude, Amp, OpenCode | Manual workflow: Codex, Droid, Gemini
 
 ## Codebase Patterns
 
@@ -22,9 +21,8 @@ This is the Relentless codebase - a universal AI agent orchestrator that works w
   - `prd/` - PRD parsing and validation
   - `execution/` - Orchestration loop and routing
   - `init/` - Project initialization scaffolder
-- `.claude/skills/` - Skills for Claude Code/Amp/OpenCode
+- `.claude/skills/` - Skills for Claude Code (also copied to other agents)
 - `.claude/commands/` - Command wrappers that load skills
-- `templates/` - Templates copied to projects on init
 
 ### Key Concepts
 
@@ -81,6 +79,103 @@ relentless run --feature <name>
 - Zod for schema validation
 - Commander for CLI parsing
 
+## Testing
+
+Relentless follows Test-Driven Development (TDD). All new features must have tests written BEFORE implementation.
+
+### Running Tests
+
+```bash
+# Run all tests
+bun test
+
+# Run tests with coverage report
+bun test --coverage
+
+# Run specific test file
+bun test tests/queue/parser.test.ts
+
+# Watch mode for development
+bun test --watch
+```
+
+### Test File Structure
+
+```
+tests/
+├── helpers/           # Shared test utilities
+│   └── index.ts       # Temp dirs, file helpers, fixtures
+├── queue/             # Queue module tests
+│   └── parser.test.ts # Parser unit tests
+├── integration/       # Integration tests (future)
+└── e2e/              # End-to-end tests (future)
+```
+
+### Test File Naming Convention
+
+- Unit tests: `*.test.ts` (placed alongside tests/ or near source)
+- Integration tests: `tests/integration/*.test.ts`
+- E2E tests: `tests/e2e/*.test.ts`
+
+### TDD Workflow (Red-Green-Refactor)
+
+1. **Red Phase**: Write failing tests that define expected behavior
+   ```typescript
+   it("should parse valid queue line", () => {
+     const result = parseQueueLine("2026-01-13T10:00:00.000Z | Fix bug");
+     expect(result).not.toBeNull();
+     expect(result?.content).toBe("Fix bug");
+   });
+   ```
+
+2. **Green Phase**: Write minimum code to pass tests
+   ```typescript
+   export function parseQueueLine(line: string): QueueItem | null {
+     const match = line.match(/^(.+?) \| (.+)$/);
+     if (!match) return null;
+     return { timestamp: match[1], content: match[2] };
+   }
+   ```
+
+3. **Refactor Phase**: Clean up while keeping tests green
+   - Extract constants
+   - Improve naming
+   - Remove duplication
+
+### Test Helpers
+
+The `tests/helpers/` module provides utilities for testing:
+
+```typescript
+import {
+  createTempDir,
+  createTestFile,
+  readTestFile,
+  fixtures,
+  mockTimestamp,
+} from "../helpers";
+
+// Create isolated temp directory
+const { path, cleanup } = await createTempDir();
+
+// Create test files
+await createTestFile(path, ".queue.txt", "content");
+
+// Generate fixtures
+fixtures.validQueueLine("Fix the bug");  // "2026-01-13T10:00:00.000Z | Fix the bug"
+fixtures.queueCommand("PAUSE");           // "[PAUSE]"
+fixtures.queueCommand("SKIP", "US-003");  // "[SKIP US-003]"
+
+// Always cleanup
+await cleanup();
+```
+
+### Coverage Requirements
+
+- Aim for >80% code coverage on new features
+- Critical paths must have 100% coverage
+- Edge cases and error conditions must be tested
+
 ### Important Files
 
 - `bin/relentless.ts` - Main CLI entry point
@@ -88,8 +183,8 @@ relentless run --feature <name>
 - `src/init/scaffolder.ts` - Project initialization and skill installation
 - `src/prd/parser.ts` - PRD markdown parser (reads tasks.md format)
 - `.claude/skills/*/SKILL.md` - Skill implementations
+- `.claude/skills/*/templates/` - Templates used by skills
 - `.claude/commands/relentless.*.md` - Command wrappers
-- `templates/` - Default templates for constitution, plan, etc.
 - `docs/` - Additional documentation (Gemini setup, etc.)
 
 ### Documentation Guidelines
@@ -158,7 +253,7 @@ npm login
 
 ### What Gets Published
 - Package size: ~60 KB compressed, ~230 KB unpacked
-- Includes: `bin/`, `src/`, `.claude/`, `templates/`, docs
+- Includes: `bin/`, `src/`, `.claude/`, docs
 - Excludes: `.github/`, `scripts/`, dev docs, internal features
 - See `PACKAGE_CONTENTS.md` for details
 
