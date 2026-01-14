@@ -1014,19 +1014,42 @@
             </p>
 
             <div class="install-tabs">
-                <button class="install-tab active">npm</button>
-                <button class="install-tab">bun</button>
-                <button class="install-tab">GitHub</button>
-                <button class="install-tab">No Install</button>
+                <button class="install-tab active" data-tab="bun">bun</button>
+                <button class="install-tab" data-tab="npm">npm</button>
+                <button class="install-tab" data-tab="github">GitHub</button>
+                <button class="install-tab" data-tab="noinstall">No Install</button>
             </div>
 
-            <div class="code-block">
+            <div class="code-block" id="install-bun">
                 <div class="code-header">
                     <span class="code-dot red"></span>
                     <span class="code-dot yellow"></span>
                     <span class="code-dot green"></span>
                 </div>
-                <code><span class="comment"># Install globally</span>
+                <code><span class="comment"># Install globally with bun (recommended)</span>
+<span class="command">bun</span> install <span class="flag">-g</span> <span class="string">@arvorco/relentless</span>
+
+<span class="comment"># Initialize in your project</span>
+<span class="command">cd</span> your-project
+<span class="command">relentless</span> init
+
+<span class="comment"># Create spec and run (Claude Code / Amp)</span>
+<span class="command">/relentless.specify</span> <span class="string">Add user authentication with OAuth2</span>
+<span class="command">/relentless.plan</span>
+<span class="command">/relentless.tasks</span>
+
+<span class="comment"># Convert and run with beautiful TUI</span>
+<span class="command">relentless</span> convert relentless/features/001-auth/tasks.md <span class="flag">--feature</span> <span class="string">001-auth</span>
+<span class="command">relentless</span> run <span class="flag">--feature</span> <span class="string">001-auth</span> <span class="flag">--tui</span></code>
+            </div>
+
+            <div class="code-block" id="install-npm" style="display: none;">
+                <div class="code-header">
+                    <span class="code-dot red"></span>
+                    <span class="code-dot yellow"></span>
+                    <span class="code-dot green"></span>
+                </div>
+                <code><span class="comment"># Install globally with npm</span>
 <span class="command">npm</span> install <span class="flag">-g</span> <span class="string">@arvorco/relentless</span>
 
 <span class="comment"># Initialize in your project</span>
@@ -1041,6 +1064,41 @@
 <span class="comment"># Convert and run with beautiful TUI</span>
 <span class="command">relentless</span> convert relentless/features/001-auth/tasks.md <span class="flag">--feature</span> <span class="string">001-auth</span>
 <span class="command">relentless</span> run <span class="flag">--feature</span> <span class="string">001-auth</span> <span class="flag">--tui</span></code>
+            </div>
+
+            <div class="code-block" id="install-github" style="display: none;">
+                <div class="code-header">
+                    <span class="code-dot red"></span>
+                    <span class="code-dot yellow"></span>
+                    <span class="code-dot green"></span>
+                </div>
+                <code><span class="comment"># Clone from GitHub</span>
+<span class="command">git</span> clone <span class="string">https://github.com/ArvorCo/Relentless.git</span>
+<span class="command">cd</span> Relentless
+
+<span class="comment"># Install dependencies and link globally</span>
+<span class="command">bun</span> install
+<span class="command">bun</span> link
+
+<span class="comment"># Now use relentless from anywhere</span>
+<span class="command">cd</span> your-project
+<span class="command">relentless</span> init</code>
+            </div>
+
+            <div class="code-block" id="install-noinstall" style="display: none;">
+                <div class="code-header">
+                    <span class="code-dot red"></span>
+                    <span class="code-dot yellow"></span>
+                    <span class="code-dot green"></span>
+                </div>
+                <code><span class="comment"># Run directly with bunx (no global install needed)</span>
+<span class="command">bunx</span> <span class="string">@arvorco/relentless</span> init
+
+<span class="comment"># Or with npx</span>
+<span class="command">npx</span> <span class="string">@arvorco/relentless</span> init
+
+<span class="comment"># Run commands directly</span>
+<span class="command">bunx</span> <span class="string">@arvorco/relentless</span> run <span class="flag">--feature</span> <span class="string">001-auth</span> <span class="flag">--tui</span></code>
             </div>
 
             <div style="text-align: center; margin-top: 2rem;">
@@ -1112,11 +1170,24 @@
     </footer>
 
     <script>
-        // Simple tab switching for installation
+        // Tab switching for installation with content change
         document.querySelectorAll('.install-tab').forEach(tab => {
             tab.addEventListener('click', () => {
+                // Remove active class from all tabs
                 document.querySelectorAll('.install-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
+
+                // Hide all code blocks
+                document.querySelectorAll('.code-block[id^="install-"]').forEach(block => {
+                    block.style.display = 'none';
+                });
+
+                // Show the selected code block
+                const tabName = tab.getAttribute('data-tab');
+                const targetBlock = document.getElementById('install-' + tabName);
+                if (targetBlock) {
+                    targetBlock.style.display = 'block';
+                }
             });
         });
 
