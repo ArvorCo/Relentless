@@ -14,13 +14,14 @@ export const UserStorySchema = z.object({
   title: z.string(),
   description: z.string(),
   acceptanceCriteria: z.array(z.string()),
-  priority: z.number().int().positive(),
+  priority: z.number().int().nonnegative(), // 0 = highest priority (used by PRIORITY command)
   passes: z.boolean().default(false),
   notes: z.string().default(""),
   dependencies: z.array(z.string()).optional(), // Array of story IDs this story depends on
   parallel: z.boolean().optional(), // Can be executed in parallel with other stories
   phase: z.string().optional(), // Phase marker (e.g., "Setup", "Foundation", "Stories", "Polish")
   research: z.boolean().optional(), // Requires research phase before implementation
+  skipped: z.boolean().optional(), // Whether the story was skipped by user command
 });
 
 export type UserStory = z.infer<typeof UserStorySchema>;
@@ -116,9 +117,9 @@ export function getNextStory(prd: PRD): UserStory | null {
   // Validate dependencies first
   validateDependencies(prd);
 
-  // Find highest priority story where passes is false and dependencies are met
+  // Find highest priority story where passes is false, not skipped, and dependencies are met
   const pendingStories = prd.userStories
-    .filter((s) => !s.passes && areDependenciesMet(s, prd))
+    .filter((s) => !s.passes && !s.skipped && areDependenciesMet(s, prd))
     .sort((a, b) => a.priority - b.priority);
 
   return pendingStories[0] ?? null;
@@ -134,11 +135,12 @@ export function isComplete(prd: PRD): boolean {
 /**
  * Count stories by status
  */
-export function countStories(prd: PRD): { total: number; completed: number; pending: number } {
+export function countStories(prd: PRD): { total: number; completed: number; skipped: number; pending: number } {
   const total = prd.userStories.length;
   const completed = prd.userStories.filter((s) => s.passes).length;
-  const pending = total - completed;
-  return { total, completed, pending };
+  const skipped = prd.userStories.filter((s) => s.skipped && !s.passes).length;
+  const pending = total - completed - skipped;
+  return { total, completed, skipped, pending };
 }
 
 /**

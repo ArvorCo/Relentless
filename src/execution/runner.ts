@@ -11,11 +11,29 @@ import type { AgentAdapter, AgentName } from "../agents/types";
 import { getAgent, getInstalledAgents } from "../agents/registry";
 import type { RelentlessConfig } from "../config/schema";
 import { loadConstitution, validateConstitution } from "../config/loader";
-import { loadPRD, getNextStory, isComplete, countStories } from "../prd";
+import { loadPRD, getNextStory, isComplete, countStories, markStoryAsSkipped } from "../prd";
 import type { UserStory } from "../prd/types";
-import { loadProgress, updateProgressMetadata, syncPatternsFromContent } from "../prd/progress";
+import { loadProgress, updateProgressMetadata, syncPatternsFromContent, appendProgress } from "../prd/progress";
 import { routeStory } from "./router";
 import { buildStoryPromptAddition } from "./story-prompt";
+import { processQueue } from "../queue";
+import type { QueueProcessResult } from "../queue/types";
+import {
+  shouldPause,
+  executePauseAction,
+  logPauseToProgress,
+  formatPauseMessage,
+  shouldAbort,
+  logAbortToProgress,
+  formatAbortMessage,
+  generateAbortSummary,
+  shouldSkip,
+  getSkipCommands,
+  handleSkipCommand,
+  logSkipToProgress,
+  logSkipRejectedToProgress,
+  formatSkipMessage,
+} from "./commands";
 
 export interface RunOptions {
   /** Agent to use (or "auto" for smart routing) */
@@ -53,6 +71,106 @@ interface AgentLimitState {
   resetTime?: Date;
   /** When we detected the limit */
   detectedAt: Date;
+}
+
+/**
+ * Process queue items for an iteration
+ *
+ * Reads pending queue items and processes them.
+ * This is called at the start of each iteration.
+ *
+ * @param featurePath - Path to the feature directory
+ * @returns QueueProcessResult with prompts, commands, and warnings
+ */
+export async function processQueueForIteration(
+  featurePath: string
+): Promise<QueueProcessResult> {
+  return processQueue(featurePath);
+}
+
+/**
+ * Inject queue prompts into the agent prompt
+ *
+ * Adds a "Queued User Guidance" section to the prompt with
+ * numbered list of user messages from the queue.
+ *
+ * @param basePrompt - The original prompt
+ * @param prompts - Queue prompts to inject
+ * @returns Modified prompt with queue guidance section
+ */
+export function injectQueuePrompts(basePrompt: string, prompts: string[]): string {
+  if (prompts.length === 0) {
+    return basePrompt;
+  }
+
+  const numberedList = prompts.map((p, i) => `${i + 1}. ${p}`).join("\n");
+
+  const queueSection = `
+
+## Queued User Guidance
+
+The following messages were queued by the user during the run. Please incorporate this guidance into your work:
+
+${numberedList}
+
+---
+`;
+
+  return basePrompt + queueSection;
+}
+
+/**
+ * Acknowledge queue processing in progress.txt
+ *
+ * Appends a note about processed queue items to the progress log.
+ *
+ * @param progressPath - Path to progress.txt
+ * @param prompts - Prompts that were processed
+ */
+export async function acknowledgeQueueInProgress(
+  progressPath: string,
+  prompts: string[]
+): Promise<void> {
+  if (prompts.length === 0) {
+    return;
+  }
+
+  const timestamp = new Date().toISOString().split("T")[0];
+  const entry = `
+## Queue Processed - ${timestamp}
+
+Acknowledged ${prompts.length} queued message(s):
+${prompts.map((p) => `- ${p}`).join("\n")}
+
+---
+`;
+
+  await appendProgress(progressPath, entry);
+}
+
+/**
+ * Format queue log message for console output
+ *
+ * @param promptCount - Number of prompts in queue
+ * @param commandCount - Number of commands in queue
+ * @returns Formatted log message
+ */
+export function formatQueueLogMessage(promptCount: number, commandCount: number): string {
+  const total = promptCount + commandCount;
+
+  if (total === 0) {
+    return "";
+  }
+
+  const itemWord = total === 1 ? "item" : "items";
+  let message = `Processing ${total} queue ${itemWord}...`;
+
+  if (commandCount > 0) {
+    const cmdWord = commandCount === 1 ? "command" : "commands";
+    message = `Processing ${total} queue ${itemWord} (${commandCount} ${cmdWord})...`;
+  }
+
+  return message;
 }
 
 /**
@@ -370,6 +488,109 @@ export async function run(options: RunOptions): Promise<RunResult> {
     console.log(chalk.bold(`  Story: ${chalk.yellow(story.id)} - ${story.title}`));
     console.log(chalk.bold(`${"═".repeat(60)}\n`));
 
+    // Process queue at start of iteration
+    const featureDir = dirname(options.prdPath);
+    let queuePrompts: string[] = [];
+    try {
+      const queueResult = await processQueueForIteration(featureDir);
+      queuePrompts = queueResult.prompts;
+
+      // Log if there are queue items (silent for empty queue)
+      const logMessage = formatQueueLogMessage(queueResult.prompts.length, queueResult.commands.length);
+      if (logMessage) {
+        console.log(chalk.cyan(`  📬 ${logMessage}`));
+      }
+
+      // Log warnings if any
+      for (const warning of queueResult.warnings) {
+        console.log(chalk.yellow(`  ⚠️  ${warning}`));
+      }
+
+      // Acknowledge in progress.txt
+      if (queueResult.prompts.length > 0 && existsSync(progressPath)) {
+        await acknowledgeQueueInProgress(progressPath, queueResult.prompts);
+      }
+
+      // Handle PAUSE command
+      if (shouldPause(queueResult.commands)) {
+        console.log(chalk.yellow(`\n  ${formatPauseMessage()}`));
+
+        // Log pause to progress.txt
+        if (existsSync(progressPath)) {
+          await logPauseToProgress(progressPath);
+        }
+
+        // Wait for user input
+        await executePauseAction();
+        console.log(chalk.green("  ▶️  Resuming...\n"));
+      }
+
+      // Handle ABORT command
+      if (shouldAbort(queueResult.commands)) {
+        console.log(chalk.red(`\n  ${formatAbortMessage()}`));
+
+        // Log abort to progress.txt
+        if (existsSync(progressPath)) {
+          await logAbortToProgress(progressPath);
+        }
+
+        // Calculate summary
+        const currentPRDForAbort = await loadPRD(options.prdPath);
+        const currentCount = countStories(currentPRDForAbort);
+        const duration = Date.now() - startTime;
+
+        // Show progress summary
+        const summary = generateAbortSummary({
+          storiesCompleted: currentCount.completed,
+          storiesTotal: currentCount.total,
+          iterations: i,
+          duration,
+        });
+        console.log(chalk.dim(summary));
+
+        // Return with success (clean exit)
+        return {
+          success: false, // Not all stories complete
+          iterations: i,
+          storiesCompleted: currentCount.completed - initialCount.completed,
+          duration,
+        };
+      }
+
+      // Handle SKIP command(s)
+      if (shouldSkip(queueResult.commands)) {
+        const skipCommands = getSkipCommands(queueResult.commands);
+        for (const skipCmd of skipCommands) {
+          // Check if trying to skip the current story in progress
+          const action = handleSkipCommand(skipCmd.storyId, story.id);
+
+          if (action.rejected) {
+            // Log rejection to console and progress.txt
+            console.log(chalk.yellow(`\n  ${formatSkipMessage(action.storyId, true)}`));
+            if (existsSync(progressPath)) {
+              await logSkipRejectedToProgress(progressPath, action.storyId);
+            }
+          } else {
+            // Mark story as skipped in PRD
+            const skipResult = await markStoryAsSkipped(options.prdPath, action.storyId);
+
+            if (skipResult.success) {
+              console.log(chalk.cyan(`\n  ${formatSkipMessage(action.storyId, false)}`));
+              if (existsSync(progressPath)) {
+                await logSkipToProgress(progressPath, action.storyId, action.customReason);
+              }
+            } else if (skipResult.error) {
+              console.log(chalk.yellow(`\n  ⚠️  ${skipResult.error}`));
+            }
+          }
+        }
+      }
+
+      // TODO: Handle PRIORITY command in future story (US-012)
+    } catch (queueError) {
+      console.warn(chalk.yellow(`  ⚠️  Queue processing error: ${queueError}`));
+    }
+
     if (options.dryRun) {
       console.log(chalk.dim("  [Dry run - skipping execution]"));
       continue;
@@ -391,7 +612,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
           mkdirSync(researchDir, { recursive: true });
         }
 
-        const researchPrompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+        let researchPrompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+
+        // Inject queue prompts into research phase too
+        if (queuePrompts.length > 0) {
+          researchPrompt = injectQueuePrompts(researchPrompt, queuePrompts);
+        }
+
         const researchResult = await agent.invoke(researchPrompt, {
           workingDirectory: options.workingDirectory,
           dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,
@@ -430,7 +657,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
         console.log(chalk.cyan("  🔨 Implementation phase - applying research findings..."));
       }
 
-      const prompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+      let prompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+
+      // Inject queue prompts if any
+      if (queuePrompts.length > 0) {
+        prompt = injectQueuePrompts(prompt, queuePrompts);
+      }
 
       if (!needsResearch) {
         console.log(chalk.dim("  Running agent..."));

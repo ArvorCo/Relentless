@@ -12,6 +12,9 @@ import { CurrentStory } from "./components/CurrentStory.js";
 import { AgentOutput } from "./components/AgentOutput.js";
 import { StoryGrid } from "./components/StoryGrid.js";
 import { AgentStatus } from "./components/AgentStatus.js";
+import { QueuePanel } from "./components/QueuePanel.js";
+import { QueueInput } from "./components/QueueInput.js";
+import { QueueRemovalPrompt } from "./components/QueueRemoval.js";
 import { colors } from "./theme.js";
 import type { TUIState } from "./types.js";
 
@@ -67,6 +70,9 @@ export function App({ state }: AppProps): React.ReactElement {
       {/* Agent output */}
       <AgentOutput lines={state.outputLines} maxLines={agentOutputLines} />
 
+      {/* Queue panel */}
+      <QueuePanel items={state.queueItems} maxItems={3} />
+
       {/* Story grid */}
       <StoryGrid
         stories={state.stories}
@@ -94,6 +100,23 @@ export function App({ state }: AppProps): React.ReactElement {
           <Text color={colors.success} bold>
             🎉 All stories complete!
           </Text>
+        </Box>
+      )}
+
+      {/* Queue input */}
+      <QueueInput active={state.queueInputActive} value={state.queueInputValue} />
+
+      {/* Queue removal prompt */}
+      <QueueRemovalPrompt
+        deleteMode={state.deleteMode}
+        confirmClearActive={state.confirmClearActive}
+        statusMessage={state.statusMessage}
+      />
+
+      {/* Keyboard hint when not in input mode */}
+      {!state.queueInputActive && !state.deleteMode && !state.confirmClearActive && !state.statusMessage && (
+        <Box paddingX={1}>
+          <Text color={colors.dim}>Press 'q' to add, 'd' to delete, 'D' to clear queue</Text>
         </Box>
       )}
     </Box>

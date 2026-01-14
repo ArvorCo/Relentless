@@ -5,6 +5,7 @@
  */
 
 import type { AgentName } from "../agents/types";
+import type { QueueItem } from "../queue/types";
 
 export interface Story {
   id: string;
@@ -53,6 +54,18 @@ export interface TUIState {
   isComplete: boolean;
   /** Error message if any */
   error?: string;
+  /** Queue items for display */
+  queueItems: QueueItem[];
+  /** Whether queue input mode is active */
+  queueInputActive: boolean;
+  /** Current queue input value */
+  queueInputValue: string;
+  /** Whether queue delete mode is active (waiting for number input) */
+  deleteMode: boolean;
+  /** Whether confirm clear dialog is active */
+  confirmClearActive: boolean;
+  /** Status message to display (e.g., "Queue already empty") */
+  statusMessage?: string;
 }
 
 export interface TUIActions {

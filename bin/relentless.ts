@@ -427,6 +427,127 @@ agents
     }
   });
 
+// Queue commands
+const queue = program.command("queue").description("Manage queue for mid-run guidance");
+
+queue
+  .command("add <message>")
+  .description("Add a message or command to the queue")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (message, options) => {
+    const { queueAdd, resolveFeaturePath } = await import("../src/cli/queue");
+
+    const resolved = await resolveFeaturePath(options.dir, options.feature);
+    if (resolved.error) {
+      console.error(chalk.red(resolved.error));
+      process.exit(1);
+    }
+
+    const result = await queueAdd({
+      message,
+      featurePath: resolved.path!,
+    });
+
+    if (result.success) {
+      console.log(chalk.green(`✓ ${result.message}`));
+    } else {
+      console.error(chalk.red(`Error: ${result.error}`));
+      process.exit(1);
+    }
+  });
+
+queue
+  .command("list")
+  .description("List queue contents for a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("-a, --all", "Show all items including processed", false)
+  .action(async (options) => {
+    const { queueList, formatQueueList, resolveFeaturePath } = await import("../src/cli/queue");
+
+    const resolved = await resolveFeaturePath(options.dir, options.feature);
+    if (resolved.error) {
+      console.error(chalk.red(resolved.error));
+      process.exit(1);
+    }
+
+    const result = await queueList({
+      featurePath: resolved.path!,
+      showAll: options.all,
+    });
+
+    if (result.success) {
+      const output = formatQueueList({
+        ...result,
+        featureName: options.feature,
+      });
+      console.log(output);
+    } else {
+      console.error(chalk.red(`Error: ${result.error}`));
+      process.exit(1);
+    }
+  });
+
+queue
+  .command("remove <index>")
+  .description("Remove an item from the queue by index (1-based)")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (index, options) => {
+    const { queueRemove, resolveFeaturePath } = await import("../src/cli/queue");
+
+    const resolved = await resolveFeaturePath(options.dir, options.feature);
+    if (resolved.error) {
+      console.error(chalk.red(resolved.error));
+      process.exit(1);
+    }
+
+    const parsedIndex = parseInt(index, 10);
+    if (isNaN(parsedIndex)) {
+      console.error(chalk.red(`Invalid index: ${index}. Must be a number`));
+      process.exit(1);
+    }
+
+    const result = await queueRemove({
+      index: parsedIndex,
+      featurePath: resolved.path!,
+    });
+
+    if (result.success) {
+      console.log(chalk.green(`✓ ${result.message}`));
+    } else {
+      console.error(chalk.red(`Error: ${result.error}`));
+      process.exit(1);
+    }
+  });
+
+queue
+  .command("clear")
+  .description("Clear all items from the queue")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (options) => {
+    const { queueClear, resolveFeaturePath } = await import("../src/cli/queue");
+
+    const resolved = await resolveFeaturePath(options.dir, options.feature);
+    if (resolved.error) {
+      console.error(chalk.red(resolved.error));
+      process.exit(1);
+    }
+
+    const result = await queueClear({
+      featurePath: resolved.path!,
+    });
+
+    if (result.success) {
+      console.log(chalk.green(`✓ ${result.message}`));
+    } else {
+      console.error(chalk.red(`Error: ${result.error}`));
+      process.exit(1);
+    }
+  });
+
 // Analyze command
 program
   .command("analyze")

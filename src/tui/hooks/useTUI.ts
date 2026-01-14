@@ -38,6 +38,12 @@ export function useTUI(options: UseTUIOptions): UseTUIReturn {
     isRunning: false,
     isComplete: false,
     error: undefined,
+    queueItems: [],
+    queueInputActive: false,
+    queueInputValue: "",
+    deleteMode: false,
+    confirmClearActive: false,
+    statusMessage: undefined,
   });
 
   const addOutput = useCallback((line: string) => {
