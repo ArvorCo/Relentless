@@ -7,6 +7,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-01-14
+
+### Added
+- **Queue System for Mid-Run User Guidance**: Inject prompts and commands while orchestration is running
+- Queue file format (`.queue.txt`) with ISO timestamps
+- Structured commands: `[PAUSE]`, `[SKIP US-XXX]`, `[PRIORITY US-XXX]`, `[ABORT]`
+- Text prompts injected into agent context at iteration start
+- CLI commands: `relentless queue add`, `queue list`, `queue remove`, `queue clear`
+- TUI integration: `q` to add, `d+1-9` to delete, `D+y` to clear all
+- Real-time queue panel with file watching
+- Crash recovery and persistence (`.queue.processed.txt` audit trail)
+- Concurrent-safe atomic writes with file locking
+- 374 tests across 19 test files (unit, integration, E2E)
+- Test helpers in `tests/helpers/` with fixtures and utilities
+
+### Changed
+- Runner now processes queue at start of each iteration
+- TUI App includes QueuePanel, QueueInput, and QueueRemoval components
+
+## [0.2.0] - 2026-01-13
+
+### Added
+- **Multi-agent skills installation**: All 6 agents now get skills installed automatically via `relentless init`
+- Amp support: `.amp/skills/` with full skill support
+- OpenCode support: `.opencode/skill/` and `.opencode/command/` (singular folder names!)
+- Codex support: `.codex/skills/` and `~/.codex/prompts/` for user-level prompts
+- Factory/Droid support: `.factory/skills/` and `.factory/commands/`
+- Gemini support: `.gemini/GEMINI.md` context file with instructions
+- Self-destruction prevention when running `relentless init -f` in Relentless project itself
+- Landing page with Ralph Wiggum and "What's in a Name?" section
+
+### Changed
+- **BREAKING**: Skills now installed to agent-specific folders (previously Claude-only)
+- README completely rewritten with cleaner design and better structure
+- Added "What's in a Name?" section with RALPH/RELENTLESS acronyms
+- Simplified Quick Start (4 steps)
+- Updated Supported Agents table with correct folder paths
+
+### Fixed
+- Running `init -f` in the Relentless project no longer deletes source skills
+- Added `.amp/`, `.codex/`, `.factory/`, `.gemini/`, `.opencode/` to `.gitignore`
+
+## [0.1.27] - 2026-01-13
+
+### Changed
+- `prompt.md` no longer created by `relentless init` - generated only by `/relentless.constitution`
+- Consolidated prompt generation into constitution skill for better customization
+
+## [0.1.26] - 2026-01-13
+
+### Fixed
+- Protected `prompt.md` from being overwritten by `init -f` flag
+- Added prompt template for constitution skill to generate personalized prompts
+
+## [0.1.25] - 2026-01-13
+
+### Changed
+- Templates now consolidated inside skills directory
+- Removed root `templates/` directory (moved to `.claude/skills/*/templates/`)
+
+## [0.1.24] - 2026-01-13
+
+### Fixed
+- Minor stability improvements
+
+## [0.1.23] - 2026-01-13
+
+### Changed
+- Skills made generic and project-agnostic
+- Removed Relentless-specific references from skill templates
+- Skills can now be used in any project without modification
+
+## [0.1.22] - 2026-01-13
+
+### Fixed
+- Constitution parser now handles bullet-point format correctly
+- MUST/SHOULD rules properly extracted from bulleted lists
+
+## [0.1.21] - 2026-01-13
+
+### Fixed
+- `loadConstitution` now auto-finds constitution.md in relentless/ folder
+- Progress file null checks prevent crashes on missing files
+- Runner enhanced to load spec.md and tasks.md content for agent context
+
 ## [0.1.20] - 2026-01-13
 
 ### Added
@@ -246,7 +331,16 @@ Relentless evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) 
 - **License**: MIT
 - **Inspiration**: [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) by Geoffrey Huntley
 
-[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.1.20...HEAD
+[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ArvorCo/Relentless/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/ArvorCo/Relentless/compare/v0.1.27...v0.2.0
+[0.1.27]: https://github.com/ArvorCo/Relentless/compare/v0.1.26...v0.1.27
+[0.1.26]: https://github.com/ArvorCo/Relentless/compare/v0.1.25...v0.1.26
+[0.1.25]: https://github.com/ArvorCo/Relentless/compare/v0.1.24...v0.1.25
+[0.1.24]: https://github.com/ArvorCo/Relentless/compare/v0.1.23...v0.1.24
+[0.1.23]: https://github.com/ArvorCo/Relentless/compare/v0.1.22...v0.1.23
+[0.1.22]: https://github.com/ArvorCo/Relentless/compare/v0.1.21...v0.1.22
+[0.1.21]: https://github.com/ArvorCo/Relentless/compare/v0.1.20...v0.1.21
 [0.1.20]: https://github.com/ArvorCo/Relentless/compare/v0.1.19...v0.1.20
 [0.1.19]: https://github.com/ArvorCo/Relentless/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ArvorCo/Relentless/compare/v0.1.17...v0.1.18
