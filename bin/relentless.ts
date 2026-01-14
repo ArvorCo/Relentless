@@ -457,6 +457,38 @@ queue
     }
   });
 
+queue
+  .command("list")
+  .description("List queue contents for a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("-a, --all", "Show all items including processed", false)
+  .action(async (options) => {
+    const { queueList, formatQueueList, resolveFeaturePath } = await import("../src/cli/queue");
+
+    const resolved = await resolveFeaturePath(options.dir, options.feature);
+    if (resolved.error) {
+      console.error(chalk.red(resolved.error));
+      process.exit(1);
+    }
+
+    const result = await queueList({
+      featurePath: resolved.path!,
+      showAll: options.all,
+    });
+
+    if (result.success) {
+      const output = formatQueueList({
+        ...result,
+        featureName: options.feature,
+      });
+      console.log(output);
+    } else {
+      console.error(chalk.red(`Error: ${result.error}`));
+      process.exit(1);
+    }
+  });
+
 // Analyze command
 program
   .command("analyze")
