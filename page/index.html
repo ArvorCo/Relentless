@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relentless - Universal AI Agent Orchestrator</title>
+    <meta name="description" content="Relentless by Arvor - An orchestrator that runs AI coding agents repeatedly until all tasks are complete. Smart routing, multiple agents, cost optimization.">
+    <link rel="icon" type="image/png" href="relentless-logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sky-blue: #7EC8E3;
+            --deep-blue: #4A90D9;
+            --coral-red: #E85D5D;
+            --golden-yellow: #F4D03F;
+            --dark: #1a1a2e;
+            --dark-soft: #2D3748;
+            --light: #F8FAFC;
+            --light-blue: #E8F4FD;
+            --gradient-blue: linear-gradient(135deg, #7EC8E3 0%, #4A90D9 100%);
+            --gradient-warm: linear-gradient(135deg, #F4D03F 0%, #E85D5D 100%);
+            --gradient-hero: linear-gradient(135deg, #1a1a2e 0%, #2D3748 50%, #1a1a2e 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.7;
+            color: var(--dark-soft);
+            background: var(--light);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(126, 200, 227, 0.2);
+        }
+
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-img {
+            height: 40px;
+            width: auto;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--gradient-blue);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--dark-soft);
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--deep-blue);
+        }
+
+        .nav-cta {
+            background: var(--gradient-blue);
+            color: white !important;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .nav-cta:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: var(--gradient-hero);
+            padding: 10rem 0 6rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(126, 200, 227, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(244, 208, 63, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(232, 93, 93, 0.08) 0%, transparent 50%);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .hero-logo {
+            width: 180px;
+            height: auto;
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3));
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 span {
+            background: var(--gradient-warm);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-tagline {
+            font-size: 1.5rem;
+            color: var(--sky-blue);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .hero-description {
+            font-size: 1.15rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 2.5rem;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.05rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-warm);
+            color: white;
+            box-shadow: 0 4px 20px rgba(244, 208, 63, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(244, 208, 63, 0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .hero-badges {
+            margin-top: 3rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Sections */
+        .section {
+            padding: 6rem 0;
+        }
+
+        .section-alt {
+            background: var(--light-blue);
+        }
+
+        .section-dark {
+            background: var(--dark);
+            color: white;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .section-dark .section-title {
+            color: white;
+        }
+
+        .section-title span {
+            background: var(--gradient-blue);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--dark-soft);
+            max-width: 700px;
+            margin: 0 auto 3rem;
+            opacity: 0.8;
+        }
+
+        .section-dark .section-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(126, 200, 227, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-blue);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(74, 144, 217, 0.15);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--dark);
+        }
+
+        .feature-card p {
+            color: var(--dark-soft);
+            opacity: 0.8;
+            line-height: 1.7;
+        }
+
+        /* Agents Section */
+        .agents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .agent-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .agent-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        .agent-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .agent-tier {
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .tier-1 { border-color: var(--golden-yellow); }
+        .tier-2 { border-color: var(--sky-blue); }
+        .tier-3 { border-color: var(--coral-red); }
+
+        /* How It Works */
+        .steps-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .step {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 60px;
+            height: 60px;
+            background: var(--gradient-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            box-shadow: 0 8px 20px rgba(74, 144, 217, 0.3);
+        }
+
+        .step-content h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .step-content p {
+            color: var(--dark-soft);
+            opacity: 0.8;
+        }
+
+        /* Roadmap */
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .roadmap-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 16px;
+            position: relative;
+        }
+
+        .roadmap-status {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-live {
+            background: rgba(97, 206, 112, 0.2);
+            color: #61CE70;
+        }
+
+        .status-soon {
+            background: rgba(244, 208, 63, 0.2);
+            color: var(--golden-yellow);
+        }
+
+        .status-planned {
+            background: rgba(126, 200, 227, 0.2);
+            color: var(--sky-blue);
+        }
+
+        .roadmap-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .roadmap-card p {
+            opacity: 0.8;
+            line-height: 1.7;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #1E1E2E;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 2rem 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .code-header {
+            background: #2D2D3D;
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .code-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .code-dot.red { background: #FF5F56; }
+        .code-dot.yellow { background: #FFBD2E; }
+        .code-dot.green { background: #27C93F; }
+
+        .code-block code {
+            display: block;
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: #E4E4E7;
+            overflow-x: auto;
+            line-height: 1.6;
+        }
+
+        .code-block .comment { color: #6A6A7A; }
+        .code-block .command { color: var(--sky-blue); }
+        .code-block .flag { color: var(--golden-yellow); }
+        .code-block .string { color: #61CE70; }
+
+        /* Installation Tabs */
+        .install-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .install-tab {
+            padding: 0.75rem 1.5rem;
+            background: rgba(126, 200, 227, 0.1);
+            border: 2px solid rgba(126, 200, 227, 0.2);
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--dark-soft);
+        }
+
+        .install-tab:hover, .install-tab.active {
+            background: var(--sky-blue);
+            border-color: var(--sky-blue);
+            color: white;
+        }
+
+        /* Fun Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            max-width: 900px;
+            margin: 3rem auto 0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 800;
+            background: var(--gradient-warm);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 0.25rem;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 4rem 0 2rem;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-brand img {
+            height: 50px;
+            margin-bottom: 1rem;
+        }
+
+        .footer-brand p {
+            opacity: 0.7;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .footer-social a:hover {
+            background: var(--sky-blue);
+        }
+
+        .footer-column h4 {
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--sky-blue);
+        }
+
+        .footer-column a {
+            display: block;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            padding: 0.4rem 0;
+            transition: color 0.3s ease;
+        }
+
+        .footer-column a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-bottom p {
+            opacity: 0.6;
+        }
+
+        .footer-arvor {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .footer-arvor img {
+            height: 30px;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                display: none;
+            }
+
+            .hero {
+                padding: 8rem 0 4rem;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-tagline {
+                font-size: 1.2rem;
+            }
+
+            .hero-logo {
+                width: 120px;
+            }
+
+            .section {
+                padding: 4rem 0;
+            }
+
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .step {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .step-number {
+                margin: 0 auto;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .footer-social {
+                justify-content: center;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Fun callout */
+        .callout {
+            background: linear-gradient(135deg, rgba(126, 200, 227, 0.1) 0%, rgba(244, 208, 63, 0.1) 100%);
+            border: 2px solid rgba(126, 200, 227, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            margin: 3rem 0;
+        }
+
+        .callout-emoji {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .callout h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+        }
+
+        .callout p {
+            opacity: 0.8;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo-group">
+                <img src="relentless-logo.png" alt="Relentless Logo" class="logo-img">
+                <span class="logo-text">Relentless</span>
+            </div>
+            <nav>
+                <a href="#features">Features</a>
+                <a href="#agents">Agents</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#roadmap">Roadmap</a>
+                <a href="#installation">Install</a>
+                <a href="https://github.com/ArvorCo/Relentless" target="_blank" rel="noopener noreferrer" class="nav-cta">GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <img src="relentless-logo.png" alt="Relentless - Universal AI Agent Orchestrator" class="hero-logo">
+                <h1>Never <span>Give Up</span></h1>
+                <p class="hero-tagline">Universal AI Agent Orchestrator That Loops Until Done</p>
+                <p class="hero-description">
+                    Run any AI coding agent (Claude Code, Amp, OpenCode, Codex, Droid, Gemini) repeatedly in an autonomous loop until all tasks are complete. Fresh context each iteration. Memory via Git. Pure magic.
+                </p>
+                <div class="hero-buttons">
+                    <a href="https://github.com/ArvorCo/Relentless" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        Get Started
+                    </a>
+                    <a href="#how-it-works" class="btn btn-secondary">See How It Works</a>
+                </div>
+                <div class="hero-badges">
+                    <span class="badge">MIT License</span>
+                    <span class="badge">TypeScript</span>
+                    <span class="badge">6 AI Agents</span>
+                    <span class="badge">Zero Config</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="features">
+        <div class="container">
+            <h2 class="section-title">Why <span>Relentless</span>?</h2>
+            <p class="section-subtitle">
+                Because your AI agent shouldn't quit after one try. Relentless keeps going until the job is done.
+            </p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F504;</div>
+                    <h3>Loops Until Complete</h3>
+                    <p>Fresh agent instance each iteration with clean context. Memory persists via Git history, progress.txt, and prd.json. No context window limits.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F916;</div>
+                    <h3>Multi-Agent Support</h3>
+                    <p>Works with Claude Code, Amp, OpenCode, Codex, Droid, and Gemini. Three tiers of support from full skills to CLI-only workflows.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x26A1;</div>
+                    <h3>Intelligent Fallback</h3>
+                    <p>Automatically switches agents when rate limits hit. Auto-recovery when limits reset. Never stop working.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F4CB;</div>
+                    <h3>Spec-Driven Development</h3>
+                    <p>Interactive specification via /relentless.specify, technical planning, hierarchical task breakdown across 4 phases.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x1F517;</div>
+                    <h3>Dependency Management</h3>
+                    <p>Validates story dependencies, prevents circular references, executes tasks in correct order automatically.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#x2728;</div>
+                    <h3>Beautiful TUI</h3>
+                    <p>Real-time terminal interface with progress bars, story grid, and live agent output. Watch the magic happen.</p>
+                </div>
+            </div>
+
+            <div class="callout">
+                <div class="callout-emoji">&#x1F9D9;</div>
+                <h3>The Ralph Wiggum Pattern, Evolved</h3>
+                <p>Inspired by Geoffrey Huntley's brilliant idea: keep spawning fresh AI agents until the work is done. We took it further with multi-agent support, smart routing, and cost optimization.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-dark" id="agents">
+        <div class="container">
+            <h2 class="section-title">Supported <span>Agents</span></h2>
+            <p class="section-subtitle">
+                Use your favorite AI coding agent. Or let Relentless pick the best one for each task.
+            </p>
+            <div class="agents-grid">
+                <div class="agent-card tier-1">
+                    <div class="agent-name">Claude Code</div>
+                    <div class="agent-tier">Tier 1 - Full Skills</div>
+                </div>
+                <div class="agent-card tier-1">
+                    <div class="agent-name">Amp</div>
+                    <div class="agent-tier">Tier 1 - Full Skills</div>
+                </div>
+                <div class="agent-card tier-1">
+                    <div class="agent-name">OpenCode</div>
+                    <div class="agent-tier">Tier 1 - Full Skills</div>
+                </div>
+                <div class="agent-card tier-2">
+                    <div class="agent-name">Gemini</div>
+                    <div class="agent-tier">Tier 2 - Extensions</div>
+                </div>
+                <div class="agent-card tier-3">
+                    <div class="agent-name">Droid</div>
+                    <div class="agent-tier">Tier 3 - CLI</div>
+                </div>
+                <div class="agent-card tier-3">
+                    <div class="agent-name">Codex</div>
+                    <div class="agent-tier">Tier 3 - CLI</div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">6</div>
+                    <div class="stat-label">AI Agents</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">3</div>
+                    <div class="stat-label">Support Tiers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">4</div>
+                    <div class="stat-label">Work Phases</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value animate-pulse">&#x221E;</div>
+                    <div class="stat-label">Iterations</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-alt" id="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How It <span>Works</span></h2>
+            <p class="section-subtitle">
+                Each iteration spawns a fresh agent with clean context. Memory persists through Git and tracking files.
+            </p>
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Fresh Context</h3>
+                        <p>New agent instance spawned with clean context window. No accumulated confusion.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Load Constitution</h3>
+                        <p>Agent reads project coding principles and governance rules. Stays on track.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Find Next Story</h3>
+                        <p>Agent reads PRD, finds next incomplete story with all dependencies met.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Implement & Commit</h3>
+                        <p>Agent implements the story, runs tests, commits changes to Git.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>Update Progress</h3>
+                        <p>Sets passes: true for completed story. Adds learnings to progress.txt.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">6</div>
+                    <div class="step-content">
+                        <h3>Loop Until Done</h3>
+                        <p>Process repeats until all stories pass. Memory persists via Git history.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-dark" id="roadmap">
+        <div class="container">
+            <h2 class="section-title">The <span>Roadmap</span></h2>
+            <p class="section-subtitle">
+                We're building the future of AI-assisted development. Here's what's coming.
+            </p>
+            <div class="roadmap-grid">
+                <div class="roadmap-card">
+                    <span class="roadmap-status status-live">Live</span>
+                    <h3>&#x1F504; Multi-Agent Orchestration</h3>
+                    <p>Run any of 6 supported AI agents with automatic fallback when rate limits hit. Fresh context each iteration.</p>
+                </div>
+                <div class="roadmap-card">
+                    <span class="roadmap-status status-live">Live</span>
+                    <h3>&#x1F4DD; Spec-Kit Integration</h3>
+                    <p>Interactive specification, technical planning, task breakdown, and quality checklists. Full workflow support.</p>
+                </div>
+                <div class="roadmap-card">
+                    <span class="roadmap-status status-soon">Coming Soon</span>
+                    <h3>&#x1F9E0; Smart Model Routing</h3>
+                    <p>Automatically use cheaper/faster models (Haiku, GPT-4o-mini) for simple tasks. Save money without sacrificing quality.</p>
+                </div>
+                <div class="roadmap-card">
+                    <span class="roadmap-status status-soon">Coming Soon</span>
+                    <h3>&#x1F4B0; Cost Optimization</h3>
+                    <p>Track costs per feature. Route tasks to the most cost-effective agent. Budget limits and alerts.</p>
+                </div>
+                <div class="roadmap-card">
+                    <span class="roadmap-status status-planned">Planned</span>
+                    <h3>&#x1F680; Parallel Execution</h3>
+                    <p>Run multiple agents simultaneously on independent stories. Faster feature development.</p>
+                </div>
+                <div class="roadmap-card">
+                    <span class="roadmap-status status-planned">Planned</span>
+                    <h3>&#x1F310; Web Dashboard</h3>
+                    <p>Monitor all your Relentless runs from a beautiful web interface. Team collaboration features.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="installation">
+        <div class="container">
+            <h2 class="section-title">Get <span>Started</span></h2>
+            <p class="section-subtitle">
+                Install Relentless and start automating your AI coding workflow in minutes.
+            </p>
+
+            <div class="install-tabs">
+                <button class="install-tab active">npm</button>
+                <button class="install-tab">bun</button>
+                <button class="install-tab">GitHub</button>
+                <button class="install-tab">No Install</button>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-dot red"></span>
+                    <span class="code-dot yellow"></span>
+                    <span class="code-dot green"></span>
+                </div>
+                <code><span class="comment"># Install globally</span>
+<span class="command">npm</span> install <span class="flag">-g</span> <span class="string">@arvorco/relentless</span>
+
+<span class="comment"># Initialize in your project</span>
+<span class="command">cd</span> your-project
+<span class="command">relentless</span> init
+
+<span class="comment"># Create spec and run (Claude Code / Amp)</span>
+<span class="command">/relentless.specify</span> <span class="string">Add user authentication with OAuth2</span>
+<span class="command">/relentless.plan</span>
+<span class="command">/relentless.tasks</span>
+
+<span class="comment"># Convert and run with beautiful TUI</span>
+<span class="command">relentless</span> convert relentless/features/001-auth/tasks.md <span class="flag">--feature</span> <span class="string">001-auth</span>
+<span class="command">relentless</span> run <span class="flag">--feature</span> <span class="string">001-auth</span> <span class="flag">--tui</span></code>
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="https://github.com/ArvorCo/Relentless#readme" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                    Full Documentation
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="section section-alt">
+        <div class="container" style="text-align: center;">
+            <h2 class="section-title">Built by <span>Arvor</span></h2>
+            <p style="font-size: 1.2rem; margin-top: 1rem; max-width: 700px; margin-left: auto; margin-right: auto; opacity: 0.8;">
+                We're building the future of AI-assisted productivity. Relentless is open source, but it's just the beginning.
+            </p>
+            <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="https://arvor.co" class="btn btn-secondary" style="background: var(--gradient-blue); border: none;" target="_blank" rel="noopener noreferrer">
+                    Visit Arvor
+                </a>
+                <a href="https://amigo.arvor.co" class="btn btn-secondary" style="background: var(--gradient-warm); border: none;" target="_blank" rel="noopener noreferrer">
+                    Try Amigo AI
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <img src="relentless-logo.png" alt="Relentless">
+                    <p>Universal AI Agent Orchestrator. Run any AI coding agent repeatedly until all tasks are complete.</p>
+                    <div class="footer-social">
+                        <a href="https://github.com/ArvorCo/Relentless" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="#features">Features</a>
+                    <a href="#agents">Agents</a>
+                    <a href="#roadmap">Roadmap</a>
+                    <a href="#installation">Installation</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <a href="https://github.com/ArvorCo/Relentless#readme" target="_blank" rel="noopener noreferrer">Documentation</a>
+                    <a href="https://github.com/ArvorCo/Relentless/issues" target="_blank" rel="noopener noreferrer">Issues</a>
+                    <a href="https://github.com/ArvorCo/Relentless/releases" target="_blank" rel="noopener noreferrer">Releases</a>
+                </div>
+                <div class="footer-column">
+                    <h4>Arvor</h4>
+                    <a href="https://arvor.co" target="_blank" rel="noopener noreferrer">Website</a>
+                    <a href="https://amigo.arvor.co" target="_blank" rel="noopener noreferrer">Amigo AI</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>MIT License. Made with persistence.</p>
+                <div class="footer-arvor">
+                    <span style="opacity: 0.6;">Built by</span>
+                    <a href="https://arvor.co" target="_blank" rel="noopener noreferrer">
+                        <img src="arvor-logo.png" alt="Arvor">
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple tab switching for installation
+        document.querySelectorAll('.install-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.install-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
