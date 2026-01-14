@@ -31,3 +31,6 @@ export { addToQueue, removeFromQueue, clearQueue } from "./writer";
 
 // Export loader functions
 export { loadQueue } from "./loader";
+
+// Export processor functions
+export { processQueue } from "./processor";
