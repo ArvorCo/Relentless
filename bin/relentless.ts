@@ -427,6 +427,36 @@ agents
     }
   });
 
+// Queue commands
+const queue = program.command("queue").description("Manage queue for mid-run guidance");
+
+queue
+  .command("add <message>")
+  .description("Add a message or command to the queue")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (message, options) => {
+    const { queueAdd, resolveFeaturePath } = await import("../src/cli/queue");
+
+    const resolved = await resolveFeaturePath(options.dir, options.feature);
+    if (resolved.error) {
+      console.error(chalk.red(resolved.error));
+      process.exit(1);
+    }
+
+    const result = await queueAdd({
+      message,
+      featurePath: resolved.path!,
+    });
+
+    if (result.success) {
+      console.log(chalk.green(`✓ ${result.message}`));
+    } else {
+      console.error(chalk.red(`Error: ${result.error}`));
+      process.exit(1);
+    }
+  });
+
 // Analyze command
 program
   .command("analyze")
