@@ -24,7 +24,7 @@ According to [Matt Pocock](https://x.com/mattpocockuk/status/2010636784116601226
 
 So naturally, **RELENTLESS** is the recursive acronym:
 
-> **RALPH** **E**ndlessly **N**avigating **T**asks, **L**earning, **E**volving, **S**olving, **S**caling
+> **R**ALPH **E**ndlessly **L**oops, **E**xecuting, **N**avigating **T**asks, **L**earning, **E**volving, **S**olving, **S**caling
 
 It's recursive. We loop. That's kind of our thing.
 
