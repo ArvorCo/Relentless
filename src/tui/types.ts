@@ -56,6 +56,10 @@ export interface TUIState {
   error?: string;
   /** Queue items for display */
   queueItems: QueueItem[];
+  /** Whether queue input mode is active */
+  queueInputActive: boolean;
+  /** Current queue input value */
+  queueInputValue: string;
 }
 
 export interface TUIActions {

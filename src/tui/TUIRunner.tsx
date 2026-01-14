@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
-import { render, useApp } from "ink";
+import { render, useApp, useInput } from "ink";
 import { App } from "./App.js";
 import type { TUIState, Story, AgentState } from "./types.js";
 import type { AgentName } from "../agents/types.js";
@@ -15,6 +15,7 @@ import { getAgent, getInstalledAgents } from "../agents/registry.js";
 import { loadPRD, getNextStory, isComplete, countStories } from "../prd/index.js";
 import { routeStory } from "../execution/router.js";
 import { loadQueueForTUI, watchQueueFile, stopWatchingQueue, QUEUE_PANEL_REFRESH_INTERVAL } from "./components/QueuePanel.js";
+import { handleQueueKeypress, submitToQueue } from "./components/QueueInput.js";
 import type { FSWatcher } from "node:fs";
 import { dirname } from "node:path";
 
@@ -60,6 +61,8 @@ function TUIRunnerComponent({
     isRunning: false,
     isComplete: false,
     queueItems: [],
+    queueInputActive: false,
+    queueInputValue: "",
   });
 
   // Queue file watcher ref
@@ -106,6 +109,35 @@ function TUIRunnerComponent({
       clearInterval(pollInterval);
     };
   }, [prdPath, loadQueueItems]);
+
+  // Handle keyboard input for queue
+  useInput((input, key) => {
+    const currentState = {
+      active: state.queueInputActive,
+      value: state.queueInputValue,
+    };
+
+    const result = handleQueueKeypress(
+      key.escape ? "escape" : key.return ? "return" : key.backspace ? "backspace" : key.tab ? "tab" : input,
+      currentState,
+      key.ctrl || key.meta
+    );
+
+    // Handle submission
+    if (result.submit && featurePathRef.current) {
+      submitToQueue(featurePathRef.current, result.submit).then(() => {
+        // Reload queue items after submission
+        loadQueueItems();
+      });
+    }
+
+    // Update state
+    setState((prev) => ({
+      ...prev,
+      queueInputActive: result.active,
+      queueInputValue: result.value,
+    }));
+  });
 
   // Timer for elapsed time
   useEffect(() => {

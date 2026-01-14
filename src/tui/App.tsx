@@ -13,6 +13,7 @@ import { AgentOutput } from "./components/AgentOutput.js";
 import { StoryGrid } from "./components/StoryGrid.js";
 import { AgentStatus } from "./components/AgentStatus.js";
 import { QueuePanel } from "./components/QueuePanel.js";
+import { QueueInput } from "./components/QueueInput.js";
 import { colors } from "./theme.js";
 import type { TUIState } from "./types.js";
 
@@ -98,6 +99,16 @@ export function App({ state }: AppProps): React.ReactElement {
           <Text color={colors.success} bold>
             🎉 All stories complete!
           </Text>
+        </Box>
+      )}
+
+      {/* Queue input */}
+      <QueueInput active={state.queueInputActive} value={state.queueInputValue} />
+
+      {/* Keyboard hint when not in input mode */}
+      {!state.queueInputActive && (
+        <Box paddingX={1}>
+          <Text color={colors.dim}>Press 'q' to add to queue</Text>
         </Box>
       )}
     </Box>

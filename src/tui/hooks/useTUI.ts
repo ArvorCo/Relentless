@@ -39,6 +39,8 @@ export function useTUI(options: UseTUIOptions): UseTUIReturn {
     isComplete: false,
     error: undefined,
     queueItems: [],
+    queueInputActive: false,
+    queueInputValue: "",
   });
 
   const addOutput = useCallback((line: string) => {
