@@ -142,7 +142,7 @@ No more vague PRDs. Interactive `/relentless.specify` creates comprehensive spec
 TDD is not optional. E2E tests are not optional. Every story must pass typecheck. Constitution rules (MUST/SHOULD) are enforced. Checklists are loaded into agent prompts.
 
 ### 💰 Cost-Aware Routing
-Why use GPT-4 to rename a variable? Route tasks by complexity. Save money. Ship faster.
+Why use GPT-5-Pro or Opus 4.5 to rename a variable? Route tasks by complexity. Save money. Ship faster.
 
 ### 📊 Beautiful TUI
 Real-time progress bars, dynamic story grid that adapts to terminal size, priority badges, phase indicators, research markers. Know exactly what's happening.
