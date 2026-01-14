@@ -23,6 +23,25 @@ export interface PauseAction {
 }
 
 /**
+ * Abort action returned by handleAbortCommand
+ */
+export interface AbortAction {
+  type: "abort";
+  reason: string;
+  exitCode: number;
+}
+
+/**
+ * Progress summary for abort message
+ */
+export interface AbortProgressSummary {
+  storiesCompleted: number;
+  storiesTotal: number;
+  iterations: number;
+  duration: number;
+}
+
+/**
  * Result of executing a pause action
  */
 export interface PauseResult {
@@ -128,4 +147,95 @@ export function formatPauseMessage(tuiMode = false): string {
     return "⏸️  Paused by user. Press any key to continue...";
   }
   return "⏸️  Paused by user. Press Enter to continue...";
+}
+
+// ============================================================================
+// ABORT Command Functions
+// ============================================================================
+
+/**
+ * Check if any ABORT command exists in the command list
+ *
+ * @param commands - List of commands from queue processing
+ * @returns true if ABORT command is present
+ */
+export function shouldAbort(
+  commands: Array<{ type: QueueCommandType; storyId?: string }>
+): boolean {
+  return commands.some((cmd) => cmd.type === "ABORT");
+}
+
+/**
+ * Handle ABORT command - creates action object
+ *
+ * @param reason - Optional custom reason for the abort
+ * @returns AbortAction object
+ */
+export function handleAbortCommand(reason?: string): AbortAction {
+  return {
+    type: "abort",
+    reason: reason ?? "User requested abort via [ABORT] command",
+    exitCode: 0, // Clean exit, not an error
+  };
+}
+
+/**
+ * Log abort event to progress.txt
+ *
+ * @param progressPath - Path to progress.txt file
+ * @param reason - Optional custom reason for the abort
+ */
+export async function logAbortToProgress(
+  progressPath: string,
+  reason?: string
+): Promise<void> {
+  const timestamp = new Date().toISOString().split("T")[0];
+  const reasonText = reason ?? "User requested abort via [ABORT] command";
+  const entry = `
+## Abort Event - ${timestamp}
+
+${reasonText}
+Orchestrator stopped cleanly with exit code 0.
+
+---
+`;
+
+  await appendProgress(progressPath, entry);
+}
+
+/**
+ * Format abort message for display
+ *
+ * @param tuiMode - Whether to format for TUI display
+ * @returns Formatted abort message
+ */
+export function formatAbortMessage(tuiMode = false): string {
+  if (tuiMode) {
+    return "🛑 Aborted by user.";
+  }
+  return "🛑 Aborted by user.";
+}
+
+/**
+ * Generate progress summary for abort
+ *
+ * @param summary - Progress summary data
+ * @returns Formatted summary string
+ */
+export function generateAbortSummary(summary: AbortProgressSummary): string {
+  const { storiesCompleted, storiesTotal, iterations, duration } = summary;
+
+  // Format duration
+  const seconds = Math.floor(duration / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  const durationStr =
+    minutes > 0 ? `${minutes}m ${remainingSeconds}s` : `${seconds}s`;
+
+  return `
+Progress Summary:
+  Stories: ${storiesCompleted}/${storiesTotal} complete
+  Iterations: ${iterations}
+  Duration: ${durationStr}
+`;
 }

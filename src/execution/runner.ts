@@ -23,6 +23,10 @@ import {
   executePauseAction,
   logPauseToProgress,
   formatPauseMessage,
+  shouldAbort,
+  logAbortToProgress,
+  formatAbortMessage,
+  generateAbortSummary,
 } from "./commands";
 
 export interface RunOptions {
@@ -515,7 +519,39 @@ export async function run(options: RunOptions): Promise<RunResult> {
         console.log(chalk.green("  ▶️  Resuming...\n"));
       }
 
-      // TODO: Handle ABORT, SKIP, PRIORITY commands in future stories (US-010 to US-012)
+      // Handle ABORT command
+      if (shouldAbort(queueResult.commands)) {
+        console.log(chalk.red(`\n  ${formatAbortMessage()}`));
+
+        // Log abort to progress.txt
+        if (existsSync(progressPath)) {
+          await logAbortToProgress(progressPath);
+        }
+
+        // Calculate summary
+        const currentPRDForAbort = await loadPRD(options.prdPath);
+        const currentCount = countStories(currentPRDForAbort);
+        const duration = Date.now() - startTime;
+
+        // Show progress summary
+        const summary = generateAbortSummary({
+          storiesCompleted: currentCount.completed,
+          storiesTotal: currentCount.total,
+          iterations: i,
+          duration,
+        });
+        console.log(chalk.dim(summary));
+
+        // Return with success (clean exit)
+        return {
+          success: false, // Not all stories complete
+          iterations: i,
+          storiesCompleted: currentCount.completed - initialCount.completed,
+          duration,
+        };
+      }
+
+      // TODO: Handle SKIP, PRIORITY commands in future stories (US-011 to US-012)
     } catch (queueError) {
       console.warn(chalk.yellow(`  ⚠️  Queue processing error: ${queueError}`));
     }
