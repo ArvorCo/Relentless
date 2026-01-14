@@ -25,3 +25,6 @@ export {
 
 // Export parser functions
 export { parseQueueLine, parseCommand, formatQueueLine } from "./parser";
+
+// Export writer functions
+export { addToQueue, removeFromQueue, clearQueue } from "./writer";
