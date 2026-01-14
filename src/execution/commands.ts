@@ -389,3 +389,153 @@ export function formatSkipMessage(
   }
   return `⏭️  Skipped ${storyId}`;
 }
+
+// ============================================================================
+// PRIORITY Command Functions
+// ============================================================================
+
+/**
+ * Priority action returned by handlePriorityCommand
+ */
+export interface PriorityAction {
+  type: "priority";
+  storyId: string;
+  isCurrentStory: boolean;
+  message?: string;
+  customReason?: string;
+}
+
+/**
+ * Check if any PRIORITY command exists in the command list
+ *
+ * @param commands - List of commands from queue processing
+ * @returns true if PRIORITY command is present
+ */
+export function shouldPrioritize(
+  commands: Array<{ type: QueueCommandType; storyId?: string }>
+): boolean {
+  return commands.some((cmd) => cmd.type === "PRIORITY");
+}
+
+/**
+ * Get all PRIORITY commands from the command list
+ *
+ * @param commands - List of commands from queue processing
+ * @returns Array of PRIORITY commands with story IDs
+ */
+export function getPriorityCommands(
+  commands: Array<{ type: QueueCommandType; storyId?: string }>
+): Array<{ type: "PRIORITY"; storyId: string }> {
+  return commands.filter(
+    (cmd): cmd is { type: "PRIORITY"; storyId: string } =>
+      cmd.type === "PRIORITY" && cmd.storyId !== undefined
+  );
+}
+
+/**
+ * Handle PRIORITY command - creates action object
+ *
+ * Checks if the story is the currently executing story. If so, shows an info message.
+ *
+ * @param storyId - The story ID to prioritize
+ * @param currentStoryId - The story currently in progress (or null if none)
+ * @param customReason - Optional custom reason for the priority change
+ * @returns PriorityAction object
+ */
+export function handlePriorityCommand(
+  storyId: string,
+  currentStoryId: string | null,
+  customReason?: string
+): PriorityAction {
+  // Check if trying to prioritize the story currently in progress
+  if (currentStoryId && storyId === currentStoryId) {
+    return {
+      type: "priority",
+      storyId,
+      isCurrentStory: true,
+      message: `Story ${storyId} is already in progress`,
+    };
+  }
+
+  return {
+    type: "priority",
+    storyId,
+    isCurrentStory: false,
+    customReason,
+  };
+}
+
+/**
+ * Log priority event to progress.txt
+ *
+ * @param progressPath - Path to progress.txt file
+ * @param storyId - The story ID that was prioritized
+ * @param reason - Optional custom reason for the priority change
+ */
+export async function logPriorityToProgress(
+  progressPath: string,
+  storyId: string,
+  reason?: string
+): Promise<void> {
+  const timestamp = new Date().toISOString().split("T")[0];
+  const reasonText = reason ?? "User requested priority via [PRIORITY] command";
+  const entry = `
+## Priority Change - ${timestamp}
+
+Story ${storyId} was prioritized to be next.
+${reasonText}
+
+---
+`;
+
+  await appendProgress(progressPath, entry);
+}
+
+/**
+ * Log priority info event to progress.txt (when story is already current)
+ *
+ * @param progressPath - Path to progress.txt file
+ * @param storyId - The story ID that was attempted to prioritize
+ */
+export async function logPriorityInfoToProgress(
+  progressPath: string,
+  storyId: string
+): Promise<void> {
+  const timestamp = new Date().toISOString().split("T")[0];
+  const entry = `
+## Priority Info - ${timestamp}
+
+Attempted to prioritize ${storyId} but story is already in progress.
+Execution continues normally.
+
+---
+`;
+
+  await appendProgress(progressPath, entry);
+}
+
+/**
+ * Format priority message for display
+ *
+ * @param storyId - The story ID being prioritized
+ * @param isCurrentStory - Whether the story is the current one
+ * @param tuiMode - Whether to format for TUI display
+ * @returns Formatted priority message
+ */
+export function formatPriorityMessage(
+  storyId: string,
+  isCurrentStory: boolean,
+  tuiMode = false
+): string {
+  if (isCurrentStory) {
+    if (tuiMode) {
+      return `ℹ️  ${storyId} is already in progress`;
+    }
+    return `ℹ️  Story ${storyId} is already in progress`;
+  }
+
+  if (tuiMode) {
+    return `⬆️  Prioritized ${storyId}`;
+  }
+  return `⬆️  Prioritized ${storyId}`;
+}

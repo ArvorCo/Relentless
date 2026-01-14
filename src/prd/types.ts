@@ -14,7 +14,7 @@ export const UserStorySchema = z.object({
   title: z.string(),
   description: z.string(),
   acceptanceCriteria: z.array(z.string()),
-  priority: z.number().int().positive(),
+  priority: z.number().int().nonnegative(), // 0 = highest priority (used by PRIORITY command)
   passes: z.boolean().default(false),
   notes: z.string().default(""),
   dependencies: z.array(z.string()).optional(), // Array of story IDs this story depends on
