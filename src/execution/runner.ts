@@ -18,6 +18,12 @@ import { routeStory } from "./router";
 import { buildStoryPromptAddition } from "./story-prompt";
 import { processQueue } from "../queue";
 import type { QueueProcessResult } from "../queue/types";
+import {
+  shouldPause,
+  executePauseAction,
+  logPauseToProgress,
+  formatPauseMessage,
+} from "./commands";
 
 export interface RunOptions {
   /** Agent to use (or "auto" for smart routing) */
@@ -495,8 +501,21 @@ export async function run(options: RunOptions): Promise<RunResult> {
         await acknowledgeQueueInProgress(progressPath, queueResult.prompts);
       }
 
-      // TODO: Handle commands (PAUSE, ABORT, SKIP, PRIORITY) in future stories
-      // For now, we only process prompts - commands will be implemented in US-009 to US-012
+      // Handle PAUSE command
+      if (shouldPause(queueResult.commands)) {
+        console.log(chalk.yellow(`\n  ${formatPauseMessage()}`));
+
+        // Log pause to progress.txt
+        if (existsSync(progressPath)) {
+          await logPauseToProgress(progressPath);
+        }
+
+        // Wait for user input
+        await executePauseAction();
+        console.log(chalk.green("  ▶️  Resuming...\n"));
+      }
+
+      // TODO: Handle ABORT, SKIP, PRIORITY commands in future stories (US-010 to US-012)
     } catch (queueError) {
       console.warn(chalk.yellow(`  ⚠️  Queue processing error: ${queueError}`));
     }
