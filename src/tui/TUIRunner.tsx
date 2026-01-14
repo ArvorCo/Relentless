@@ -16,6 +16,7 @@ import { loadPRD, getNextStory, isComplete, countStories } from "../prd/index.js
 import { routeStory } from "../execution/router.js";
 import { loadQueueForTUI, watchQueueFile, stopWatchingQueue, QUEUE_PANEL_REFRESH_INTERVAL } from "./components/QueuePanel.js";
 import { handleQueueKeypress, submitToQueue } from "./components/QueueInput.js";
+import { handleQueueDeletionKeypress, removeQueueItem, clearQueueItems } from "./components/QueueRemoval.js";
 import type { FSWatcher } from "node:fs";
 import { dirname } from "node:path";
 
@@ -63,6 +64,9 @@ function TUIRunnerComponent({
     queueItems: [],
     queueInputActive: false,
     queueInputValue: "",
+    deleteMode: false,
+    confirmClearActive: false,
+    statusMessage: undefined,
   });
 
   // Queue file watcher ref
@@ -112,31 +116,128 @@ function TUIRunnerComponent({
 
   // Handle keyboard input for queue
   useInput((input, key) => {
-    const currentState = {
-      active: state.queueInputActive,
-      value: state.queueInputValue,
+    const keyString = key.escape ? "escape" : key.return ? "return" : key.backspace ? "backspace" : key.tab ? "tab" : input;
+
+    // First check deletion handling (d/D keys, numbers in delete mode, y/n in confirm mode)
+    const deletionState = {
+      deleteMode: state.deleteMode,
+      confirmClearActive: state.confirmClearActive,
+      queueInputActive: state.queueInputActive,
     };
 
-    const result = handleQueueKeypress(
-      key.escape ? "escape" : key.return ? "return" : key.backspace ? "backspace" : key.tab ? "tab" : input,
-      currentState,
-      key.ctrl || key.meta
+    const deletionResult = handleQueueDeletionKeypress(
+      keyString,
+      deletionState,
+      key.ctrl || key.meta,
+      state.queueItems.length
     );
 
-    // Handle submission
-    if (result.submit && featurePathRef.current) {
-      submitToQueue(featurePathRef.current, result.submit).then(() => {
-        // Reload queue items after submission
-        loadQueueItems();
+    // Handle removal action
+    if (deletionResult.removeIndex !== undefined && featurePathRef.current) {
+      removeQueueItem(featurePathRef.current, deletionResult.removeIndex).then((result) => {
+        if (result.success) {
+          loadQueueItems();
+          setState((prev) => ({
+            ...prev,
+            statusMessage: `Removed: ${result.removedContent}`,
+            deleteMode: false,
+            confirmClearActive: false,
+          }));
+          // Clear status message after 2 seconds
+          setTimeout(() => {
+            setState((prev) => ({ ...prev, statusMessage: undefined }));
+          }, 2000);
+        } else {
+          setState((prev) => ({
+            ...prev,
+            statusMessage: result.error,
+            deleteMode: false,
+            confirmClearActive: false,
+          }));
+          setTimeout(() => {
+            setState((prev) => ({ ...prev, statusMessage: undefined }));
+          }, 2000);
+        }
       });
+      return;
     }
 
-    // Update state
-    setState((prev) => ({
-      ...prev,
-      queueInputActive: result.active,
-      queueInputValue: result.value,
-    }));
+    // Handle clear all action
+    if (deletionResult.clearAll && featurePathRef.current) {
+      clearQueueItems(featurePathRef.current).then((result) => {
+        if (result.success) {
+          loadQueueItems();
+          setState((prev) => ({
+            ...prev,
+            statusMessage: `Cleared ${result.clearedCount} items from queue`,
+            deleteMode: false,
+            confirmClearActive: false,
+          }));
+          // Clear status message after 2 seconds
+          setTimeout(() => {
+            setState((prev) => ({ ...prev, statusMessage: undefined }));
+          }, 2000);
+        }
+      });
+      return;
+    }
+
+    // Check if deletion result has a message
+    if (deletionResult.message) {
+      setState((prev) => ({
+        ...prev,
+        statusMessage: deletionResult.message,
+        deleteMode: deletionResult.deleteMode,
+        confirmClearActive: deletionResult.confirmClearActive,
+      }));
+      // Clear status message after 2 seconds
+      setTimeout(() => {
+        setState((prev) => ({ ...prev, statusMessage: undefined }));
+      }, 2000);
+      return;
+    }
+
+    // Update deletion state if changed
+    if (deletionResult.deleteMode !== state.deleteMode || deletionResult.confirmClearActive !== state.confirmClearActive) {
+      setState((prev) => ({
+        ...prev,
+        deleteMode: deletionResult.deleteMode,
+        confirmClearActive: deletionResult.confirmClearActive,
+      }));
+      // If in a special mode, don't process queue input
+      if (deletionResult.deleteMode || deletionResult.confirmClearActive) {
+        return;
+      }
+    }
+
+    // Handle queue input (only if not in delete/confirm mode)
+    if (!state.deleteMode && !state.confirmClearActive) {
+      const inputState = {
+        active: state.queueInputActive,
+        value: state.queueInputValue,
+      };
+
+      const inputResult = handleQueueKeypress(
+        keyString,
+        inputState,
+        key.ctrl || key.meta
+      );
+
+      // Handle submission
+      if (inputResult.submit && featurePathRef.current) {
+        submitToQueue(featurePathRef.current, inputResult.submit).then(() => {
+          // Reload queue items after submission
+          loadQueueItems();
+        });
+      }
+
+      // Update state
+      setState((prev) => ({
+        ...prev,
+        queueInputActive: inputResult.active,
+        queueInputValue: inputResult.value,
+      }));
+    }
   });
 
   // Timer for elapsed time

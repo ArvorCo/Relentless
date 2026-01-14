@@ -14,6 +14,7 @@ import { StoryGrid } from "./components/StoryGrid.js";
 import { AgentStatus } from "./components/AgentStatus.js";
 import { QueuePanel } from "./components/QueuePanel.js";
 import { QueueInput } from "./components/QueueInput.js";
+import { QueueRemovalPrompt } from "./components/QueueRemoval.js";
 import { colors } from "./theme.js";
 import type { TUIState } from "./types.js";
 
@@ -105,10 +106,17 @@ export function App({ state }: AppProps): React.ReactElement {
       {/* Queue input */}
       <QueueInput active={state.queueInputActive} value={state.queueInputValue} />
 
+      {/* Queue removal prompt */}
+      <QueueRemovalPrompt
+        deleteMode={state.deleteMode}
+        confirmClearActive={state.confirmClearActive}
+        statusMessage={state.statusMessage}
+      />
+
       {/* Keyboard hint when not in input mode */}
-      {!state.queueInputActive && (
+      {!state.queueInputActive && !state.deleteMode && !state.confirmClearActive && !state.statusMessage && (
         <Box paddingX={1}>
-          <Text color={colors.dim}>Press 'q' to add to queue</Text>
+          <Text color={colors.dim}>Press 'q' to add, 'd' to delete, 'D' to clear queue</Text>
         </Box>
       )}
     </Box>

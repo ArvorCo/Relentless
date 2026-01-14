@@ -60,6 +60,12 @@ export interface TUIState {
   queueInputActive: boolean;
   /** Current queue input value */
   queueInputValue: string;
+  /** Whether queue delete mode is active (waiting for number input) */
+  deleteMode: boolean;
+  /** Whether confirm clear dialog is active */
+  confirmClearActive: boolean;
+  /** Status message to display (e.g., "Queue already empty") */
+  statusMessage?: string;
 }
 
 export interface TUIActions {
