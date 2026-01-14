@@ -5,6 +5,7 @@
  */
 
 import type { AgentName } from "../agents/types";
+import type { QueueItem } from "../queue/types";
 
 export interface Story {
   id: string;
@@ -53,6 +54,8 @@ export interface TUIState {
   isComplete: boolean;
   /** Error message if any */
   error?: string;
+  /** Queue items for display */
+  queueItems: QueueItem[];
 }
 
 export interface TUIActions {

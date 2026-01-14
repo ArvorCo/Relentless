@@ -38,6 +38,7 @@ export function useTUI(options: UseTUIOptions): UseTUIReturn {
     isRunning: false,
     isComplete: false,
     error: undefined,
+    queueItems: [],
   });
 
   const addOutput = useCallback((line: string) => {

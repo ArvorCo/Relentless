@@ -12,6 +12,7 @@ import { CurrentStory } from "./components/CurrentStory.js";
 import { AgentOutput } from "./components/AgentOutput.js";
 import { StoryGrid } from "./components/StoryGrid.js";
 import { AgentStatus } from "./components/AgentStatus.js";
+import { QueuePanel } from "./components/QueuePanel.js";
 import { colors } from "./theme.js";
 import type { TUIState } from "./types.js";
 
@@ -66,6 +67,9 @@ export function App({ state }: AppProps): React.ReactElement {
 
       {/* Agent output */}
       <AgentOutput lines={state.outputLines} maxLines={agentOutputLines} />
+
+      {/* Queue panel */}
+      <QueuePanel items={state.queueItems} maxItems={3} />
 
       {/* Story grid */}
       <StoryGrid

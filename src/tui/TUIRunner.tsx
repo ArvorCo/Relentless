@@ -14,7 +14,9 @@ import type { RelentlessConfig } from "../config/schema.js";
 import { getAgent, getInstalledAgents } from "../agents/registry.js";
 import { loadPRD, getNextStory, isComplete, countStories } from "../prd/index.js";
 import { routeStory } from "../execution/router.js";
-import { existsSync } from "node:fs";
+import { loadQueueForTUI, watchQueueFile, stopWatchingQueue, QUEUE_PANEL_REFRESH_INTERVAL } from "./components/QueuePanel.js";
+import type { FSWatcher } from "node:fs";
+import { dirname } from "node:path";
 
 export interface TUIRunnerOptions {
   agent: AgentName | "auto";
@@ -57,7 +59,53 @@ function TUIRunnerComponent({
     elapsedSeconds: 0,
     isRunning: false,
     isComplete: false,
+    queueItems: [],
   });
+
+  // Queue file watcher ref
+  const queueWatcherRef = React.useRef<FSWatcher | null>(null);
+  const featurePathRef = React.useRef<string>("");
+
+  // Load queue items function
+  const loadQueueItems = useCallback(async () => {
+    if (!featurePathRef.current) return;
+    const items = await loadQueueForTUI(featurePathRef.current);
+    setState((prev) => ({
+      ...prev,
+      queueItems: items,
+    }));
+  }, []);
+
+  // Set up queue file watching
+  useEffect(() => {
+    // Get feature path from PRD path
+    const featurePath = dirname(prdPath);
+    featurePathRef.current = featurePath;
+
+    // Initial load
+    loadQueueItems();
+
+    // Set up file watcher
+    try {
+      queueWatcherRef.current = watchQueueFile(featurePath, () => {
+        loadQueueItems();
+      });
+    } catch {
+      // Queue file may not exist yet, that's ok
+    }
+
+    // Also set up a polling interval as backup (file watchers can be unreliable)
+    const pollInterval = setInterval(() => {
+      loadQueueItems();
+    }, QUEUE_PANEL_REFRESH_INTERVAL);
+
+    return () => {
+      if (queueWatcherRef.current) {
+        stopWatchingQueue(queueWatcherRef.current);
+      }
+      clearInterval(pollInterval);
+    };
+  }, [prdPath, loadQueueItems]);
 
   // Timer for elapsed time
   useEffect(() => {
