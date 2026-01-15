@@ -27,7 +27,7 @@ The specify skill (`.claude/skills/specify/SKILL.md`) will guide you through:
 2. **Load Context**
    - Read `relentless/constitution.md` for governance rules
    - Note MUST/SHOULD requirements for specifications
-   - Load spec template from `.claude/skills/specify/templates/spec-template.md`
+   - Load spec template from `.claude/skills/specify/templates/spec.md`
 
 3. **Generate Specification**
    - Extract key concepts: actors, actions, data, constraints

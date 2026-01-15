@@ -282,10 +282,10 @@ mkdir -p "$FEATURE_DIR"
 
 # Find spec template in skills directory
 SKILLS_DIR="$REPO_ROOT/.claude/skills/specify"
-TEMPLATE="$SKILLS_DIR/templates/spec-template.md"
+TEMPLATE="$SKILLS_DIR/templates/spec.md"
 if [ ! -f "$TEMPLATE" ]; then
     # Fallback to old location for compatibility
-    TEMPLATE="$REPO_ROOT/.claude/skills/templates/spec-template.md"
+    TEMPLATE="$REPO_ROOT/.claude/skills/templates/spec.md"
 fi
 
 SPEC_FILE="$FEATURE_DIR/spec.md"

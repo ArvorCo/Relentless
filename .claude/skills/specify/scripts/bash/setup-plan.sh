@@ -37,7 +37,7 @@ check_feature_branch "$CURRENT_BRANCH" "$HAS_GIT" || exit 1
 mkdir -p "$FEATURE_DIR"
 
 # Copy plan template if it exists
-TEMPLATE="$REPO_ROOT/.claude/skills/templates/plan-template.md"
+TEMPLATE="$REPO_ROOT/.claude/skills/templates/plan.md"
 if [[ -f "$TEMPLATE" ]]; then
     cp "$TEMPLATE" "$IMPL_PLAN"
     echo "Copied plan template to $IMPL_PLAN"
