@@ -66,3 +66,15 @@ export {
   type QualityOptions,
   type QualityIssueType,
 } from "./quality";
+
+// Docs micro-task
+export {
+  runDocs,
+  detectMissingJSDoc,
+  detectNewExportsWithoutReadme,
+  detectNewCliCommandsWithoutReadme,
+  type DocsIssue,
+  type DocsResult,
+  type DocsOptions,
+  type DocsIssueType,
+} from "./docs";

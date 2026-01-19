@@ -71,4 +71,12 @@ export {
   type QualityResult,
   type QualityOptions,
   type QualityIssueType,
+  runDocs,
+  detectMissingJSDoc,
+  detectNewExportsWithoutReadme,
+  detectNewCliCommandsWithoutReadme,
+  type DocsIssue,
+  type DocsResult,
+  type DocsOptions,
+  type DocsIssueType,
 } from "./tasks";
