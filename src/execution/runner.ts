@@ -52,6 +52,8 @@ export interface RunOptions {
   config: RelentlessConfig;
   /** Cost optimization mode */
   mode?: "free" | "cheap" | "good" | "genius";
+  /** Harness fallback order */
+  fallbackOrder?: ("claude" | "codex" | "droid" | "opencode" | "amp" | "gemini")[];
 }
 
 export interface RunResult {

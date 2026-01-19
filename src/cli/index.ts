@@ -37,3 +37,14 @@ export {
   type ModeFlagOptions,
   type ModeFlagResult,
 } from "./mode-flag";
+
+// Export fallback order flag utilities
+export {
+  VALID_HARNESSES,
+  DEFAULT_FALLBACK_ORDER,
+  isValidHarnessName,
+  parseFallbackOrderValue,
+  getFallbackOrderHelpText,
+  logFallbackOrderSelection,
+  type FallbackOrderResult,
+} from "./fallback-order";

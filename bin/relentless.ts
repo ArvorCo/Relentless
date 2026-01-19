@@ -18,6 +18,7 @@ import { run } from "../src/execution/runner";
 import { runTUI } from "../src/tui/TUIRunner";
 import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
 import { parseModeFlagValue, getModeHelpText, VALID_MODES, DEFAULT_MODE } from "../src/cli/mode-flag";
+import { parseFallbackOrderValue, getFallbackOrderHelpText, VALID_HARNESSES } from "../src/cli/fallback-order";
 
 // Read version from package.json dynamically
 const packageJson = await Bun.file(join(import.meta.dir, "..", "package.json")).json();
@@ -48,6 +49,7 @@ program
   .option("-a, --agent <name>", "Agent to use (claude, amp, opencode, codex, droid, gemini, auto)", "claude")
   .option("-m, --max-iterations <n>", "Maximum iterations", "20")
   .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`, DEFAULT_MODE)
+  .option("--fallback-order <harnesses>", `Harness fallback order (${VALID_HARNESSES.join(",")})`)
   .option("--dry-run", "Show what would be executed without running", false)
   .option("--tui", "Use beautiful terminal UI interface", false)
   .option("-d, --dir <path>", "Working directory", process.cwd())
@@ -67,6 +69,18 @@ program
       process.exit(1);
     }
     const mode = modeResult.mode!;
+
+    // Validate --fallback-order flag
+    const fallbackResult = parseFallbackOrderValue(options.fallbackOrder);
+    if (!fallbackResult.valid) {
+      console.error(chalk.red(fallbackResult.error!));
+      console.log(chalk.dim(getFallbackOrderHelpText()));
+      process.exit(1);
+    }
+    const fallbackOrder = fallbackResult.order!;
+    if (fallbackResult.warning) {
+      console.log(chalk.yellow(`⚠️ ${fallbackResult.warning}`));
+    }
 
     const relentlessDir = findRelentlessDir(options.dir);
     if (!relentlessDir) {
@@ -98,8 +112,11 @@ program
 
     const config = await loadConfig();
 
-    // Log mode selection
+    // Log mode and fallback order selection
     console.log(chalk.dim(`Mode: ${mode}`));
+    if (options.fallbackOrder) {
+      console.log(chalk.dim(`Fallback order: ${fallbackOrder.join(" > ")}`));
+    }
 
     // Use TUI if requested
     if (options.tui) {
@@ -113,6 +130,7 @@ program
         config,
         dryRun: options.dryRun,
         mode,
+        fallbackOrder,
       });
       process.exit(success ? 0 : 1);
     }
@@ -127,6 +145,7 @@ program
       dryRun: options.dryRun,
       config,
       mode,
+      fallbackOrder,
     });
 
     if (result.success) {

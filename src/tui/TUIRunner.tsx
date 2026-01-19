@@ -31,6 +31,8 @@ export interface TUIRunnerOptions {
   dryRun?: boolean;
   /** Cost optimization mode */
   mode?: "free" | "cheap" | "good" | "genius";
+  /** Harness fallback order */
+  fallbackOrder?: ("claude" | "codex" | "droid" | "opencode" | "amp" | "gemini")[];
 }
 
 interface TUIRunnerProps extends TUIRunnerOptions {
