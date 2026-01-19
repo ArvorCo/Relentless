@@ -49,3 +49,31 @@ export {
   type EscalationResult,
   type TaskExecutor,
 } from "./cascade";
+
+// Re-export fallback types and functions
+export {
+  DEFAULT_COOLDOWN_MS,
+  HarnessAvailabilitySchema,
+  FallbackResultSchema,
+  FallbackEventSchema,
+  isRateLimitError,
+  markHarnessRateLimited,
+  isHarnessOnCooldown,
+  getCooldownEnd,
+  setCooldownEnd,
+  resetCooldowns,
+  setHarnessInstalled,
+  resetTestInstallationState,
+  getRequiredEnvVar,
+  hasRequiredApiKey,
+  hasFreeTierModel,
+  getFreeModeHarnesses,
+  formatUnavailableMessage,
+  createFallbackEvent,
+  getAvailableHarness,
+  selectHarnessWithFallback,
+  getModelForHarnessAndMode,
+  type HarnessAvailability,
+  type FallbackResult,
+  type FallbackEvent,
+} from "./fallback";
