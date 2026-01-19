@@ -34,3 +34,7 @@ Relentless is a universal AI agent orchestrator that automates software developm
 - Harness: The adapter layer that connects Relentless to specific AI agents like Claude, Amp, or Codex
 - Smoke Test: Simple validation tasks that verify basic functionality without requiring complex logic changes
 - Mode: Cost optimization preset that determines which models are used for different complexity levels
+
+## Support
+
+For questions, bug reports, or feature requests, please use the GitHub Issues page at https://github.com/ArvorCo/Relentless/issues. This is the primary support channel for the Relentless project where you can search existing discussions or create new issues to get help from the community and maintainers.
