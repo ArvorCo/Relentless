@@ -28,3 +28,14 @@ export {
   type FixTaskType,
   type MicroTaskHandlerRegistry,
 } from "./types";
+
+// Export micro-task implementations
+export {
+  runTypecheck,
+  parseTypecheckOutput,
+  stripAnsiCodes,
+  groupErrorsByFile,
+  type TypecheckError,
+  type TypecheckResult,
+  type TypecheckOptions,
+} from "./tasks";
