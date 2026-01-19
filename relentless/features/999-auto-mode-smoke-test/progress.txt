@@ -47,4 +47,18 @@
   - Principle 7 (Zero-Lint Policy): Lint passed
   - Principle 8 (TypeScript Strictness): Typecheck passed
   - Principle 14 (Documentation Standards): Clear, concise examples
+
+---
+
+## 2026-01-19 - US-004
+- Added Troubleshooting section to MANUAL.md with 6 checklist items
+- Items cover: tasks not starting, agent stopping, rate limits, progress not updating, test failures, concurrent task conflicts
+- Each item is one sentence
+- Files changed: MANUAL.md
+- Tests verified: typecheck passes, lint passes
+- **Constitution compliance:**
+  - Principle 1 (TDD): Documentation task verified via manual testing of acceptance criteria
+  - Principle 7 (Zero-Lint Policy): Lint passed
+  - Principle 8 (TypeScript Strictness): Typecheck passed
+  - Principle 14 (Documentation Standards): Clear, concise troubleshooting items
 ---
