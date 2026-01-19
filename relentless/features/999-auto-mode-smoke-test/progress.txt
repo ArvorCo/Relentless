@@ -75,4 +75,31 @@
   - Principle 7 (Zero-Lint Policy): Lint passed
   - Principle 8 (TypeScript Strictness): Typecheck passed
   - Principle 14 (Documentation Standards): Clear, concise definitions
+
 ---
+
+## 2026-01-19 - US-006
+- Added Support section to MANUAL.md with 2 sentences
+- Mentions GitHub Issues as primary support channel with URL
+- Files changed: MANUAL.md
+- Tests verified: typecheck passes, lint passes
+- **Constitution compliance:**
+  - Principle 1 (TDD): Documentation task verified via manual testing of acceptance criteria
+  - Principle 7 (Zero-Lint Policy): Lint passed
+  - Principle 8 (TypeScript Strictness): Typecheck passed
+  - Principle 14 (Documentation Standards): Clear, concise support information
+---
+
+## Feature Summary
+
+All 6 user stories completed for Auto Mode Smoke Test feature:
+- US-001: MANUAL.md created with introduction section
+- US-002: Quickstart section added
+- US-003: Usage Examples section added
+- US-004: Troubleshooting checklist added
+- US-005: Glossary added
+- US-006: Support section added
+
+Total files created: 1 (MANUAL.md)
+Total files modified: 1 (tests/init/auto-mode-init.test.ts - lint fix)
+All quality gates passed throughout implementation.
