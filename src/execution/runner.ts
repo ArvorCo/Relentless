@@ -50,6 +50,8 @@ export interface RunOptions {
   dryRun: boolean;
   /** Configuration */
   config: RelentlessConfig;
+  /** Cost optimization mode */
+  mode?: "free" | "cheap" | "good" | "genius";
 }
 
 export interface RunResult {

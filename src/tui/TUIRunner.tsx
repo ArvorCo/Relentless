@@ -29,6 +29,8 @@ export interface TUIRunnerOptions {
   feature: string;
   config: RelentlessConfig;
   dryRun?: boolean;
+  /** Cost optimization mode */
+  mode?: "free" | "cheap" | "good" | "genius";
 }
 
 interface TUIRunnerProps extends TUIRunnerOptions {

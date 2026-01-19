@@ -17,6 +17,7 @@ import { loadPRD, savePRD, parsePRDMarkdown, createPRD, analyzeConsistency, form
 import { run } from "../src/execution/runner";
 import { runTUI } from "../src/tui/TUIRunner";
 import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
+import { parseModeFlagValue, getModeHelpText, VALID_MODES, DEFAULT_MODE } from "../src/cli/mode-flag";
 
 // Read version from package.json dynamically
 const packageJson = await Bun.file(join(import.meta.dir, "..", "package.json")).json();
@@ -46,6 +47,7 @@ program
   .requiredOption("-f, --feature <name>", "Feature name to run")
   .option("-a, --agent <name>", "Agent to use (claude, amp, opencode, codex, droid, gemini, auto)", "claude")
   .option("-m, --max-iterations <n>", "Maximum iterations", "20")
+  .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`, DEFAULT_MODE)
   .option("--dry-run", "Show what would be executed without running", false)
   .option("--tui", "Use beautiful terminal UI interface", false)
   .option("-d, --dir <path>", "Working directory", process.cwd())
@@ -56,6 +58,15 @@ program
       console.log(`Valid agents: ${getAllAgentNames().join(", ")}, auto`);
       process.exit(1);
     }
+
+    // Validate --mode flag
+    const modeResult = parseModeFlagValue(options.mode);
+    if (!modeResult.valid) {
+      console.error(chalk.red(modeResult.error!));
+      console.log(chalk.dim(getModeHelpText()));
+      process.exit(1);
+    }
+    const mode = modeResult.mode!;
 
     const relentlessDir = findRelentlessDir(options.dir);
     if (!relentlessDir) {
@@ -87,6 +98,9 @@ program
 
     const config = await loadConfig();
 
+    // Log mode selection
+    console.log(chalk.dim(`Mode: ${mode}`));
+
     // Use TUI if requested
     if (options.tui) {
       const success = await runTUI({
@@ -98,6 +112,7 @@ program
         feature: options.feature,
         config,
         dryRun: options.dryRun,
+        mode,
       });
       process.exit(success ? 0 : 1);
     }
@@ -111,6 +126,7 @@ program
       promptPath,
       dryRun: options.dryRun,
       config,
+      mode,
     });
 
     if (result.success) {
