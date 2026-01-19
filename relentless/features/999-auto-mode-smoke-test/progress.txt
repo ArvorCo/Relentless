@@ -32,4 +32,19 @@
   - Principle 7 (Zero-Lint Policy): Lint passed
   - Principle 8 (TypeScript Strictness): Typecheck passed
   - Principle 14 (Documentation Standards): Clear, simple documentation
+
+---
+
+## 2026-01-19 - US-003
+- Added Usage Examples section to MANUAL.md with 2 scenario bullets
+- Scenario 1: OAuth2 authentication with proper token storage and refresh
+- Scenario 2: OAuth2 migration from hardcoded credentials
+- Both examples under 3 lines, mention security and OAuth migration
+- Files changed: MANUAL.md
+- Tests verified: typecheck passes, lint passes
+- **Constitution compliance:**
+  - Principle 1 (TDD): Documentation task verified via manual testing of acceptance criteria
+  - Principle 7 (Zero-Lint Policy): Lint passed
+  - Principle 8 (TypeScript Strictness): Typecheck passed
+  - Principle 14 (Documentation Standards): Clear, concise examples
 ---

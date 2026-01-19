@@ -52,8 +52,8 @@
         "Each item is one sentence max"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed 2026-01-19. Added Troubleshooting section with 6 common issues, each one sentence. Issues cover tasks not starting, agent stopping, rate limits, progress not updating, test failures, and concurrent task conflicts."
     },
     {
       "id": "US-005",
