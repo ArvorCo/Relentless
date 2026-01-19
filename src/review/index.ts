@@ -55,4 +55,12 @@ export {
   type TestResult,
   type TestOptions,
   type TestParseResult,
+  runSecurity,
+  scanFileForVulnerabilities,
+  type Vulnerability,
+  type SecurityResult,
+  type SecurityOptions,
+  type VulnerabilityType,
+  type VulnerabilitySeverity,
+  type OwaspCategory,
 } from "./tasks";

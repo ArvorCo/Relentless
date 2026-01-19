@@ -42,3 +42,15 @@ export {
   type TestOptions,
   type TestParseResult,
 } from "./test";
+
+// Security micro-task
+export {
+  runSecurity,
+  scanFileForVulnerabilities,
+  type Vulnerability,
+  type SecurityResult,
+  type SecurityOptions,
+  type VulnerabilityType,
+  type VulnerabilitySeverity,
+  type OwaspCategory,
+} from "./security";
