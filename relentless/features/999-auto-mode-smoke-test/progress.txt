@@ -61,4 +61,18 @@
   - Principle 7 (Zero-Lint Policy): Lint passed
   - Principle 8 (TypeScript Strictness): Typecheck passed
   - Principle 14 (Documentation Standards): Clear, concise troubleshooting items
+
+---
+
+## 2026-01-19 - US-005
+- Added Glossary section to MANUAL.md with 6 key terms and brief definitions
+- Terms: Auto Mode, Escalation, Fallback, Harness, Smoke Test, Mode
+- Simple list format used
+- Files changed: MANUAL.md
+- Tests verified: typecheck passes, lint passes
+- **Constitution compliance:**
+  - Principle 1 (TDD): Documentation task verified via manual testing of acceptance criteria
+  - Principle 7 (Zero-Lint Policy): Lint passed
+  - Principle 8 (TypeScript Strictness): Typecheck passed
+  - Principle 14 (Documentation Standards): Clear, concise definitions
 ---
