@@ -16,7 +16,7 @@ import { loadConfig, findRelentlessDir } from "../src/config";
 import { loadPRD, savePRD, parsePRDMarkdown, createPRD, analyzeConsistency, formatReport, generateGitHubIssues } from "../src/prd";
 import { run } from "../src/execution/runner";
 import { runTUI } from "../src/tui/TUIRunner";
-import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
+import { initProject, createFeature, listFeatures, createProgressTemplate, parseAutoModeFlags } from "../src/init/scaffolder";
 import { parseModeFlagValue, getModeHelpText, VALID_MODES, DEFAULT_MODE } from "../src/cli/mode-flag";
 import { parseFallbackOrderValue, getFallbackOrderHelpText, VALID_HARNESSES } from "../src/cli/fallback-order";
 import { parseReviewFlagsValue, getReviewFlagsHelpText, VALID_REVIEW_MODES } from "../src/cli/review-flags";
@@ -40,8 +40,14 @@ program
   .description("Initialize Relentless in the current project")
   .option("-d, --dir <path>", "Project directory", process.cwd())
   .option("-f, --force", "Force reinstall - overwrite existing files", false)
+  .option("-y, --yes", "Auto-accept defaults (enables Auto Mode with 'good' mode)", false)
+  .option("--no-auto-mode", "Disable Auto Mode without prompting", false)
   .action(async (options) => {
-    await initProject(options.dir, options.force);
+    const autoModeOptions = parseAutoModeFlags({
+      yes: options.yes,
+      noAutoMode: !options.autoMode, // Commander converts --no-auto-mode to autoMode: false
+    });
+    await initProject(options.dir, options.force, autoModeOptions);
   });
 
 // Run command

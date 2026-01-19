@@ -1,0 +1,1 @@
+2026-01-19T07:20:09.179Z | remember to run mcp serena initial_command at the beginning ofg each session

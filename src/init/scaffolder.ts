@@ -24,7 +24,244 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
 import { checkAgentHealth } from "../agents/registry";
-import { DEFAULT_CONFIG } from "../config/schema";
+import { DEFAULT_CONFIG, type Mode } from "../config/schema";
+
+/**
+ * Explanation of Auto Mode shown to users during init
+ */
+export const AUTO_MODE_EXPLANATION = `
+Smart Auto Mode automatically routes tasks to the most cost-effective model
+based on complexity. Simple tasks use free/cheap models, complex tasks use
+premium models. This typically saves 50-75% on API costs.
+`;
+
+/**
+ * Descriptions for each cost mode
+ */
+export const MODE_DESCRIPTIONS: Record<Mode, string> = {
+  free: "Free tier models only (Gemini, Codex free) - Maximum savings",
+  cheap: "Budget models (Haiku, GPT-4o-mini) - High savings, good quality",
+  good: "Balanced models (Sonnet, GPT-4o) - Good savings, high quality (Recommended)",
+  genius: "Premium models (Opus, GPT-5.2) - No savings, maximum quality",
+};
+
+/**
+ * Estimated savings percentages for each mode
+ */
+const MODE_SAVINGS: Record<Mode, string> = {
+  free: "~95%",
+  cheap: "~75%",
+  good: "~50%",
+  genius: "~0%",
+};
+
+/**
+ * Interface for Auto Mode configuration options
+ */
+export interface InitAutoModeOptions {
+  /** Skip the interactive prompt and use provided values */
+  skipPrompt?: boolean;
+  /** Whether Auto Mode should be enabled */
+  enabled?: boolean;
+  /** Default mode to use */
+  defaultMode?: Mode;
+  /** Generate YAML config instead of JSON */
+  generateYaml?: boolean;
+}
+
+/**
+ * Interface for readline mock (for testing)
+ */
+interface ReadlineInterface {
+  question: (prompt: string, callback: (answer: string) => void) => void;
+  close: () => void;
+}
+
+/**
+ * Options for promptAutoModeConfig
+ */
+export interface PromptAutoModeOptions {
+  /** Readline interface (can be mocked for testing) */
+  readline: ReadlineInterface;
+  /** Default mode if user presses Enter */
+  defaultMode: Mode;
+}
+
+/**
+ * Result from promptAutoModeConfig
+ */
+export interface AutoModeConfigResult {
+  enabled: boolean;
+  defaultMode?: Mode;
+}
+
+/**
+ * Get estimated savings percentage for a mode
+ */
+export function getEstimatedSavings(mode: Mode): string {
+  return MODE_SAVINGS[mode];
+}
+
+/**
+ * Parse Auto Mode related CLI flags
+ */
+export function parseAutoModeFlags(options: {
+  yes?: boolean;
+  noAutoMode?: boolean;
+}): InitAutoModeOptions {
+  // --no-auto-mode takes priority over --yes
+  if (options.noAutoMode) {
+    return {
+      skipPrompt: true,
+      enabled: false,
+    };
+  }
+
+  if (options.yes) {
+    return {
+      skipPrompt: true,
+      enabled: true,
+      defaultMode: "good",
+    };
+  }
+
+  return {
+    skipPrompt: false,
+  };
+}
+
+/**
+ * Check if project already has Auto Mode config
+ */
+export async function hasExistingAutoModeConfig(projectDir: string): Promise<boolean> {
+  const relentlessDir = join(projectDir, "relentless");
+
+  // Check config.json
+  const configJsonPath = join(relentlessDir, "config.json");
+  if (existsSync(configJsonPath)) {
+    try {
+      const content = await Bun.file(configJsonPath).text();
+      const config = JSON.parse(content);
+      if (config.autoMode !== undefined) {
+        return true;
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  // Check relentless.config.yaml
+  const yamlPath = join(relentlessDir, "relentless.config.yaml");
+  if (existsSync(yamlPath)) {
+    try {
+      const content = await Bun.file(yamlPath).text();
+      if (content.includes("autoMode:")) {
+        return true;
+      }
+    } catch {
+      // Ignore read errors
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Prompt user for Auto Mode configuration
+ */
+export async function promptAutoModeConfig(
+  options: PromptAutoModeOptions
+): Promise<AutoModeConfigResult> {
+  const { readline, defaultMode } = options;
+
+  return new Promise((resolve) => {
+    // First question: Enable Auto Mode?
+    readline.question(
+      chalk.yellow("Enable Smart Auto Mode? (Saves 50-75% on costs) [Y/n]: "),
+      (enableAnswer) => {
+        const normalizedAnswer = enableAnswer.trim().toLowerCase();
+
+        // Empty or affirmative answers enable Auto Mode
+        if (
+          normalizedAnswer === "" ||
+          normalizedAnswer === "y" ||
+          normalizedAnswer === "yes"
+        ) {
+          // Second question: Select mode
+          readline.question(
+            chalk.yellow(`Default mode? [free/cheap/good/genius] (${defaultMode}): `),
+            (modeAnswer) => {
+              const trimmedMode = modeAnswer.trim().toLowerCase();
+              let selectedMode: Mode = defaultMode;
+
+              if (trimmedMode === "") {
+                selectedMode = defaultMode;
+              } else if (["free", "cheap", "good", "genius"].includes(trimmedMode)) {
+                selectedMode = trimmedMode as Mode;
+              } else {
+                // Invalid mode - use default
+                selectedMode = defaultMode;
+              }
+
+              resolve({
+                enabled: true,
+                defaultMode: selectedMode,
+              });
+            }
+          );
+        } else {
+          // User declined
+          resolve({
+            enabled: false,
+          });
+        }
+      }
+    );
+  });
+}
+
+/**
+ * Generate YAML config content for Auto Mode
+ */
+export function generateAutoModeYamlConfig(config: AutoModeConfigResult): string {
+  const lines: string[] = [];
+
+  lines.push("# Relentless Auto Mode Configuration");
+  lines.push("# Generated by relentless init");
+  lines.push("");
+  lines.push("autoMode:");
+  lines.push(`  enabled: ${config.enabled}`);
+
+  if (config.enabled && config.defaultMode) {
+    lines.push(`  defaultMode: ${config.defaultMode}`);
+    lines.push("");
+    lines.push("  # Harness fallback order (uncomment to customize)");
+    lines.push("  # fallbackOrder:");
+    lines.push("  #   - claude");
+    lines.push("  #   - amp");
+    lines.push("  #   - opencode");
+    lines.push("  #   - codex");
+    lines.push("  #   - gemini");
+    lines.push("  #   - droid");
+    lines.push("");
+    lines.push("  # Custom model mappings per mode (uncomment to customize)");
+    lines.push("  # modeModels:");
+    lines.push("  #   free:");
+    lines.push("  #     simple: gemini-2.0-flash");
+    lines.push("  #     medium: gemini-2.0-flash");
+    lines.push("  #     complex: codex-mini-latest");
+    lines.push("  #     expert: codex-mini-latest");
+    lines.push("  #   cheap:");
+    lines.push("  #     simple: haiku-4-5");
+    lines.push("  #     medium: gpt-4o-mini");
+    lines.push("  #     complex: sonnet-4-5");
+    lines.push("  #     expert: sonnet-4-5");
+  }
+
+  lines.push("");
+
+  return lines.join("\n");
+}
 
 /**
  * Get the relentless root directory
@@ -46,14 +283,6 @@ function getRelentlessRoot(): string {
 }
 
 const relentlessRoot = getRelentlessRoot();
-
-/**
- * Files to create in the relentless/ directory
- * These can be force-updated with -f flag
- */
-const RELENTLESS_FILES: Record<string, () => string> = {
-  "config.json": () => JSON.stringify(DEFAULT_CONFIG, null, 2),
-};
 
 /**
  * Default progress.txt content for a new feature with YAML frontmatter
@@ -81,7 +310,11 @@ patterns: []
 /**
  * Initialize Relentless in a project
  */
-export async function initProject(projectDir: string = process.cwd(), force: boolean = false): Promise<void> {
+export async function initProject(
+  projectDir: string = process.cwd(),
+  force: boolean = false,
+  autoModeOptions: InitAutoModeOptions = {}
+): Promise<void> {
   console.log(chalk.bold.blue(`\n🚀 ${force ? "Reinstalling" : "Initializing"} Relentless\n`));
 
   // Check installed agents
@@ -112,17 +345,50 @@ export async function initProject(projectDir: string = process.cwd(), force: boo
   // Create relentless files (can be force-updated)
   console.log(chalk.dim("\nCreating relentless files..."));
 
-  for (const [filename, contentFn] of Object.entries(RELENTLESS_FILES)) {
-    const path = join(relentlessDir, filename);
+  // Generate config with Auto Mode settings if provided
+  const configPath = join(relentlessDir, "config.json");
+  const existingAutoMode = await hasExistingAutoModeConfig(projectDir);
 
-    if (existsSync(path) && !force) {
-      console.log(`  ${chalk.yellow("⚠")} relentless/${filename} already exists, skipping`);
-      continue;
+  if (existsSync(configPath) && !force) {
+    console.log(`  ${chalk.yellow("⚠")} relentless/config.json already exists, skipping`);
+  } else {
+    // Build config with Auto Mode settings
+    const config = { ...DEFAULT_CONFIG };
+
+    // Apply Auto Mode options if provided
+    if (autoModeOptions.skipPrompt) {
+      config.autoMode = {
+        ...config.autoMode,
+        enabled: autoModeOptions.enabled ?? false,
+      };
+      if (autoModeOptions.enabled && autoModeOptions.defaultMode) {
+        config.autoMode.defaultMode = autoModeOptions.defaultMode;
+      }
+    } else if (!existingAutoMode) {
+      // Set default autoMode if no existing config
+      config.autoMode = {
+        ...config.autoMode,
+        enabled: autoModeOptions.enabled ?? false,
+      };
+      if (autoModeOptions.enabled && autoModeOptions.defaultMode) {
+        config.autoMode.defaultMode = autoModeOptions.defaultMode;
+      }
     }
 
-    await Bun.write(path, contentFn());
-    const action = existsSync(path) && force ? "updated" : "created";
-    console.log(`  ${chalk.green("✓")} relentless/${filename} ${force ? `(${action})` : ""}`);
+    await Bun.write(configPath, JSON.stringify(config, null, 2));
+    const action = force ? "updated" : "created";
+    console.log(`  ${chalk.green("✓")} relentless/config.json (${action})`);
+  }
+
+  // Generate YAML config if requested
+  if (autoModeOptions.generateYaml && autoModeOptions.enabled !== undefined) {
+    const yamlPath = join(relentlessDir, "relentless.config.yaml");
+    const yamlContent = generateAutoModeYamlConfig({
+      enabled: autoModeOptions.enabled,
+      defaultMode: autoModeOptions.defaultMode,
+    });
+    await Bun.write(yamlPath, yamlContent);
+    console.log(`  ${chalk.green("✓")} relentless/relentless.config.yaml (created)`);
   }
 
   // Note: constitution.md and prompt.md are NOT created here
