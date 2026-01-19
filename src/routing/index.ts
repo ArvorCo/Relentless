@@ -26,3 +26,15 @@ export {
 
 // Re-export classifier types and functions
 export { classifyTask, type ClassificationResult } from "./classifier";
+
+// Re-export router types and functions
+export {
+  MODE_MODEL_MATRIX,
+  RoutingRuleSchema,
+  RoutingDecisionSchema,
+  routeTask,
+  estimateTokens,
+  calculateCost,
+  type RoutingRule,
+  type RoutingDecision,
+} from "./router";
