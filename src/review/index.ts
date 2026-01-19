@@ -63,4 +63,12 @@ export {
   type VulnerabilityType,
   type VulnerabilitySeverity,
   type OwaspCategory,
+  runQuality,
+  analyzeComplexity,
+  detectUnusedExports,
+  detectDuplication,
+  type QualityIssue,
+  type QualityResult,
+  type QualityOptions,
+  type QualityIssueType,
 } from "./tasks";

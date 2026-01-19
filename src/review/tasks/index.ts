@@ -54,3 +54,15 @@ export {
   type VulnerabilitySeverity,
   type OwaspCategory,
 } from "./security";
+
+// Quality micro-task
+export {
+  runQuality,
+  analyzeComplexity,
+  detectUnusedExports,
+  detectDuplication,
+  type QualityIssue,
+  type QualityResult,
+  type QualityOptions,
+  type QualityIssueType,
+} from "./quality";
