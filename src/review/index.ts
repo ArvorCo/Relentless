@@ -48,4 +48,11 @@ export {
   type LintSummary,
   type LintParseResult,
   type LintSeverity,
+  runTest,
+  parseTestOutput,
+  parseFallbackTestOutput,
+  type TestFailure,
+  type TestResult,
+  type TestOptions,
+  type TestParseResult,
 } from "./tasks";

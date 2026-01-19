@@ -31,3 +31,14 @@ export {
   type LintParseResult,
   type LintSeverity,
 } from "./lint";
+
+// Test micro-task
+export {
+  runTest,
+  parseTestOutput,
+  parseFallbackTestOutput,
+  type TestFailure,
+  type TestResult,
+  type TestOptions,
+  type TestParseResult,
+} from "./test";
