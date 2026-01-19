@@ -1,8 +1,32 @@
 /**
  * Droid Agent Adapter
  *
- * Adapter for Factory's Droid CLI
+ * Adapter for Factory's Droid CLI.
  * https://factory.ai
+ *
+ * ## Model Selection
+ *
+ * Droid supports model selection via the `-m` flag (short form).
+ * Pass the model name in the `options.model` parameter.
+ *
+ * **Supported models:**
+ * - `glm-4.6` - Factory's GLM model (free tier)
+ * - `gemini-2.0-flash` - Google's Gemini Flash (cheap tier)
+ * - `claude-3-5-sonnet` - Anthropic's Sonnet (premium tier)
+ * - `gpt-4o` - OpenAI's GPT-4o (premium tier)
+ *
+ * **CLI command format:**
+ * ```
+ * droid exec -m <model> --auto high
+ * ```
+ *
+ * @example
+ * ```typescript
+ * const result = await droidAdapter.invoke("Fix the bug", {
+ *   model: "glm-4.6",
+ *   workingDirectory: "/path/to/project"
+ * });
+ * ```
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
@@ -39,9 +63,17 @@ export const droidAdapter: AgentAdapter = {
   async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
     const startTime = Date.now();
 
-    // Droid reads from stdin when piped or redirected.
+    // Build command args: droid exec [-m <model>] --auto high
+    const args = ["exec"];
+
+    if (options?.model) {
+      args.push("-m", options.model);
+    }
+
     // Use --auto high for high risk tolerance by default
-    const proc = Bun.spawn(["droid", "exec", "--auto", "high"], {
+    args.push("--auto", "high");
+
+    const proc = Bun.spawn(["droid", ...args], {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
       stdout: "pipe",
