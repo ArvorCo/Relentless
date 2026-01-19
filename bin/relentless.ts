@@ -20,6 +20,7 @@ import { initProject, createFeature, listFeatures, createProgressTemplate } from
 import { parseModeFlagValue, getModeHelpText, VALID_MODES, DEFAULT_MODE } from "../src/cli/mode-flag";
 import { parseFallbackOrderValue, getFallbackOrderHelpText, VALID_HARNESSES } from "../src/cli/fallback-order";
 import { parseReviewFlagsValue, getReviewFlagsHelpText, VALID_REVIEW_MODES } from "../src/cli/review-flags";
+import { estimateFeatureCost, formatCostEstimate, formatCostBreakdown, compareModes, formatModeComparison } from "../src/routing/estimate";
 
 // Read version from package.json dynamically
 const packageJson = await Bun.file(join(import.meta.dir, "..", "package.json")).json();
@@ -130,6 +131,18 @@ program
     }
 
     const config = await loadConfig();
+    const prd = await loadPRD(prdPath);
+
+    // Display cost estimate before execution
+    if (config.autoMode?.enabled !== false) {
+      const estimate = await estimateFeatureCost(prd, config.autoMode || {}, mode);
+      console.log(chalk.cyan(`\n💰 ${formatCostEstimate(estimate)}`));
+      if (estimate.storyEstimates.length > 0 && estimate.storyEstimates.length <= 10) {
+        console.log(chalk.dim(formatCostBreakdown(estimate.storyEstimates)));
+      } else if (estimate.storyEstimates.length > 10) {
+        console.log(chalk.dim(`  ${estimate.storyEstimates.length} stories to estimate...`));
+      }
+    }
 
     // Log mode and fallback order selection
     console.log(chalk.dim(`Mode: ${mode}`));
@@ -701,6 +714,76 @@ program
     } catch (error) {
       console.error(chalk.red(`\n❌ ${(error as Error).message}\n`));
       process.exit(1);
+    }
+  });
+
+// Estimate command - display cost estimates without executing
+program
+  .command("estimate")
+  .description("Estimate execution costs before running a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`, DEFAULT_MODE)
+  .option("--compare", "Show comparison across all modes", false)
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (options) => {
+    // Validate --mode flag
+    const modeResult = parseModeFlagValue(options.mode);
+    if (!modeResult.valid) {
+      console.error(chalk.red(modeResult.error!));
+      console.log(chalk.dim(getModeHelpText()));
+      process.exit(1);
+    }
+    const mode = modeResult.mode!;
+
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    if (!existsSync(featureDir)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    const prdPath = join(featureDir, "prd.json");
+    if (!existsSync(prdPath)) {
+      console.error(chalk.red(`PRD file not found: ${prdPath}`));
+      process.exit(1);
+    }
+
+    const config = await loadConfig();
+    const prd = await loadPRD(prdPath);
+
+    const incompleteCount = prd.userStories.filter((s) => !s.passes).length;
+    const totalCount = prd.userStories.length;
+
+    console.log(chalk.bold(`\n💰 Cost Estimate: ${options.feature}\n`));
+    console.log(chalk.dim(`Stories: ${incompleteCount}/${totalCount} incomplete`));
+
+    if (incompleteCount === 0) {
+      console.log(chalk.green("\n✅ All stories are complete. No execution needed.\n"));
+      return;
+    }
+
+    if (options.compare) {
+      // Show comparison across all modes
+      console.log(chalk.dim(`\nComparing all modes...\n`));
+      const comparison = await compareModes(prd, config.autoMode || {});
+      console.log(formatModeComparison(comparison));
+    } else {
+      // Show estimate for selected mode
+      const estimate = await estimateFeatureCost(prd, config.autoMode || {}, mode);
+      console.log(chalk.cyan(`\n${formatCostEstimate(estimate)}\n`));
+
+      if (estimate.storyEstimates.length > 0) {
+        console.log(formatCostBreakdown(estimate.storyEstimates));
+      }
+
+      // Show brief comparison hint
+      console.log(chalk.dim(`\nTip: Use --compare to see cost comparison across all modes`));
     }
   });
 

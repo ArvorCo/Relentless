@@ -77,3 +77,20 @@ export {
   type FallbackResult,
   type FallbackEvent,
 } from "./fallback";
+
+// Re-export estimate types and functions
+export {
+  ESCALATION_BUFFER_PERCENT,
+  StoryEstimateSchema,
+  FeatureCostEstimateSchema,
+  ModeComparisonSchema,
+  estimateStoryCost,
+  estimateFeatureCost,
+  formatCostEstimate,
+  formatCostBreakdown,
+  compareModes,
+  formatModeComparison,
+  type StoryEstimate,
+  type FeatureCostEstimate,
+  type ModeComparison,
+} from "./estimate";
