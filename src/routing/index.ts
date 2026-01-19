@@ -23,3 +23,6 @@ export {
   type ModelProfile,
   type HarnessProfile,
 } from "./registry";
+
+// Re-export classifier types and functions
+export { classifyTask, type ClassificationResult } from "./classifier";
