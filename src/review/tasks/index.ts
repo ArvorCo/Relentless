@@ -17,3 +17,17 @@ export {
   type TypecheckResult,
   type TypecheckOptions,
 } from "./typecheck";
+
+// Lint micro-task
+export {
+  runLint,
+  parseLintOutput,
+  parseFallbackLintOutput,
+  groupIssuesByFile,
+  type LintIssue,
+  type LintResult,
+  type LintOptions,
+  type LintSummary,
+  type LintParseResult,
+  type LintSeverity,
+} from "./lint";
