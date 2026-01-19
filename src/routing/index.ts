@@ -38,3 +38,14 @@ export {
   type RoutingRule,
   type RoutingDecision,
 } from "./router";
+
+// Re-export cascade types and functions
+export {
+  EscalationStepSchema,
+  EscalationResultSchema,
+  executeWithCascade,
+  getNextModel,
+  type EscalationStep,
+  type EscalationResult,
+  type TaskExecutor,
+} from "./cascade";
