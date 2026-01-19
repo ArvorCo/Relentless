@@ -39,8 +39,8 @@
         "Keep each example under 3 lines"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed 2026-01-19. Added Usage Examples section with 2 scenarios: OAuth2 authentication with token storage, and OAuth2 migration from hardcoded credentials. Both examples are under 3 lines."
     },
     {
       "id": "US-004",
