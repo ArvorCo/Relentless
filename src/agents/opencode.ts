@@ -1,8 +1,27 @@
 /**
  * OpenCode Agent Adapter
  *
- * Adapter for the OpenCode CLI
+ * Adapter for the OpenCode CLI with model selection support.
  * https://opencode.ai
+ *
+ * ## Supported Models (OpenCode Zen - Free Tier)
+ * - `glm-4.7` - GLM-4.7 (73.8% SWE-bench, excellent for multilingual/backend)
+ * - `grok-code-fast-1` - Grok Code Fast 1 (speed-optimized for agentic tasks)
+ * - `minimax-m2.1` - MiniMax M2.1 (general purpose)
+ *
+ * ## CLI Command Format
+ * With model: `opencode run --model <model> "<prompt>"`
+ * Without model: `opencode run "<prompt>"`
+ *
+ * ## Usage Example
+ * ```typescript
+ * const result = await opencodeAdapter.invoke("Fix the bug", {
+ *   model: "glm-4.7",
+ *   workingDirectory: "/path/to/project"
+ * });
+ * ```
+ *
+ * @module agents/opencode
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
@@ -39,8 +58,19 @@ export const opencodeAdapter: AgentAdapter = {
   async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
     const startTime = Date.now();
 
-    // OpenCode uses `opencode run "message"` for non-interactive mode
-    const proc = Bun.spawn(["opencode", "run", prompt], {
+    // Build command arguments
+    // Format: opencode run [--model <model>] "<prompt>"
+    const args = ["opencode", "run"];
+
+    // Add model flag if provided
+    if (options?.model) {
+      args.push("--model", options.model);
+    }
+
+    // Add the prompt as the final argument
+    args.push(prompt);
+
+    const proc = Bun.spawn(args, {
       cwd: options?.workingDirectory,
       stdout: "pipe",
       stderr: "pipe",
