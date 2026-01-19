@@ -1,8 +1,28 @@
 /**
  * Gemini Agent Adapter
  *
- * Adapter for Google's Gemini CLI
+ * Adapter for Google's Gemini CLI with model selection support.
  * https://github.com/google-gemini/gemini-cli
+ *
+ * ## Supported Models
+ * - `gemini-3-pro` - Gemini 3 Pro (best for complex reasoning and coding tasks)
+ * - `gemini-3-flash` - Gemini 3 Flash (faster, more cost-effective for simpler tasks)
+ *
+ * ## CLI Command Format
+ * With model: `gemini --model <model> "<prompt>"`
+ * Without model: `gemini "<prompt>"`
+ * With dangerous mode: `gemini --yolo --model <model> "<prompt>"`
+ *
+ * ## Usage Example
+ * ```typescript
+ * const result = await geminiAdapter.invoke("Fix the bug", {
+ *   model: "gemini-3-pro",
+ *   dangerouslyAllowAll: true,  // Sets --yolo flag
+ *   workingDirectory: "/path/to/project"
+ * });
+ * ```
+ *
+ * @module agents/gemini
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
