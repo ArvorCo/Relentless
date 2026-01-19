@@ -18,4 +18,18 @@
   - Principle 7 (Zero-Lint Policy): Fixed lint error in test file
   - Principle 8 (TypeScript Strictness): Typecheck passed
   - Principle 14 (Documentation Standards): Created clear documentation with simple language
+
+---
+
+## 2026-01-19 - US-002
+- Added Quickstart section to MANUAL.md with 5 bullet steps
+- Steps include: README review, constitution review, features exploration, docs checking, test case review
+- No system-modifying commands included (all steps are read-only)
+- Files changed: MANUAL.md
+- Tests verified: typecheck passes, lint passes
+- **Constitution compliance:**
+  - Principle 1 (TDD): Documentation task verified via manual testing of acceptance criteria
+  - Principle 7 (Zero-Lint Policy): Lint passed
+  - Principle 8 (TypeScript Strictness): Typecheck passed
+  - Principle 14 (Documentation Standards): Clear, simple documentation
 ---
