@@ -19,6 +19,7 @@ import { runTUI } from "../src/tui/TUIRunner";
 import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
 import { parseModeFlagValue, getModeHelpText, VALID_MODES, DEFAULT_MODE } from "../src/cli/mode-flag";
 import { parseFallbackOrderValue, getFallbackOrderHelpText, VALID_HARNESSES } from "../src/cli/fallback-order";
+import { parseReviewFlagsValue, getReviewFlagsHelpText, VALID_REVIEW_MODES } from "../src/cli/review-flags";
 
 // Read version from package.json dynamically
 const packageJson = await Bun.file(join(import.meta.dir, "..", "package.json")).json();
@@ -50,6 +51,8 @@ program
   .option("-m, --max-iterations <n>", "Maximum iterations", "20")
   .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`, DEFAULT_MODE)
   .option("--fallback-order <harnesses>", `Harness fallback order (${VALID_HARNESSES.join(",")})`)
+  .option("--skip-review", "Skip final review phase", false)
+  .option("--review-mode <mode>", `Review quality mode (${VALID_REVIEW_MODES.join(", ")})`)
   .option("--dry-run", "Show what would be executed without running", false)
   .option("--tui", "Use beautiful terminal UI interface", false)
   .option("-d, --dir <path>", "Working directory", process.cwd())
@@ -80,6 +83,22 @@ program
     const fallbackOrder = fallbackResult.order!;
     if (fallbackResult.warning) {
       console.log(chalk.yellow(`⚠️ ${fallbackResult.warning}`));
+    }
+
+    // Validate review flags (--skip-review and --review-mode)
+    const reviewResult = parseReviewFlagsValue({
+      skipReview: options.skipReview,
+      reviewMode: options.reviewMode,
+    });
+    if (!reviewResult.valid) {
+      console.error(chalk.red(reviewResult.error!));
+      console.log(chalk.dim(getReviewFlagsHelpText()));
+      process.exit(1);
+    }
+    const skipReview = reviewResult.skipReview!;
+    const reviewMode = reviewResult.reviewMode;
+    if (reviewResult.warningMessage && skipReview) {
+      console.log(chalk.yellow(`⚠️ ${reviewResult.warningMessage}`));
     }
 
     const relentlessDir = findRelentlessDir(options.dir);
@@ -117,6 +136,9 @@ program
     if (options.fallbackOrder) {
       console.log(chalk.dim(`Fallback order: ${fallbackOrder.join(" > ")}`));
     }
+    if (!skipReview && reviewMode) {
+      console.log(chalk.dim(`Review mode: ${reviewMode}`));
+    }
 
     // Use TUI if requested
     if (options.tui) {
@@ -131,6 +153,8 @@ program
         dryRun: options.dryRun,
         mode,
         fallbackOrder,
+        skipReview,
+        reviewMode,
       });
       process.exit(success ? 0 : 1);
     }
@@ -146,6 +170,8 @@ program
       config,
       mode,
       fallbackOrder,
+      skipReview,
+      reviewMode,
     });
 
     if (result.success) {

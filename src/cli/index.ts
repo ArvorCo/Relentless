@@ -48,3 +48,16 @@ export {
   logFallbackOrderSelection,
   type FallbackOrderResult,
 } from "./fallback-order";
+
+// Export review flags utilities
+export {
+  VALID_REVIEW_MODES,
+  DEFAULT_REVIEW_MODE,
+  isValidReviewMode,
+  parseReviewFlagsValue,
+  getReviewFlagsHelpText,
+  logReviewFlagsSelection,
+  type ReviewFlagsOptions,
+  type ReviewFlagsResult,
+  type ReviewFlagsSelection,
+} from "./review-flags";

@@ -54,6 +54,10 @@ export interface RunOptions {
   mode?: "free" | "cheap" | "good" | "genius";
   /** Harness fallback order */
   fallbackOrder?: ("claude" | "codex" | "droid" | "opencode" | "amp" | "gemini")[];
+  /** Skip final review phase */
+  skipReview?: boolean;
+  /** Review quality mode (can differ from execution mode) */
+  reviewMode?: "free" | "cheap" | "good" | "genius";
 }
 
 export interface RunResult {
