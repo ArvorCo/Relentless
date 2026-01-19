@@ -94,3 +94,31 @@ export {
   type FeatureCostEstimate,
   type ModeComparison,
 } from "./estimate";
+
+// Re-export report types and functions
+export {
+  EscalationEventSchema,
+  StoryExecutionSchema,
+  ModelUtilizationSchema,
+  CostComparisonSchema,
+  FeatureCostReportSchema,
+  createStoryExecution,
+  getBaselineCost,
+  calculateModelUtilization,
+  calculateEscalationOverhead,
+  generateCostReport,
+  formatStoryLine,
+  formatEscalationLine,
+  formatComparisonLine,
+  formatUtilizationStats,
+  formatCostReport,
+  saveCostReport,
+  loadHistoricalCosts,
+  type EscalationEvent,
+  type StoryExecution,
+  type ModelUtilization,
+  type CostComparison,
+  type FeatureCostReport,
+  type HistoricalCostEntry,
+  type FileSystemInterface,
+} from "./report";

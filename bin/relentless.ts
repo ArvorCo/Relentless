@@ -21,6 +21,7 @@ import { parseModeFlagValue, getModeHelpText, VALID_MODES, DEFAULT_MODE } from "
 import { parseFallbackOrderValue, getFallbackOrderHelpText, VALID_HARNESSES } from "../src/cli/fallback-order";
 import { parseReviewFlagsValue, getReviewFlagsHelpText, VALID_REVIEW_MODES } from "../src/cli/review-flags";
 import { estimateFeatureCost, formatCostEstimate, formatCostBreakdown, compareModes, formatModeComparison } from "../src/routing/estimate";
+import { loadHistoricalCosts } from "../src/routing/report";
 
 // Read version from package.json dynamically
 const packageJson = await Bun.file(join(import.meta.dir, "..", "package.json")).json();
@@ -785,6 +786,82 @@ program
       // Show brief comparison hint
       console.log(chalk.dim(`\nTip: Use --compare to see cost comparison across all modes`));
     }
+  });
+
+// Report command - show historical cost data
+program
+  .command("report")
+  .description("Show historical cost reports for a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("--last <n>", "Show only last N reports", "10")
+  .action(async (options) => {
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    if (!existsSync(featureDir)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    const progressPath = join(featureDir, "progress.txt");
+    if (!existsSync(progressPath)) {
+      console.error(chalk.red(`Progress file not found: ${progressPath}`));
+      process.exit(1);
+    }
+
+    console.log(chalk.bold(`\n📊 Cost Report History: ${options.feature}\n`));
+
+    const history = await loadHistoricalCosts(progressPath);
+
+    if (history.length === 0) {
+      console.log(chalk.dim("No cost reports found yet."));
+      console.log(chalk.dim("\nCost reports are generated after feature execution completes."));
+      console.log(chalk.dim("Run: relentless run --feature " + options.feature + "\n"));
+      return;
+    }
+
+    // Limit to last N reports
+    const limit = parseInt(options.last, 10);
+    const reportsToShow = history.slice(-limit);
+
+    // Calculate totals
+    let totalCost = 0;
+    let totalSavings = 0;
+    for (const entry of history) {
+      totalCost += entry.actualCost;
+      // Savings is calculated against baseline, so we approximate savings amount
+      const baselineCost = entry.actualCost / (1 - entry.savingsPercent / 100);
+      totalSavings += baselineCost - entry.actualCost;
+    }
+
+    // Display reports
+    console.log(chalk.dim("Timestamp                    Mode     Cost       Savings"));
+    console.log(chalk.dim("─".repeat(60)));
+
+    for (const entry of reportsToShow) {
+      const timestamp = entry.timestamp.substring(0, 19).replace("T", " ");
+      const mode = entry.mode.padEnd(8);
+      const cost = `$${entry.actualCost.toFixed(2)}`.padStart(8);
+      const savings = `${entry.savingsPercent}%`.padStart(6);
+      console.log(`${timestamp}  ${mode} ${cost}    ${savings}`);
+    }
+
+    console.log(chalk.dim("─".repeat(60)));
+
+    // Summary
+    if (history.length > limit) {
+      console.log(chalk.dim(`\nShowing last ${limit} of ${history.length} reports`));
+    }
+
+    console.log(chalk.cyan(`\nTotal Cost:    $${totalCost.toFixed(2)}`));
+    console.log(chalk.green(`Total Savings: ~$${totalSavings.toFixed(2)}`));
+    console.log(chalk.dim(`Reports:       ${history.length}\n`));
   });
 
 // PRD command (for agents without skill support)
