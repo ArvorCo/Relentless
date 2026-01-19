@@ -1,8 +1,31 @@
 /**
  * Codex Agent Adapter
  *
- * Adapter for OpenAI's Codex CLI
+ * Adapter for OpenAI's Codex CLI.
  * https://developers.openai.com/codex/cli/
+ *
+ * ## Model Selection
+ *
+ * Codex supports model selection via the `--model` flag.
+ * Pass the model name in the `options.model` parameter.
+ *
+ * **Supported models (GPT-5.2 reasoning tiers):**
+ * - `gpt-5-2-high` - High reasoning tier, best for complex tasks (~$1.75/$14 per MTok)
+ * - `gpt-5-2-medium` - Balanced tier, good for most tasks (~$1.25/$10 per MTok)
+ * - `gpt-5-2-low` - Fast tier, good for simple tasks (~$0.75/$6 per MTok)
+ *
+ * **CLI command format:**
+ * ```
+ * codex exec --model <model> -
+ * ```
+ *
+ * @example
+ * ```typescript
+ * const result = await codexAdapter.invoke("Fix the bug", {
+ *   model: "gpt-5-2-high",
+ *   workingDirectory: "/path/to/project"
+ * });
+ * ```
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
@@ -38,9 +61,17 @@ export const codexAdapter: AgentAdapter = {
 
   async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
     const startTime = Date.now();
+    const args = ["exec"];
 
-    // Codex uses `codex exec -` to read from stdin
-    const proc = Bun.spawn(["codex", "exec", "-"], {
+    // Add model selection if specified
+    if (options?.model) {
+      args.push("--model", options.model);
+    }
+
+    // Codex uses `-` to read from stdin
+    args.push("-");
+
+    const proc = Bun.spawn(["codex", ...args], {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
       stdout: "pipe",
