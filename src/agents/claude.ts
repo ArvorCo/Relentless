@@ -1,8 +1,31 @@
 /**
  * Claude Code Agent Adapter
  *
- * Adapter for Anthropic's Claude Code CLI
+ * Adapter for Anthropic's Claude Code CLI.
  * https://docs.anthropic.com/claude-code
+ *
+ * ## Model Selection
+ *
+ * Claude Code supports model selection via the `--model` flag.
+ * Pass the model name in the `options.model` parameter.
+ *
+ * **Supported models:**
+ * - `opus-4-5` (claude-opus-4-5-20251101) - SOTA, best for code review and architecture
+ * - `sonnet-4-5` (claude-sonnet-4-5-20251020) - Balanced, good for daily coding
+ * - `haiku-4-5` (claude-haiku-4-5-20251022) - Fast and cheap, good for simple tasks
+ *
+ * **CLI command format:**
+ * ```
+ * claude --model <model> -p <prompt>
+ * ```
+ *
+ * @example
+ * ```typescript
+ * const result = await claudeAdapter.invoke("Fix the bug", {
+ *   model: "opus-4-5",
+ *   workingDirectory: "/path/to/project"
+ * });
+ * ```
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types.js";
