@@ -11,3 +11,8 @@ Relentless is a universal AI agent orchestrator that automates software developm
 - Explore the features directory to see existing example specifications and plans
 - Check the documentation in docs/ for detailed setup guides and agent-specific instructions
 - Review example test cases in the tests/ directory to understand testing patterns
+
+## Usage Examples
+
+- Authenticate users securely by implementing OAuth2 with proper token storage and refresh mechanisms
+- Migrate existing authentication systems by replacing hardcoded credentials with OAuth2 flows and updating authorization endpoints
