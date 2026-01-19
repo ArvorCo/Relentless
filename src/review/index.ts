@@ -80,3 +80,13 @@ export {
   type DocsOptions,
   type DocsIssueType,
 } from "./tasks";
+
+// Export review prompt
+export {
+  promptForReview,
+  isValidMode,
+  formatSummaryMessage,
+  defaultEstimateCost,
+  type ReviewPromptOptions,
+  type ReviewPromptResult,
+} from "./prompt";
