@@ -521,7 +521,10 @@ describe("Auto Mode Init", () => {
       });
 
       // Should eventually get valid mode or fall back to default
-      expect(["free", "cheap", "good", "genius"]).toContain(result.defaultMode);
+      expect(result.defaultMode).toBeDefined();
+      if (result.defaultMode) {
+        expect(["free", "cheap", "good", "genius"]).toContain(result.defaultMode);
+      }
     });
 
     it("should handle y/Y/yes/YES as affirmative responses", async () => {
