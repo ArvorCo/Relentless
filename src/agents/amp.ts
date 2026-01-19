@@ -1,8 +1,26 @@
 /**
  * Amp Agent Adapter
  *
- * Adapter for Sourcegraph's Amp CLI
+ * Adapter for Sourcegraph's Amp CLI with model/mode selection support.
  * https://ampcode.com
+ *
+ * ## Supported Modes
+ * - `free` - Free tier mode ($10/day grant, may have rate limits)
+ * - `smart` - Smart mode (uses Amp's intelligent model selection)
+ *
+ * ## Model Selection Method
+ * Amp uses the `AMP_MODE` environment variable for mode selection,
+ * unlike other adapters which use CLI flags.
+ *
+ * ## Usage Example
+ * ```typescript
+ * const result = await ampAdapter.invoke("Fix the bug", {
+ *   model: "free",  // Sets AMP_MODE=free environment variable
+ *   workingDirectory: "/path/to/project"
+ * });
+ * ```
+ *
+ * @module agents/amp
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
@@ -44,12 +62,30 @@ export const ampAdapter: AgentAdapter = {
       args.push("--dangerously-allow-all");
     }
 
-    const proc = Bun.spawn(["amp", ...args], {
+    // Build spawn options with environment variables
+    const spawnOptions: {
+      cwd?: string;
+      stdin: Blob;
+      stdout: "pipe";
+      stderr: "pipe";
+      env?: Record<string, string | undefined>;
+    } = {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
       stdout: "pipe",
       stderr: "pipe",
-    });
+    };
+
+    // Set AMP_MODE environment variable if model is provided
+    // Amp uses environment variable instead of CLI flag for mode selection
+    if (options?.model) {
+      spawnOptions.env = {
+        ...process.env,
+        AMP_MODE: options.model,
+      };
+    }
+
+    const proc = Bun.spawn(["amp", ...args], spawnOptions);
 
     // Collect output
     const stdout = await new Response(proc.stdout).text();
