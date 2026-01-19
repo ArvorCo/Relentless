@@ -25,3 +25,12 @@ Relentless is a universal AI agent orchestrator that automates software developm
 - Progress file is not updating after iterations complete
 - Tests are failing but implementation appears correct
 - Concurrent tasks are conflicting or overwriting each other
+
+## Glossary
+
+- Auto Mode: Smart routing system that selects optimal models based on task complexity and cost settings
+- Escalation: Automatic retry with more capable models when tasks fail with smaller models
+- Fallback: Switching to alternative AI agents when current agent hits rate limits or becomes unavailable
+- Harness: The adapter layer that connects Relentless to specific AI agents like Claude, Amp, or Codex
+- Smoke Test: Simple validation tasks that verify basic functionality without requiring complex logic changes
+- Mode: Cost optimization preset that determines which models are used for different complexity levels
