@@ -113,11 +113,11 @@ tests/
 | Harness | Current Support | CLI Flag | Implementation Status |
 |---------|----------------|----------|----------------------|
 | Claude | ✅ Full | `--model <model>` | Ready |
-| Codex | ❌ None | `--model <model>` | Needs update |
-| Droid | ❌ None | `-m <model>` | Needs update |
-| OpenCode | ❌ None | `--model <model>` | Needs update |
-| Amp | ❌ None | Limited (env-based) | Needs investigation |
-| Gemini | ❌ None | `--model <model>` | Needs update |
+| Codex | ✅ Full | `--model <model>` | Ready |
+| Droid | ✅ Full | `-m <model>` | Ready |
+| OpenCode | ✅ Full | `--model <provider/model>` | Ready |
+| Amp | ✅ Full | `-m <mode>`, `-x` | Ready |
+| Gemini | ✅ Full | `--model <model>` | Ready |
 
 ### 1.2 Harness CLI Commands for Model Selection
 
@@ -144,15 +144,14 @@ Already implemented - uses `options.model` to pass `--model` flag.
 #### Codex CLI (OpenAI)
 ```bash
 # Model selection via --model flag
-codex exec --model gpt-5-2-high -
-codex exec --model gpt-5-2-medium -
-codex exec --model gpt-5-2-low -
+codex exec --model gpt-5.2 -c reasoning_effort="low|medium|high|xhigh" -
 ```
 
 **Available Models:**
-- `gpt-5-2-high` - High reasoning tier, ~$1.75/$14 per MTok
-- `gpt-5-2-medium` - Balanced tier, ~$1.25/$10 per MTok
-- `gpt-5-2-low` - Fast tier, ~$0.75/$6 per MTok
+- `gpt-5.2-xhigh` - Extreme reasoning tier, ~$1.75/$14 per MTok (maps to `-c reasoning_effort="xhigh"`)
+- `gpt-5.2-high` - High reasoning tier, ~$1.75/$14 per MTok (maps to `-c reasoning_effort="high"`)
+- `gpt-5.2-medium` - Balanced tier, ~$1.25/$10 per MTok (maps to `-c reasoning_effort="medium"`)
+- `gpt-5.2-low` - Fast tier, ~$0.75/$6 per MTok (maps to `-c reasoning_effort="low"`)
 
 **Adapter Update (src/agents/codex.ts:38-63):**
 ```typescript
@@ -161,7 +160,15 @@ async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
   const args = ["exec"];
 
   if (options?.model) {
-    args.push("--model", options.model);
+    const modelProfile = getModelById(options.model);
+    if (modelProfile?.harness === "codex") {
+      args.push(modelProfile.cliFlag, modelProfile.cliValue);
+      if (modelProfile.cliArgs) {
+        args.push(...modelProfile.cliArgs);
+      }
+    } else {
+      args.push("--model", options.model);
+    }
   }
 
   args.push("-");
@@ -181,18 +188,20 @@ async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
 #### Droid
 ```bash
 # Model selection via -m flag (short for --model)
-droid exec -m glm-4.6 --auto high
-droid exec -m claude-3-5-sonnet --auto high
-droid exec -m gpt-4o --auto high
+droid exec -m gpt-5.2 --auto high
+droid exec -m claude-sonnet-4-5-20250929 --auto high
+droid exec -m gpt-5.1-codex --auto high
 ```
 
-**Available Models (with multipliers):**
-- `glm-4.6` (0.25x) - Cheapest, good for simple tasks
-- `gemini-2.0-flash` (0.5x) - Fast, affordable
-- `claude-3-5-sonnet` (2.0x) - Balanced
-- `claude-3-5-opus` (5.0x) - SOTA
-- `gpt-4o` (1.5x) - Good balance
-- `o1-mini` (2.5x) - Reasoning tier
+**Available Models:**
+- `claude-opus-4-5-20251101` - Claude Opus 4.5
+- `claude-sonnet-4-5-20250929` - Claude Sonnet 4.5
+- `claude-haiku-4-5-20251001` - Claude Haiku 4.5
+- `gpt-5.2` - GPT-5.2
+- `gpt-5.1` - GPT-5.1
+- `gpt-5.1-codex` - GPT-5.1 Codex
+- `gpt-5.1-codex-max` - GPT-5.1 Codex Max
+- `gemini-3-pro-preview` - Gemini 3 Pro Preview
 
 **Adapter Update (src/agents/droid.ts:38-64):**
 ```typescript
@@ -201,7 +210,13 @@ async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
   const args = ["exec"];
 
   if (options?.model) {
-    args.push("-m", options.model);
+    const modelProfile = getModelById(options.model);
+    const modelValue =
+      modelProfile?.harness === "droid" ? modelProfile.cliValue : options.model;
+    args.push("-m", modelValue);
+    if (modelProfile?.harness === "droid" && modelProfile.cliArgs) {
+      args.push(...modelProfile.cliArgs);
+    }
   }
 
   args.push("--auto", "high");
@@ -238,7 +253,15 @@ async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
   const args = ["run"];
 
   if (options?.model) {
-    args.push("--model", options.model);
+    const modelProfile = getModelById(options.model);
+    if (modelProfile?.harness === "opencode") {
+      args.push("--model", modelProfile.cliValue);
+      if (modelProfile.cliArgs) {
+        args.push(...modelProfile.cliArgs);
+      }
+    } else {
+      args.push("--model", options.model);
+    }
   }
 
   args.push(prompt);
@@ -256,9 +279,9 @@ async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
 
 #### Amp
 ```bash
-# Amp uses environment variables for model configuration
-AMP_MODEL=smart amp --dangerously-allow-all
-AMP_MODE=free amp --dangerously-allow-all
+# Amp uses -m for mode selection and -x for execute mode
+amp -m smart -x --dangerously-allow-all "Task description"
+amp -m free -x --dangerously-allow-all "Task description"
 ```
 
 **Available Modes:**
@@ -275,18 +298,17 @@ async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
     args.push("--dangerously-allow-all");
   }
 
-  // Amp uses environment variables for model configuration
-  const env = { ...process.env };
   if (options?.model) {
-    env.AMP_MODEL = options.model;
+    args.push("-m", options.model);
   }
+
+  args.push("-x");
 
   const proc = Bun.spawn(["amp", ...args], {
     cwd: options?.workingDirectory,
     stdin: new Blob([prompt]),
     stdout: "pipe",
     stderr: "pipe",
-    env,
   });
   // ... rest unchanged
 }
@@ -303,7 +325,7 @@ gemini --model gemini-3-flash "Task description"
 
 **Available Models:**
 - `gemini-3-pro` - WebDev Arena leader, $2-4/$12-18 per MTok
-- `gemini-3-flash` - Fast, free tier available, $0.50/$3 per MTok
+- `gemini-3-flash` - Fast, low-cost, $0.50/$3 per MTok
 
 **Adapter Update (src/agents/gemini.ts):**
 ```typescript
@@ -376,9 +398,10 @@ const EscalationConfigSchema = z.object({
   escalationPath: z.record(z.string()).default({
     "haiku-4.5": "sonnet-4.5",
     "sonnet-4.5": "opus-4.5",
-    "gpt-5-2-low": "gpt-5-2-medium",
-    "gpt-5-2-medium": "gpt-5-2-high",
-    "glm-4.6": "claude-3-5-sonnet",
+    "gpt-5.2-low": "gpt-5.2-medium",
+    "gpt-5.2-medium": "gpt-5.2-high",
+    "gpt-5.2-high": "gpt-5.2-xhigh",
+    "grok-code-fast-1": "gpt-5.2-low",
     "gemini-3-flash": "gemini-3-pro",
   }),
 });
@@ -390,31 +413,11 @@ const AutoModeConfigSchema = z.object({
   fallbackOrder: z.array(HarnessNameSchema).default([
     "claude", "codex", "droid", "opencode", "amp", "gemini"
   ]),
-  modeModels: z.object({
-    free: ModeModelsSchema.default({
-      simple: "glm-4.7",
-      medium: "amp-free",
-      complex: "gemini-3-flash",
-      expert: "glm-4.7", // escalates to cheap if fails
-    }),
-    cheap: ModeModelsSchema.default({
-      simple: "haiku-4.5",
-      medium: "sonnet-4.5",
-      complex: "gpt-5-2-medium",
-      expert: "opus-4.5",
-    }),
-    good: ModeModelsSchema.default({
-      simple: "sonnet-4.5",
-      medium: "sonnet-4.5",
-      complex: "opus-4.5",
-      expert: "opus-4.5",
-    }),
-    genius: ModeModelsSchema.default({
-      simple: "opus-4.5",
-      medium: "opus-4.5",
-      complex: "opus-4.5",
-      expert: "opus-4.5",
-    }),
+  modeModels: ModeModelsSchema.default({
+    simple: "haiku-4.5",
+    medium: "sonnet-4.5",
+    complex: "opus-4.5",
+    expert: "opus-4.5",
   }),
   review: ReviewConfigSchema.default({}),
   escalation: EscalationConfigSchema.default({}),
@@ -600,15 +603,15 @@ Respond with JSON: {"complexity": "...", "reasoning": "..."}
 const MODE_MODEL_MATRIX: Record<Mode, Record<Complexity, ModelSelection>> = {
   free: {
     simple: { harness: "opencode", model: "glm-4.7" },
-    medium: { harness: "amp", model: "free" },
-    complex: { harness: "gemini", model: "gemini-3-flash" },
-    expert: { harness: "opencode", model: "glm-4.7" }, // escalates on failure
+    medium: { harness: "amp", model: "amp-free" },
+    complex: { harness: "opencode", model: "grok-code-fast-1" },
+    expert: { harness: "opencode", model: "grok-code-fast-1" },
   },
   cheap: {
     simple: { harness: "claude", model: "haiku-4.5" },
-    medium: { harness: "claude", model: "sonnet-4.5" },
-    complex: { harness: "codex", model: "gpt-5-2-medium" },
-    expert: { harness: "claude", model: "opus-4.5" },
+    medium: { harness: "gemini", model: "gemini-3-flash" },
+    complex: { harness: "codex", model: "gpt-5.2-low" },
+    expert: { harness: "codex", model: "gpt-5.2-low" },
   },
   good: {
     simple: { harness: "claude", model: "sonnet-4.5" },
@@ -1283,7 +1286,7 @@ describe("executeWithCascade", () => {
   it("falls back to next harness on rate limit", async () => {
     // Mock Claude rate limit
     mockAdapter("claude", "opus-4.5", { rateLimited: true });
-    mockAdapter("codex", "gpt-5-2-high", { success: true });
+    mockAdapter("codex", "gpt-5.2-high", { success: true });
 
     const result = await executeWithCascade(task, initialRouting, config);
     expect(result.success).toBe(true);
@@ -1418,8 +1421,8 @@ const MODEL_REGISTRY: ModelProfile[] = [
 
   // Codex (OpenAI)
   {
-    id: "gpt-5-2-high",
-    displayName: "GPT-5.2 High",
+    id: "gpt-5.2-high",
+    displayName: "GPT-5.2 (reasoning-effort high)",
     harness: "codex",
     tier: "sota",
     inputCost: 1.75,
@@ -1428,11 +1431,27 @@ const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["reasoning", "control_flow", "overnight_runs"],
     limitations: [],
     cliFlag: "--model",
-    cliValue: "gpt-5-2-high",
+    cliValue: "gpt-5.2",
+    cliArgs: ["-c", "reasoning_effort=\"high\""],
   },
   {
-    id: "gpt-5-2-medium",
-    displayName: "GPT-5.2 Medium",
+    id: "gpt-5.2-xhigh",
+    displayName: "GPT-5.2 (reasoning-effort xhigh)",
+    harness: "codex",
+    tier: "sota",
+    inputCost: 1.75,
+    outputCost: 14.0,
+    sweBenchScore: 80.0,
+    contextWindow: 128000,
+    strengths: ["deep_reasoning", "complex_logic", "long_horizon_tasks"],
+    limitations: [],
+    cliFlag: "--model",
+    cliValue: "gpt-5.2",
+    cliArgs: ["-c", "reasoning_effort=\"xhigh\""],
+  },
+  {
+    id: "gpt-5.2-medium",
+    displayName: "GPT-5.2 (reasoning-effort medium)",
     harness: "codex",
     tier: "standard",
     inputCost: 1.25,
@@ -1440,11 +1459,12 @@ const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["balanced", "good_review"],
     limitations: [],
     cliFlag: "--model",
-    cliValue: "gpt-5-2-medium",
+    cliValue: "gpt-5.2",
+    cliArgs: ["-c", "reasoning_effort=\"medium\""],
   },
   {
-    id: "gpt-5-2-low",
-    displayName: "GPT-5.2 Low",
+    id: "gpt-5.2-low",
+    displayName: "GPT-5.2 (reasoning-effort low)",
     harness: "codex",
     tier: "cheap",
     inputCost: 0.75,
@@ -1452,24 +1472,25 @@ const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["fast", "simple_tasks"],
     limitations: ["less_accuracy"],
     cliFlag: "--model",
-    cliValue: "gpt-5-2-low",
+    cliValue: "gpt-5.2",
+    cliArgs: ["-c", "reasoning_effort=\"low\""],
   },
 
   // Droid
   {
-    id: "glm-4.6",
-    displayName: "GLM-4.6 (Droid)",
+    id: "gpt-5.2",
+    displayName: "GPT-5.2 (via Droid)",
     harness: "droid",
-    tier: "free",
-    inputCost: 0.0,  // 0.25x multiplier
-    outputCost: 0.0,
-    strengths: ["cheap", "multilingual", "tool_use"],
-    limitations: ["less_sota"],
+    tier: "standard",
+    inputCost: 1.25,
+    outputCost: 10.0,
+    strengths: ["balanced", "general_coding"],
+    limitations: [],
     cliFlag: "-m",
-    cliValue: "glm-4.6",
+    cliValue: "gpt-5.2",
   },
   {
-    id: "droid-claude-3-5-sonnet",
+    id: "droid-claude-sonnet-4-5-20250929",
     displayName: "Claude 3.5 Sonnet (via Droid)",
     harness: "droid",
     tier: "standard",
@@ -1478,19 +1499,19 @@ const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["balanced", "good_quality"],
     limitations: [],
     cliFlag: "-m",
-    cliValue: "claude-3-5-sonnet",
+    cliValue: "claude-sonnet-4-5-20250929",
   },
   {
-    id: "droid-gpt-4o",
-    displayName: "GPT-4o (via Droid)",
+    id: "gpt-5.1-codex",
+    displayName: "GPT-5.1 Codex (via Droid)",
     harness: "droid",
     tier: "standard",
-    inputCost: 1.5,  // 1.5x multiplier
-    outputCost: 7.5,
-    strengths: ["good_balance"],
+    inputCost: 1.0,
+    outputCost: 8.0,
+    strengths: ["coding", "refactoring"],
     limitations: [],
     cliFlag: "-m",
-    cliValue: "gpt-4o",
+    cliValue: "gpt-5.1-codex",
   },
 
   // OpenCode Zen (Free)
@@ -1543,7 +1564,7 @@ const MODEL_REGISTRY: ModelProfile[] = [
     outputCost: 0.0,
     strengths: ["interactive", "refactoring", "smart_mode"],
     limitations: ["context_caps", "no_execute_mode", "ads"],
-    cliFlag: "AMP_MODE",
+    cliFlag: "-m",
     cliValue: "free",
   },
 

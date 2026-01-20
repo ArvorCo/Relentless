@@ -100,6 +100,26 @@ cd your-project
 relentless init
 ```
 
+After upgrading Relentless, rerun `/relentless.constitution` to refresh `relentless/prompt.md` with the latest instructions (including spec/plan/tasks awareness).
+
+### Upgrading from Previous Versions
+
+If you have Relentless installed from before v0.4.0:
+
+1. Update the package:
+   ```bash
+   bun install -g @arvorco/relentless
+   # or: npm install -g @arvorco/relentless
+   ```
+
+2. **Important:** Re-run the constitution command to get updated templates:
+   ```bash
+   /relentless.constitution
+   ```
+
+   This will detect changes and offer upgrade options for your
+   constitution.md and prompt.md files.
+
 ### 3. Create a Feature
 
 **With Claude Code, Amp, or OpenCode** (recommended):
@@ -107,11 +127,11 @@ relentless init
 # Create constitution + personalized prompt (do this once per project)
 /relentless.constitution
 
-# Create feature
+# Create feature (tasks now auto-generates prd.json!)
 /relentless.specify Add user authentication with OAuth2
 /relentless.plan I'm using React, TypeScript, PostgreSQL
-/relentless.tasks
-/relentless.checklist
+/relentless.tasks              # Auto-converts to prd.json
+/relentless.analyze            # Validate consistency
 ```
 
 **With Codex, Droid, or Gemini** (manual workflow):
@@ -119,12 +139,13 @@ relentless init
 relentless features create user-auth
 # Then prompt your agent to create spec.md, plan.md, tasks.md
 # Or reference .claude/skills/*/SKILL.md for format
+relentless convert relentless/features/001-user-auth/tasks.md --feature 001-user-auth
 ```
 
 ### 4. Run
 
 ```bash
-relentless convert relentless/features/001-user-auth/tasks.md --feature 001-user-auth
+# Auto mode is now the default (use --agent <harness> to opt out)
 relentless run --feature 001-user-auth --tui
 ```
 
@@ -132,18 +153,68 @@ Watch the beautiful TUI as your agent works through each task, commits code, and
 
 ---
 
+## CLI Reference
+
+### Run Command
+
+```bash
+relentless run --feature <name> [options]
+```
+
+Options:
+- `--agent <harness>`: Force a specific harness (`auto`, `claude`, `amp`, `opencode`, `codex`, `droid`, `gemini`).
+- `--mode <mode>`: Auto mode cost tier (`free`, `cheap`, `good`, `genius`).
+- `--fallback-order <list>`: Comma-separated harness order for auto fallback.
+- `--max-iterations <n>`: Limit loop iterations (default: 20).
+- `--skip-review`: Skip final review phase.
+- `--review-mode <mode>`: Review quality tier (`free`, `cheap`, `good`, `genius`).
+- `--dry-run`: Show routing and planning without executing agents.
+- `--tui`: Run the interactive terminal UI.
+- `--dir <path>`: Working directory for the run.
+
+### Estimate Command
+
+```bash
+relentless estimate --feature <name> [--mode <mode>] [--compare]
+```
+
+Options:
+- `--mode <mode>`: Cost tier for estimation (`free`, `cheap`, `good`, `genius`).
+- `--compare`: Compare all modes side by side.
+
+### Other Useful Commands
+
+```bash
+relentless init
+relentless convert <tasks.md> --feature <name>
+relentless agents list
+relentless agents doctor
+```
+
 ## Auto Mode
 
 **Smart routing saves 50-75% on AI costs** by matching task complexity to the right model.
+Auto mode is now enabled by default and becomes the default agent. If you want to force a specific harness, pass `--agent` explicitly.
+
+Auto Mode is designed to keep you productive: simple tasks run fast on cheaper models, while hard problems automatically route to stronger models (or escalate when needed). That means fewer reruns, lower spend, and faster end-to-end throughput on real features.
+
+### Default Behavior
+
+- `relentless run` uses auto routing unless you pass `--agent <harness>`
+- Auto mode uses your `relentless/config.json` defaults for `defaultMode`, fallback order, and model overrides
+- You can still lock a harness per run (e.g., `--agent codex`)
 
 ### Four Cost Modes
 
 | Mode | Model Selection | Best For |
 |------|-----------------|----------|
-| **free** | GLM-4.7, Amp Free, Gemini Flash | Maximum savings, simple tasks |
-| **cheap** | Haiku 4.5, GPT-5-2-low | Good balance, most tasks |
+| **free** | OpenCode free models | Maximum savings, simple tasks |
+| **cheap** | Haiku 4.5, Gemini Flash, GPT-5.2 (reasoning-effort low) | Good balance, most tasks |
 | **good** | Sonnet 4.5 (default) | Quality-focused development |
-| **genius** | Opus 4.5, GPT-5-2-high | Complex architecture, critical tasks |
+| **genius** | Opus 4.5, GPT-5.2 (reasoning-effort xhigh) | Complex architecture, critical tasks |
+
+Notes:
+- Droid has no free-tier models, so it only appears in paid modes.
 
 ### Cost Savings Example
 
@@ -159,10 +230,13 @@ Running a 10-story feature with mixed complexity:
 ### Usage
 
 ```bash
-# Run with specific mode
+# Run with specific mode (auto routing)
 relentless run --feature my-feature --mode cheap
 
-# Override fallback order
+# Force a specific harness (disables auto routing)
+relentless run --feature my-feature --agent claude
+
+# Override fallback order (auto mode only)
 relentless run --feature my-feature --fallback-order opencode,droid,claude
 
 # Skip final review (not recommended)
@@ -170,6 +244,9 @@ relentless run --feature my-feature --skip-review
 
 # Custom review mode
 relentless run --feature my-feature --review-mode genius
+
+# Tune idle timeout (milliseconds) for stuck/quiet harnesses
+RELENTLESS_EXECUTION_TIMEOUT_MS=120000 relentless run --feature my-feature
 ```
 
 ### How It Works
@@ -187,10 +264,33 @@ When a smaller model fails, Relentless automatically escalates:
 ```
 haiku-4.5 → sonnet-4.5 → opus-4.5
 glm-4.7 → haiku-4.5 → sonnet-4.5
-gpt-5-2-low → gpt-5-2-medium → gpt-5-2-high
+gpt-5.2-low → gpt-5.2-medium → gpt-5.2-high → gpt-5.2-xhigh (maps to `--model gpt-5.2 -c reasoning_effort="low|medium|high|xhigh"` in Codex CLI)
 ```
 
 The system tracks costs across all attempts and reports total spend.
+
+### Configuration (relentless/config.json)
+
+```json
+{
+  "defaultAgent": "auto",
+  "autoMode": {
+    "enabled": true,
+    "defaultMode": "good",
+    "fallbackOrder": ["claude", "codex", "droid", "opencode", "amp", "gemini"],
+    "modeModels": {
+      "simple": "haiku-4.5",
+      "medium": "sonnet-4.5",
+      "complex": "opus-4.5",
+      "expert": "opus-4.5"
+    }
+  }
+}
+```
+
+Notes:
+- `defaultAgent: "auto"` makes auto routing the default; set to `claude`, `codex`, etc. to opt out.
+- `autoMode.enabled` only affects auto routing; it does not force auto unless `defaultAgent` is `auto`.
 
 ---
 
@@ -209,7 +309,7 @@ TDD is not optional. E2E tests are not optional. Every story must pass typecheck
 Why use GPT-5-Pro or Opus 4.5 to rename a variable? Four cost modes (free, cheap, good, genius) route tasks by complexity. Automatic escalation when smaller models fail. Save money. Ship faster.
 
 ### 📊 Beautiful TUI
-Real-time progress bars, dynamic story grid that adapts to terminal size, priority badges, phase indicators, research markers. Know exactly what's happening.
+Real-time progress bars, dynamic story grid that adapts to terminal size, priority badges, phase indicators, research markers. Auto mode now shows the current routing decision and idle time per story.
 
 ### 🔀 Dependency Management
 Stories can depend on other stories. Relentless validates, detects circular dependencies, and executes in the correct order.
@@ -231,6 +331,13 @@ Stories can depend on other stories. Relentless validates, detects circular depe
 | **Droid** | Reference `.claude/skills/` | Manual | ✅ Works with prompting |
 
 All agents get skills/instructions installed automatically via `relentless init`.
+
+### Harness Tips
+
+- OpenCode: we enable `--print-logs` by default to keep output flowing.
+- Codex: GPT-5.2 reasoning tiers map to `--model gpt-5.2 -c reasoning_effort="low|medium|high|xhigh"`.
+- Droid: supports `--reasoning-effort` and `--auto` autonomy levels; use `--agent droid` to force it.
+- Gemini: non-interactive runs use `--prompt`; set `GEMINI_API_KEY` (or Vertex/GCA flags) for auth.
 
 ```bash
 # Check what's installed
@@ -273,6 +380,23 @@ your-project/
 
 ## The Workflow
 
+Relentless uses a simplified 5-step SpecKit workflow:
+
+| Step | Command | Output |
+|------|---------|--------|
+| 1. Specify | `/relentless.specify` | spec.md |
+| 2. Plan | `/relentless.plan` | plan.md |
+| 3. Tasks | `/relentless.tasks` | tasks.md + prd.json (auto) |
+| 4. Analyze | `/relentless.analyze` | Validation report |
+| 5. Implement | `relentless run --tui` | Working code |
+
+**Optional:** `/relentless.checklist` (between tasks and analyze)
+- Generates validation checklist with quality gates
+- Recommended for complex features
+
+> **Note:** The `tasks` command now auto-runs `convert`.
+> Manual `relentless convert` is only needed if you edit tasks.md by hand.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
@@ -282,9 +406,9 @@ your-project/
 │            ↓                                                │
 │   /relentless.plan          →  Technical architecture       │
 │            ↓                                                │
-│   /relentless.tasks         →  Dependency-ordered stories   │
+│   /relentless.tasks         →  Stories + prd.json (auto)    │
 │            ↓                                                │
-│   /relentless.checklist     →  Quality validation items     │
+│   /relentless.analyze       →  Validate consistency         │
 │            ↓                                                │
 │   relentless run --tui      →  Agent loops until complete   │
 │            ↓                                                │
@@ -387,8 +511,9 @@ relentless agents doctor                     # Health check
       "escalationPath": {
         "haiku-4.5": "sonnet-4.5",
         "sonnet-4.5": "opus-4.5",
-        "gpt-5-2-low": "gpt-5-2-medium",
-        "gpt-5-2-medium": "gpt-5-2-high"
+        "gpt-5.2-low": "gpt-5.2-medium",
+        "gpt-5.2-medium": "gpt-5.2-high",
+        "gpt-5.2-high": "gpt-5.2-xhigh"
       }
     }
   },

@@ -109,25 +109,25 @@ describe("Mode-Model Matrix Router", () => {
       expect(rule.model).toBe("glm-4.7");
     });
 
-    it("free mode should route medium tasks to amp-free/amp", async () => {
+    it("free mode should route medium tasks to glm-4.7/opencode", async () => {
       const { MODE_MODEL_MATRIX } = await import("../../src/routing/router");
       const rule = MODE_MODEL_MATRIX.free.medium;
-      expect(rule.harness).toBe("amp");
-      expect(rule.model).toBe("amp-free");
+      expect(rule.harness).toBe("opencode");
+      expect(rule.model).toBe("glm-4.7");
     });
 
-    it("free mode should route complex tasks to gemini-3-flash/gemini", async () => {
+    it("free mode should route complex tasks to grok-code-fast-1/opencode", async () => {
       const { MODE_MODEL_MATRIX } = await import("../../src/routing/router");
       const rule = MODE_MODEL_MATRIX.free.complex;
-      expect(rule.harness).toBe("gemini");
-      expect(rule.model).toBe("gemini-3-flash");
+      expect(rule.harness).toBe("opencode");
+      expect(rule.model).toBe("grok-code-fast-1");
     });
 
-    it("free mode should route expert tasks to glm-4.7/opencode", async () => {
+    it("free mode should route expert tasks to grok-code-fast-1/opencode", async () => {
       const { MODE_MODEL_MATRIX } = await import("../../src/routing/router");
       const rule = MODE_MODEL_MATRIX.free.expert;
       expect(rule.harness).toBe("opencode");
-      expect(rule.model).toBe("glm-4.7");
+      expect(rule.model).toBe("grok-code-fast-1");
     });
 
     // Cheap mode routing rules
@@ -138,25 +138,25 @@ describe("Mode-Model Matrix Router", () => {
       expect(rule.model).toBe("haiku-4.5");
     });
 
-    it("cheap mode should route medium tasks to sonnet-4.5/claude", async () => {
+    it("cheap mode should route medium tasks to gemini-3-flash/gemini", async () => {
       const { MODE_MODEL_MATRIX } = await import("../../src/routing/router");
       const rule = MODE_MODEL_MATRIX.cheap.medium;
-      expect(rule.harness).toBe("claude");
-      expect(rule.model).toBe("sonnet-4.5");
+      expect(rule.harness).toBe("gemini");
+      expect(rule.model).toBe("gemini-3-flash");
     });
 
-    it("cheap mode should route complex tasks to gpt-5-2-medium/codex", async () => {
+    it("cheap mode should route complex tasks to gpt-5.2-low/codex", async () => {
       const { MODE_MODEL_MATRIX } = await import("../../src/routing/router");
       const rule = MODE_MODEL_MATRIX.cheap.complex;
       expect(rule.harness).toBe("codex");
-      expect(rule.model).toBe("gpt-5-2-medium");
+      expect(rule.model).toBe("gpt-5.2-low");
     });
 
-    it("cheap mode should route expert tasks to opus-4.5/claude", async () => {
+    it("cheap mode should route expert tasks to gpt-5.2-low/codex", async () => {
       const { MODE_MODEL_MATRIX } = await import("../../src/routing/router");
       const rule = MODE_MODEL_MATRIX.cheap.expert;
-      expect(rule.harness).toBe("claude");
-      expect(rule.model).toBe("opus-4.5");
+      expect(rule.harness).toBe("codex");
+      expect(rule.model).toBe("gpt-5.2-low");
     });
 
     // Good mode routing rules
@@ -300,7 +300,7 @@ describe("Mode-Model Matrix Router", () => {
       expect(result.model).toBe("glm-4.7");
     });
 
-    it("should route medium task in cheap mode to claude/sonnet-4.5", async () => {
+    it("should route medium task in cheap mode to gemini/gemini-3-flash", async () => {
       const { routeTask } = await import("../../src/routing/router");
 
       const story = createTestStory({
@@ -313,8 +313,8 @@ describe("Mode-Model Matrix Router", () => {
 
       expect(result.complexity).toBe("medium");
       expect(result.mode).toBe("cheap");
-      expect(result.harness).toBe("claude");
-      expect(result.model).toBe("sonnet-4.5");
+      expect(result.harness).toBe("gemini");
+      expect(result.model).toBe("gemini-3-flash");
     });
 
     it("should route complex task in good mode to claude/opus-4.5", async () => {
@@ -349,6 +349,48 @@ describe("Mode-Model Matrix Router", () => {
       expect(result.mode).toBe("genius");
       expect(result.harness).toBe("claude");
       expect(result.model).toBe("opus-4.5");
+    });
+
+    it("should honor custom modeModels overrides when provided", async () => {
+      const { routeTask } = await import("../../src/routing/router");
+
+      const story = createTestStory({ title: "Fix typo in README" });
+      const config = createTestConfig({
+        defaultMode: "good",
+        modeModels: {
+          simple: "gpt-5.2-low",
+          medium: "sonnet-4.5",
+          complex: "opus-4.5",
+          expert: "opus-4.5",
+        },
+      });
+
+      const result = await routeTask(story, config);
+
+      expect(result.complexity).toBe("simple");
+      expect(result.harness).toBe("codex");
+      expect(result.model).toBe("gpt-5.2-low");
+    });
+
+    it("should ignore non-free overrides in free mode", async () => {
+      const { routeTask } = await import("../../src/routing/router");
+
+      const story = createTestStory({ title: "Fix typo in README" });
+      const config = createTestConfig({
+        defaultMode: "free",
+        modeModels: {
+          simple: "haiku-4.5",
+          medium: "sonnet-4.5",
+          complex: "opus-4.5",
+          expert: "opus-4.5",
+        },
+      });
+
+      const result = await routeTask(story, config);
+
+      expect(result.complexity).toBe("simple");
+      expect(result.harness).toBe("opencode");
+      expect(result.model).toBe("glm-4.7");
     });
   });
 

@@ -1,0 +1,12 @@
+{
+  "autoMode": {
+    "enabled": true,
+    "defaultMode": "cheap",
+    "modeModels": {
+      "simple": "haiku-4.5",
+      "medium": "gemini-3-flash",
+      "complex": "gpt-5.2-low",
+      "expert": "claude-opus-4-5-20251101"
+    }
+  }
+}

@@ -14,6 +14,13 @@ interface CurrentStoryProps {
   story: Story | null;
   elapsedSeconds: number;
   isRunning: boolean;
+  idleSeconds: number;
+  routing?: {
+    mode: "free" | "cheap" | "good" | "genius";
+    complexity: "simple" | "medium" | "complex" | "expert";
+    harness: string;
+    model: string;
+  };
 }
 
 function formatTime(seconds: number): string {
@@ -29,6 +36,8 @@ export function CurrentStory({
   story,
   elapsedSeconds,
   isRunning,
+  idleSeconds,
+  routing,
 }: CurrentStoryProps): React.ReactElement {
   if (!story) {
     return (
@@ -59,8 +68,21 @@ export function CurrentStory({
         ) : (
           <Text color={colors.dim}>{symbols.pending} Waiting</Text>
         )}
-        <Text color={colors.dim}> [elapsed: {formatTime(elapsedSeconds)}]</Text>
+        <Text color={colors.dim}>
+          {" "}
+          [elapsed: {formatTime(elapsedSeconds)}, idle: {formatTime(idleSeconds)}]
+        </Text>
       </Box>
+      {routing && (
+        <Box>
+          <Text color={colors.dim}>Routing: </Text>
+          <Text color={colors.warning}>
+            {routing.mode}/{routing.complexity}
+          </Text>
+          <Text color={colors.dim}> → </Text>
+          <Text>{routing.harness}/{routing.model}</Text>
+        </Box>
+      )}
     </Box>
   );
 }

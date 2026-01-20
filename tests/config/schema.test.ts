@@ -434,7 +434,7 @@ describe("Auto Mode Configuration Schema", () => {
 
     it("should include autoMode property", () => {
       const config = {
-        defaultAgent: "claude",
+        defaultAgent: "auto",
         autoMode: {
           enabled: true,
           defaultMode: "good",
@@ -450,7 +450,7 @@ describe("Auto Mode Configuration Schema", () => {
 
     it("should use default autoMode when not provided", () => {
       const config = {
-        defaultAgent: "claude",
+        defaultAgent: "auto",
       };
       const result = RelentlessConfigSchema.safeParse(config);
       expect(result.success).toBe(true);
@@ -472,7 +472,7 @@ describe("Auto Mode Configuration Schema", () => {
       expect(DEFAULT_CONFIG.autoMode).toBeDefined();
     });
 
-    it("should have enabled set to false by default", () => {
+    it("should have enabled set to false by default (new feature)", () => {
       expect(DEFAULT_CONFIG.autoMode.enabled).toBe(false);
     });
 

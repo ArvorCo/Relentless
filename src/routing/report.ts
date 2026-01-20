@@ -20,6 +20,7 @@ import { ModeSchema, ComplexitySchema, HarnessNameSchema } from "../config/schem
 import type { Mode, HarnessName } from "../config/schema";
 import type { RoutingDecision } from "./router";
 import type { EscalationResult } from "./cascade";
+import { getModelById } from "./registry";
 
 /**
  * Represents a single escalation event within a story execution
@@ -167,37 +168,7 @@ export interface FileSystemInterface {
   readFile: (path: string) => Promise<string>;
 }
 
-/** Opus 4.5 pricing per MTok (SOTA baseline) */
-const OPUS_INPUT_COST_PER_MTOK = 15;
-const OPUS_OUTPUT_COST_PER_MTOK = 75;
-
-/**
- * Map model IDs to their tier for utilization tracking
- */
-const MODEL_TIER_MAP: Record<string, keyof ModelUtilization> = {
-  // Free tier
-  "glm-4.7": "free",
-  "grok-code-fast-1": "free",
-  "minimax-m2.1": "free",
-  "amp-free": "free",
-  "glm-4.6": "free",
-  "gemini-2-flash": "free",
-  // Cheap tier
-  "haiku-4.5": "cheap",
-  "gpt-5-2-low": "cheap",
-  // Standard tier
-  "sonnet-4.5": "standard",
-  "gpt-5-2-medium": "standard",
-  "claude-3-5-sonnet": "standard",
-  "gpt-4o": "standard",
-  // Premium tier
-  "gpt-5-2-high": "premium",
-  "gemini-3-pro": "premium",
-  "gemini-3-flash": "premium",
-  // SOTA tier
-  "opus-4.5": "sota",
-  "amp-smart": "sota",
-};
+const BASELINE_MODEL_ID = "opus-4.5";
 
 /**
  * Creates a story execution record from routing decision and escalation result
@@ -264,8 +235,11 @@ export function createStoryExecution(
  * @returns Baseline cost in dollars
  */
 export function getBaselineCost(inputTokens: number, outputTokens: number): number {
-  const inputCost = (inputTokens / 1_000_000) * OPUS_INPUT_COST_PER_MTOK;
-  const outputCost = (outputTokens / 1_000_000) * OPUS_OUTPUT_COST_PER_MTOK;
+  const baselineModel = getModelById(BASELINE_MODEL_ID);
+  const inputRate = baselineModel?.inputCost ?? 0;
+  const outputRate = baselineModel?.outputCost ?? 0;
+  const inputCost = (inputTokens / 1_000_000) * inputRate;
+  const outputCost = (outputTokens / 1_000_000) * outputRate;
   return inputCost + outputCost;
 }
 
@@ -289,7 +263,9 @@ export function calculateModelUtilization(executions: StoryExecution[]): ModelUt
   };
 
   for (const execution of executions) {
-    const tier = MODEL_TIER_MAP[execution.finalModel] ?? "standard";
+    const modelTier =
+      getModelById(execution.finalModel)?.tier ?? "standard";
+    const tier = modelTier as keyof ModelUtilization;
     tierCounts[tier]++;
   }
 
@@ -424,8 +400,8 @@ export function formatEscalationLine(execution: StoryExecution): string {
 export function formatComparisonLine(estimated: number, actual: number): string {
   const difference = actual - estimated;
   const percentDiff = estimated > 0 ? (difference / estimated) * 100 : 0;
-  const sign = difference >= 0 ? "+" : "";
-  return `Estimated: $${estimated.toFixed(2)}, Actual: $${actual.toFixed(2)} (${sign}${Math.round(percentDiff)}%)`;
+  const sign = percentDiff >= 0 ? "+" : "";
+  return `Estimated: $${estimated.toFixed(2)}, Actual: $${actual.toFixed(2)} (${sign}${percentDiff.toFixed(1)}%)`;
 }
 
 /**
@@ -472,7 +448,9 @@ export function formatCostReport(report: FeatureCostReport): string {
   lines.push("");
 
   // Summary
-  lines.push(`Actual cost: $${report.totalActualCost.toFixed(2)} (saved ${Math.round(report.savingsPercent)}% vs single-model execution)`);
+  lines.push(
+    `Actual cost: $${report.totalActualCost.toFixed(2)} (saved ${report.savingsPercent.toFixed(1)}% vs single-model execution)`
+  );
   lines.push(formatComparisonLine(report.totalEstimatedCost, report.totalActualCost));
   lines.push("");
 
@@ -576,7 +554,7 @@ export async function loadHistoricalCosts(
   const entries: HistoricalCostEntry[] = [];
 
   // Pattern to match cost report sections
-  const reportPattern = /## Cost Report - (\S+)\nFeature: .+\nMode: (\w+)[\s\S]*?Actual cost: \$([0-9.]+) \(saved (\d+)%/g;
+  const reportPattern = /## Cost Report - (\S+)\nFeature: .+\nMode: (\w+)[\s\S]*?Actual cost: \$(-?[0-9]+(?:\.[0-9]+)?) \(saved (-?\d+(?:\.\d+)?)%/g;
 
   let match: RegExpExecArray | null;
   while ((match = reportPattern.exec(content)) !== null) {
@@ -584,7 +562,7 @@ export async function loadHistoricalCosts(
       timestamp: match[1]!,
       mode: match[2] as Mode,
       actualCost: parseFloat(match[3]!),
-      savingsPercent: parseInt(match[4]!, 10),
+      savingsPercent: parseFloat(match[4]!),
     });
   }
 

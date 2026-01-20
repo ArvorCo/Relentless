@@ -1,228 +1,309 @@
+<!-- TEMPLATE_VERSION: 2.1.0 -->
+<!-- LAST_UPDATED: 2026-01-20 -->
+
 # Project Constitution
 
-## Overview
-
-This document defines the governing principles, patterns, and constraints for this project. All agents and developers MUST follow these guidelines when working on the codebase.
-
-## Core Principles
-
-### Architecture
-
-**MUST** follow these architectural patterns:
-- Follow existing code structure and organization patterns
-- Keep modules focused and single-purpose
-- Use dependency injection where appropriate
-
-**SHOULD** consider these best practices:
-- Prefer composition over inheritance
-- Keep functions small and focused
-- Write self-documenting code
-
-### Code Quality
-
-**MUST** maintain these quality standards:
-- All commits MUST pass typecheck with 0 errors
-- All commits MUST pass lint with 0 warnings
-- All new features MUST include appropriate tests
-- All code MUST be formatted consistently
-
-**SHOULD** strive for:
-- High test coverage (aim for >80%)
-- Clear, descriptive variable and function names
-- Comprehensive error handling
-
-### Version Control
-
-**MUST** follow these Git practices:
-- Write clear, descriptive commit messages
-- Reference user story IDs in commits: `feat: [US-XXX] - Description`
-- Keep commits focused and atomic
-- Do not commit broken code
-
-**SHOULD** maintain:
-- Clean commit history
-- Meaningful branch names
-- Updated documentation with code changes
-
-## Technology Stack
-
-### Language & Runtime
-
-- **TypeScript** - Primary language
-- **Bun** - Runtime environment (not Node.js)
-- **Zod** - Schema validation
-
-### Key Libraries
-
-- Commander - CLI parsing
-- Chalk - Terminal formatting
-- Execa - Process execution
-
-## File Organization
-
-```
-project/
-├── bin/              # CLI entry points
-├── src/              # Source code
-│   ├── agents/       # Agent adapters
-│   ├── config/       # Configuration
-│   ├── execution/    # Orchestration
-│   ├── init/         # Project scaffolding
-│   └── prd/          # PRD handling
-├── templates/        # Template files
-├── skills/           # Agent skills
-└── relentless/       # Relentless workspace
-    ├── config.json
-    ├── prompt.md
-    └── features/
-```
-
-## Coding Standards
-
-### TypeScript
-
-**MUST** follow:
-- Use strict TypeScript mode
-- Avoid `any` type - use `unknown` or proper types
-- Export types alongside implementations
-- Use Zod schemas for runtime validation
-
-**SHOULD** prefer:
-- Interface for public APIs
-- Type for unions and intersections
-- Explicit return types on public functions
-
-### Error Handling
-
-**MUST** implement:
-- Descriptive error messages
-- Proper error types
-- Validation at system boundaries
-- Graceful degradation where appropriate
-
-**SHOULD** include:
-- Context in error messages
-- Recovery suggestions
-- Logging for debugging
-
-### Testing
-
-**MUST** test:
-- Core business logic
-- Edge cases and error conditions
-- Integration points
-- CLI commands
-
-**SHOULD** test:
-- Helper functions
-- Utilities
-- Type guards
-
-## Documentation
-
-**MUST** document:
-- Public APIs and interfaces
-- Complex algorithms or logic
-- Breaking changes in commits
-- Setup and installation steps
-
-**SHOULD** document:
-- Configuration options
-- Architecture decisions
-- Common workflows
-- Troubleshooting steps
-
-## Security
-
-**MUST** ensure:
-- No secrets committed to git
-- Proper input validation
-- Safe file system operations
-- Minimal permissions required
-
-**SHOULD** consider:
-- Rate limiting where appropriate
-- Audit logs for sensitive operations
-- Security updates for dependencies
-
-## Performance
-
-**MUST** maintain:
-- Fast startup time (<1s)
-- Responsive CLI commands
-- Efficient file operations
-- Minimal memory footprint
-
-**SHOULD** optimize:
-- Parallel operations where safe
-- Caching for repeated operations
-- Lazy loading of heavy modules
-
-## Constraints
-
-### Dependencies
-
-**MUST NOT**:
-- Add dependencies without justification
-- Include deprecated packages
-- Use packages with known security issues
-
-**SHOULD**:
-- Prefer built-in solutions over dependencies
-- Keep dependencies minimal and focused
-- Regularly update dependencies
-
-### Backwards Compatibility
-
-**MUST**:
-- Maintain compatibility with existing PRDs
-- Provide migration paths for breaking changes
-- Version configuration formats
-
-**SHOULD**:
-- Deprecate features before removal
-- Provide clear upgrade documentation
-- Support at least 2 major versions
-
-## Agent-Specific Guidelines
-
-### For All Agents
-
-**MUST**:
-- Read progress.txt before starting work
-- Work on ONE story per iteration
-- Update PRD after completing a story
-- Append learnings to progress.txt
-- Run all quality checks before committing
-
-**SHOULD**:
-- Review existing code before modifying
-- Follow established patterns
-- Ask questions when unclear
-- Document non-obvious decisions
-
-### Iteration Workflow
-
-1. Read PRD to find next incomplete story
-2. Read progress.txt for context and patterns
-3. Review relevant existing code
-4. Implement the single story
-5. Run typecheck and lint
-6. Run tests if applicable
-7. Commit with proper message format
-8. Update PRD passes: true
-9. Append to progress.txt
-10. Check if all stories complete
-
-## Review and Updates
-
-This constitution should be:
-- **Reviewed** at project milestones
-- **Updated** when patterns emerge
-- **Referenced** in code reviews
-- **Enforced** in CI/CD pipelines
+**Version:** 1.0.0
+**Ratified:** [DATE]
+**Last Amended:** [DATE]
 
 ---
 
-Last Updated: YYYY-MM-DD
-Version: 1.0.0
+## Overview
+
+This document defines the governing principles, patterns, and constraints for this project. All AI agents and developers MUST follow these guidelines when working on the codebase.
+
+**This is a generic template.** Customize it for your project using `/relentless.constitution`.
+
+---
+
+## Core Principles
+
+### 1. Test-Driven Development (TDD)
+
+**MUST:**
+- Write tests BEFORE implementation code
+- Verify tests FAIL before writing implementation
+- All new features MUST have test coverage
+- All bug fixes MUST include regression tests
+- Tests MUST be part of acceptance criteria
+
+**SHOULD:**
+- Aim for >80% code coverage on critical paths
+- Write integration tests for API endpoints
+- Write E2E tests for user-facing flows
+- Use descriptive test names that document behavior
+
+**Rationale:** TDD ensures code correctness, documents behavior, and prevents regressions. Tests written first force clear thinking about requirements.
+
+---
+
+### 2. Quality Gates
+
+**MUST:**
+- All commits MUST pass typecheck with 0 errors
+- All commits MUST pass lint with 0 errors AND 0 warnings
+- All commits MUST pass tests
+- No debug code in production (console.log, debugger)
+- No unused imports or variables
+
+**SHOULD:**
+- Run quality checks locally before pushing
+- Fix lint warnings immediately, don't accumulate debt
+- Keep build times under reasonable limits
+
+**Rationale:** Quality gates catch issues early and maintain codebase health over time.
+
+---
+
+### 3. Code Architecture
+
+**MUST:**
+- Follow existing code structure and organization patterns
+- Keep modules focused and single-purpose
+- Avoid circular dependencies
+- Export types alongside implementations
+
+**SHOULD:**
+- Prefer composition over inheritance
+- Keep functions small and focused (<50 lines)
+- Write self-documenting code
+- Use meaningful names (no abbreviations)
+
+**Rationale:** Consistent architecture makes code predictable and maintainable.
+
+---
+
+### 4. Type Safety
+
+**MUST:**
+- Use strict TypeScript mode
+- No `any` type except in documented exceptional cases
+- Validate external input at system boundaries
+- Export type definitions for public APIs
+
+**SHOULD:**
+- Use Zod or similar for runtime validation
+- Prefer type inference over explicit annotations
+- Use discriminated unions for state machines
+- Document complex type constraints
+
+**Rationale:** Type safety prevents runtime errors and improves developer experience.
+
+---
+
+### 5. Version Control
+
+**MUST:**
+- Write clear, descriptive commit messages
+- Reference user story IDs: `feat: [US-XXX] - Description`
+- Keep commits focused and atomic
+- Never commit broken code
+- Never commit secrets or credentials
+
+**SHOULD:**
+- Use conventional commit format
+- Keep PR/MR size manageable (<500 lines)
+- Update documentation with code changes
+- Squash fixup commits before merge
+
+**Rationale:** Good version control practices enable collaboration and debugging.
+
+---
+
+### 6. Error Handling
+
+**MUST:**
+- Handle all error cases explicitly
+- Provide descriptive error messages
+- Validate input at system boundaries
+- Never swallow errors silently
+
+**SHOULD:**
+- Include context in error messages
+- Use typed error classes
+- Provide recovery suggestions
+- Log errors with appropriate levels
+
+**Rationale:** Proper error handling improves debugging and user experience.
+
+---
+
+### 7. Documentation
+
+**MUST:**
+- Document public APIs and interfaces
+- Document breaking changes in commits
+- Keep README updated with setup instructions
+- Document non-obvious design decisions
+
+**SHOULD:**
+- Document configuration options
+- Include usage examples
+- Document troubleshooting steps
+- Keep inline comments minimal but meaningful
+
+**Rationale:** Documentation reduces onboarding time and prevents knowledge loss.
+
+---
+
+### 8. Security
+
+**MUST:**
+- Never commit secrets or credentials
+- Validate and sanitize user input
+- Use parameterized queries (no SQL injection)
+- Follow principle of least privilege
+
+**SHOULD:**
+- Keep dependencies updated
+- Run security audits periodically
+- Use environment variables for configuration
+- Implement rate limiting for APIs
+
+**Rationale:** Security is non-negotiable and must be built in from the start.
+
+---
+
+## Technology Stack
+
+**Customize this section for your project:**
+
+### Language & Runtime
+- [Language] - Primary language
+- [Runtime] - Runtime environment
+
+### Key Libraries
+- [Library 1] - Purpose
+- [Library 2] - Purpose
+- [Library 3] - Purpose
+
+### Quality Tools
+- [Linter] - Code linting
+- [Formatter] - Code formatting
+- [Test Framework] - Testing
+
+---
+
+## File Organization
+
+**Customize this section for your project:**
+
+```
+project/
+├── src/              # Source code
+│   ├── components/   # UI components (if applicable)
+│   ├── services/     # Business logic
+│   ├── utils/        # Utilities
+│   └── types/        # Type definitions
+├── tests/            # Test files
+├── docs/             # Documentation
+└── relentless/       # Relentless workspace
+    ├── config.json   # Configuration
+    ├── constitution.md
+    ├── prompt.md
+    └── features/     # Feature workspaces
+```
+
+---
+
+## Agent-Specific Guidelines
+
+### For All AI Agents
+
+**MUST:**
+- Read spec.md and plan.md BEFORE starting work
+- Read only the relevant story section from tasks.md
+- Work on ONE story per iteration
+- Follow TDD - write tests first
+- Run ALL quality checks before committing
+- Update PRD after completing a story
+- Append learnings to progress.txt
+
+**SHOULD:**
+- Review existing code patterns before modifying
+- Ask questions when requirements are unclear
+- Document non-obvious decisions
+- Keep commits small and focused
+
+### Iteration Workflow
+
+1. Read spec.md, plan.md, checklist.md
+2. Find your story in tasks.md (only read that section)
+3. Review relevant existing code
+4. Write tests FIRST (TDD)
+5. Verify tests FAIL
+6. Implement minimum code to pass tests
+7. Run typecheck, lint, test
+8. Commit with proper message format
+9. Update PRD: `passes: true`
+10. Append to progress.txt
+11. Check if all stories complete
+
+---
+
+## Routing and Cost Optimization
+
+When using Relentless Auto Mode:
+
+**MUST:**
+- Respect routing decisions in prd.json
+- Report actual costs vs estimated costs
+- Not override routing without explicit permission
+
+**SHOULD:**
+- Use appropriate model for task complexity
+- Consider cost when choosing approaches
+- Track and report token usage
+
+**Modes:**
+- `free` - Free tier models only (~95% savings)
+- `cheap` - Budget models (~75% savings)
+- `good` - Balanced quality/cost (~50% savings)
+- `genius` - Premium models (no savings)
+
+---
+
+## Governance
+
+### Amendment Process
+
+1. Propose changes via PR
+2. Discuss with team
+3. Update version semantically:
+   - **MAJOR**: Breaking changes to principles
+   - **MINOR**: New principles added
+   - **PATCH**: Clarifications, typo fixes
+4. Update `Last Amended` date
+5. Document rationale for change
+
+### Compliance
+
+- Constitution is checked before each feature implementation
+- Violations should be flagged in code review
+- Repeated violations require team discussion
+- Emergency exceptions require documentation
+
+### Review Schedule
+
+- **Quarterly**: Full constitution review
+- **Per Feature**: Relevance check
+- **On Issues**: Investigate if constitution gap
+
+---
+
+## Customization Notes
+
+This template should be customized with:
+
+1. **Technology Stack** - Your specific languages, frameworks, tools
+2. **File Organization** - Your project structure
+3. **Quality Commands** - Your actual typecheck, lint, test commands
+4. **Additional Principles** - Domain-specific rules
+
+Run `/relentless.constitution` to generate a personalized version.
+
+---
+
+**Template Version:** 2.0.0
+**Compatible with:** Relentless v0.2.0+

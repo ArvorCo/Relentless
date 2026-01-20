@@ -16,8 +16,25 @@ Generate actionable, dependency-ordered user stories from technical plans.
 3. Break down into implementation tasks
 4. Order by dependencies
 5. Create tasks.md with structured user stories
+6. **Auto-convert to prd.json** with routing classification
 
 **Important:** tasks.md contains the actual user stories that convert to prd.json!
+
+---
+
+## SpecKit Workflow
+
+This skill is **Step 3 of 5** in the Relentless workflow:
+
+```
+specify → plan → tasks → analyze → implement
+                   ↓
+            (optional: checklist)
+```
+
+This skill now **auto-runs convert** at the end, generating prd.json.
+Manual convert is only needed if tasks.md is edited manually.
+Checklist is optional but recommended for complex features.
 
 ---
 
@@ -36,6 +53,8 @@ Read:
 1. `relentless/constitution.md` - Testing and quality requirements
 2. `relentless/features/NNN-feature/spec.md` - User requirements
 3. `relentless/features/NNN-feature/plan.md` - Technical design
+
+Extract **Routing Preference** from spec.md or plan.md (if present) and include it near the top of tasks.md so it can be carried into prd.json.
 
 ---
 
@@ -170,7 +189,61 @@ Check that:
    - Total user stories: N
    - Dependency order: [list]
    - Parallel opportunities: N
-   - Next step: `/relentless.checklist` or `relentless convert tasks.md`
+
+---
+
+## Step 8: Auto-Convert to prd.json
+
+After tasks.md is saved, automatically convert to prd.json with routing:
+
+```bash
+relentless convert relentless/features/NNN-feature/tasks.md --feature <feature-name>
+```
+
+This will:
+1. Parse tasks.md and validate structure
+2. Classify complexity for each story
+3. Route to optimal harness/model per story
+4. Generate prd.json with routing metadata
+5. Copy to prd.md for reference
+
+**Output Summary:**
+- Show routing table (story → complexity → harness/model → cost)
+- Show total estimated cost
+- Confirm prd.json saved
+
+**Optional but Recommended:** `/relentless.checklist`
+- Generates validation checklist with quality gates
+- Helps ensure nothing is missed during implementation
+- Especially useful for complex features
+
+**Next Step:** `/relentless.analyze` (or `/relentless.checklist` first if desired)
+
+---
+
+## TDD is MANDATORY
+
+Every user story MUST include test acceptance criteria:
+
+1. **Unit Tests** - For business logic and utilities
+2. **Integration Tests** - For API endpoints and data flows
+3. **E2E Tests** - For user-facing flows (use Playwright when applicable)
+
+### TDD Workflow
+
+The Relentless agent will verify:
+1. Tests are written FIRST (before implementation)
+2. Tests FAIL before implementation
+3. Implementation makes tests PASS
+4. Typecheck and lint pass
+
+### Required Test Criteria
+
+Every story acceptance criteria should include:
+- [ ] Unit tests pass
+- [ ] Integration test passes (for API stories)
+- [ ] Typecheck passes
+- [ ] Lint passes
 
 ---
 
@@ -186,6 +259,7 @@ Check that:
 - No vague terms ("works well", "good UX")
 - Include quality checks (typecheck, lint, test)
 - Verifiable in browser/tests
+- **MUST include test criteria**
 
 **Dependencies:**
 - Only list direct dependencies

@@ -339,12 +339,12 @@ describe("Harness Fallback Chain", () => {
 
       // OpenCode has free models (glm-4.7, etc.)
       expect(hasFreeTierModel("opencode")).toBe(true);
-      // Amp has free mode
-      expect(hasFreeTierModel("amp")).toBe(true);
-      // Droid has free model (glm-4.6)
-      expect(hasFreeTierModel("droid")).toBe(true);
-      // Gemini has free flash model
-      expect(hasFreeTierModel("gemini")).toBe(true);
+      // Amp free mode is not used in auto free routing
+      expect(hasFreeTierModel("amp")).toBe(false);
+      // Droid requires API key and is not free tier
+      expect(hasFreeTierModel("droid")).toBe(false);
+      // Gemini requires API key and is not free tier
+      expect(hasFreeTierModel("gemini")).toBe(false);
     });
 
     it("should filter fallback order for free mode", async () => {
@@ -362,12 +362,12 @@ describe("Harness Fallback Chain", () => {
 
       // Free mode should only include harnesses with free models
       expect(freeHarnesses).toContain("opencode");
-      expect(freeHarnesses).toContain("amp");
-      expect(freeHarnesses).toContain("droid");
-      expect(freeHarnesses).toContain("gemini");
+      expect(freeHarnesses).not.toContain("amp");
       // Claude and Codex don't have free models
       expect(freeHarnesses).not.toContain("claude");
       expect(freeHarnesses).not.toContain("codex");
+      expect(freeHarnesses).not.toContain("droid");
+      expect(freeHarnesses).not.toContain("gemini");
     });
 
     it("should fall back only to free harnesses when in free mode", async () => {
@@ -392,7 +392,7 @@ describe("Harness Fallback Chain", () => {
 
       // Should skip claude and codex (no free models) and return first free harness
       expect(result.available).toBe(true);
-      expect(["droid", "opencode", "amp", "gemini"]).toContain(result.harness);
+      expect(["opencode", "amp"]).toContain(result.harness);
     });
   });
 
@@ -427,6 +427,9 @@ describe("Harness Fallback Chain", () => {
       } = await import("../../src/routing/fallback");
 
       resetCooldowns();
+
+      // Set API key for droid (required for availability check)
+      process.env.FACTORY_API_KEY = "test-key";
 
       // Claude installed but rate limited
       setHarnessInstalled("claude", true);
@@ -476,8 +479,8 @@ describe("Harness Fallback Chain", () => {
 
       // Free mode should return free model for opencode
       expect(getModelForHarnessAndMode("opencode", "free", "simple")).toBe("glm-4.7");
-      expect(getModelForHarnessAndMode("amp", "free", "medium")).toBe("amp-free");
-      expect(getModelForHarnessAndMode("gemini", "free", "complex")).toBe("gemini-3-flash");
+      expect(getModelForHarnessAndMode("opencode", "free", "medium")).toBe("glm-4.7");
+      expect(getModelForHarnessAndMode("opencode", "free", "complex")).toBe("grok-code-fast-1");
     });
 
     it("should return appropriate model for non-free modes", async () => {
@@ -486,6 +489,21 @@ describe("Harness Fallback Chain", () => {
       // Cheap mode for claude should use haiku for simple
       expect(getModelForHarnessAndMode("claude", "cheap", "simple")).toBe("haiku-4.5");
       expect(getModelForHarnessAndMode("claude", "good", "complex")).toBe("opus-4.5");
+    });
+
+    it("should honor custom modeModels overrides when harness matches", async () => {
+      const { getModelForHarnessAndMode } = await import("../../src/routing/fallback");
+
+      const config = createTestAutoModeConfig({
+        modeModels: {
+          simple: "gpt-5.2-low",
+          medium: "sonnet-4.5",
+          complex: "opus-4.5",
+          expert: "opus-4.5",
+        },
+      });
+
+      expect(getModelForHarnessAndMode("codex", "good", "simple", config)).toBe("gpt-5.2-low");
     });
   });
 });

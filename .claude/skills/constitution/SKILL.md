@@ -21,6 +21,52 @@ Create a personalized project constitution that defines your team's coding princ
 
 ---
 
+## Upgrade Detection (For Existing Users)
+
+If `relentless/constitution.md` and/or `relentless/prompt.md` already exist:
+
+### Step 0: Check for Template Updates
+
+1. **Read current files:**
+   - Check version in existing constitution.md (look for `<!-- TEMPLATE_VERSION: X.Y.Z -->` or `**Template Version:**`)
+   - Check generated date in existing prompt.md
+
+2. **Compare with templates:**
+   - Read `.claude/skills/constitution/templates/constitution.md`
+   - Read `.claude/skills/constitution/templates/prompt.md`
+   - Check template VERSION comments for changes
+
+3. **Detect changes:**
+   - If template version > existing version → Offer upgrade
+   - If template has new sections → Offer selective merge
+   - If quality commands changed → Offer prompt.md refresh
+
+4. **Offer upgrade options:**
+   ```markdown
+   ## Upgrade Available
+
+   Your constitution.md is v2.0.0, template is v2.1.0.
+
+   Changes in v2.1.0:
+   - Added SpecKit workflow documentation
+   - Enhanced TDD requirements
+   - Added quality gates section
+
+   Options:
+   A. Full upgrade (backup existing, apply template changes)
+   B. Selective merge (show diff, choose sections)
+   C. Skip upgrade (keep existing)
+   D. Regenerate from scratch (lose customizations)
+   ```
+
+5. **If upgrading:**
+   - Backup existing files to `*.backup`
+   - Apply template changes preserving customizations
+   - Update version number
+   - Update `LAST_AMENDED_DATE` to today
+
+---
+
 ## Step 1: Gather Project Information
 
 Ask essential questions about the project:
@@ -92,6 +138,8 @@ Read and analyze project documentation:
 
 Load the base template from `templates/prompt.md` and personalize it:
 
+**Must include spec/plan/tasks awareness** so the agent reads `spec.md` and `plan.md` in full before execution, and reads only the relevant user story section from `tasks.md` for the current story.
+
 **Base Template Location:** `templates/prompt.md`
 
 Create a personalized `prompt.md` with:
@@ -123,12 +171,22 @@ Before marking ANY story as complete:
 - Database/backend info
 - Styling approach
 
-**Section 3: TDD Workflow** (if tests exist)
-- Test-first workflow
+**Section 3: TDD Workflow** (MANDATORY)
+- Test-first workflow (write tests BEFORE implementation)
 - Test location patterns
 - Test commands
+- Verification that tests FAIL before implementation
 
-**Section 4: Common Pitfalls** (from AGENTS.md/docs)
+**Section 4: Routing Awareness**
+- Explanation of routing metadata in prd.json
+- Complexity levels (simple/medium/complex/expert)
+- Cost optimization modes (free/cheap/good/genius)
+
+**Section 5: SpecKit Workflow**
+- Full workflow: specify → plan → tasks → convert → analyze → implement
+- Artifact awareness: spec.md, plan.md, tasks.md, checklist.md, prd.json
+
+**Section 6: Common Pitfalls** (from AGENTS.md/docs)
 - Project-specific gotchas
 - Known issues
 - Best practices

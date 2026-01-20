@@ -27,6 +27,7 @@ import {
   type MicroTaskHandler,
   type MicroTaskHandlerRegistry,
 } from "./types";
+import { getModelById, getModelsByTier } from "../routing/registry";
 
 // Re-export types and schemas for external use
 export {
@@ -66,13 +67,26 @@ function getModelForReview(mode: Mode, autoModeConfig: AutoModeConfig): string {
     return autoModeConfig.modeModels.complex || "opus-4.5";
   }
 
-  // In cheap mode, use medium model
+  // In cheap mode, prefer cheap-tier models
   if (mode === "cheap") {
-    return autoModeConfig.modeModels.medium || "sonnet-4.5";
+    return pickTierModel(autoModeConfig.modeModels.simple, "cheap") ?? "haiku-4.5";
   }
 
   // In free mode, use simple model (likely free tier)
-  return autoModeConfig.modeModels.simple || "glm-4.7";
+  return pickTierModel(autoModeConfig.modeModels.simple, "free") ?? "glm-4.7";
+}
+
+function pickTierModel(
+  preferredModelId: string,
+  tier: "free" | "cheap"
+): string | undefined {
+  const preferredProfile = getModelById(preferredModelId);
+  if (preferredProfile?.tier === tier) {
+    return preferredModelId;
+  }
+
+  const tierModels = getModelsByTier(tier);
+  return tierModels[0]?.id;
 }
 
 /**

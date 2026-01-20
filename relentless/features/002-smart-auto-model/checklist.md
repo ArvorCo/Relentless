@@ -10,9 +10,9 @@
 ## 1. Functional Validation
 
 ### FR-001: Mode Flag Support
-- [ ] **CHK-001** [US-021, FR-001] CLI accepts `--mode free` and routes simple tasks to free models (GLM-4.7, Amp Free)
-- [ ] **CHK-002** [US-021, FR-001] CLI accepts `--mode cheap` and prioritizes low-cost models (Haiku 4.5, GPT-5.2-low)
-- [ ] **CHK-003** [US-021, FR-001] CLI accepts `--mode good` and uses balanced models (Sonnet 4.5, GPT-5.2-medium)
+- [ ] **CHK-001** [US-021, FR-001] CLI accepts `--mode free` and routes to free models (GLM-4.7, Grok Code Fast 1, Amp Free)
+- [ ] **CHK-002** [US-021, FR-001] CLI accepts `--mode cheap` and prioritizes low-cost models (Haiku 4.5, Gemini Flash, GPT-5.2 (reasoning-effort low))
+- [ ] **CHK-003** [US-021, FR-001] CLI accepts `--mode good` and uses balanced models (Sonnet 4.5, GPT-5.2 (reasoning-effort medium))
 - [ ] **CHK-004** [US-021, FR-001] CLI accepts `--mode genius` and uses SOTA models (Opus 4.5) for all tasks
 - [ ] **CHK-005** [US-021, FR-001] Invalid mode values display helpful error with valid options
 
@@ -158,10 +158,10 @@
 
 ### Harness Model Selection
 - [ ] **CHK-090** [US-003] Claude adapter supports `--model` flag (opus-4-5, sonnet-4-5, haiku-4-5)
-- [ ] **CHK-091** [US-004] Codex adapter supports `--model` flag (gpt-5-2-high, medium, low)
-- [ ] **CHK-092** [US-005] Droid adapter supports `-m` flag (glm-4.6, claude-3-5-sonnet, gpt-4o)
+- [ ] **CHK-091** [US-004] Codex adapter supports `--model` flag (gpt-5.2-xhigh, high, medium, low)
+- [ ] **CHK-092** [US-005] Droid adapter supports `-m` flag (gpt-5.2, claude-sonnet-4-5-20250929, gpt-5.1-codex)
 - [ ] **CHK-093** [US-006] OpenCode adapter supports `--model` flag (glm-4.7, grok-code-fast-1, minimax-m2.1)
-- [ ] **CHK-094** [US-007] Amp adapter supports `AMP_MODE` environment variable (free, smart)
+- [ ] **CHK-094** [US-007] Amp adapter supports `-m` CLI flag with `-x` execute mode (free, smart)
 - [ ] **CHK-095** [US-008] Gemini adapter supports `--model` flag (gemini-3-pro, gemini-3-flash)
 
 ### Fallback Chain Integration

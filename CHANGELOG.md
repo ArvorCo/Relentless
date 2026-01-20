@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-20
+
+### Changed
+- **Simplified SpecKit workflow**: `tasks` skill now auto-runs `convert`
+- **Updated all skill documentation** with TDD, routing, and quality gates
+- **Synchronized implement skill and prompt.md** for uniform behavior
+
+### Added
+- **Upgrade detection** in constitution skill for existing users
+- **SpecKit workflow section** in tasks skill (specify → plan → tasks → analyze → implement)
+- **VERSION comments** in constitution templates for tracking updates
+- **Upgrade notice** in README for existing users
+
+### Improved
+- **Documentation**: README updated with simplified 5-step workflow
+- **Landing page**: docs/index.html updated with new features
+- **Quality gates**: All skills now enforce typecheck, lint, test
+
+### Migration
+- Existing users should run `/relentless.constitution` to upgrade templates
+- Manual `convert` command only needed for manual tasks.md edits
+- The workflow is now: specify → plan → tasks (auto-convert) → analyze → implement
+
 ## [0.3.0] - 2026-01-14
 
 ### Added
@@ -331,7 +354,8 @@ Relentless evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) 
 - **License**: MIT
 - **Inspiration**: [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) by Geoffrey Huntley
 
-[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ArvorCo/Relentless/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ArvorCo/Relentless/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ArvorCo/Relentless/compare/v0.1.27...v0.2.0
 [0.1.27]: https://github.com/ArvorCo/Relentless/compare/v0.1.26...v0.1.27

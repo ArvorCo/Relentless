@@ -22,6 +22,7 @@ import { parseFallbackOrderValue, getFallbackOrderHelpText, VALID_HARNESSES } fr
 import { parseReviewFlagsValue, getReviewFlagsHelpText, VALID_REVIEW_MODES } from "../src/cli/review-flags";
 import { estimateFeatureCost, formatCostEstimate, formatCostBreakdown, compareModes, formatModeComparison } from "../src/routing/estimate";
 import { loadHistoricalCosts } from "../src/routing/report";
+import { routeTask } from "../src/routing/router";
 
 // Read version from package.json dynamically
 const packageJson = await Bun.file(join(import.meta.dir, "..", "package.json")).json();
@@ -55,9 +56,9 @@ program
   .command("run")
   .description("Run the orchestration loop for a feature")
   .requiredOption("-f, --feature <name>", "Feature name to run")
-  .option("-a, --agent <name>", "Agent to use (claude, amp, opencode, codex, droid, gemini, auto)", "claude")
+  .option("-a, --agent <name>", "Agent to use (claude, amp, opencode, codex, droid, gemini, auto)", "auto")
   .option("-m, --max-iterations <n>", "Maximum iterations", "20")
-  .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`, DEFAULT_MODE)
+  .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`)
   .option("--fallback-order <harnesses>", `Harness fallback order (${VALID_HARNESSES.join(",")})`)
   .option("--skip-review", "Skip final review phase", false)
   .option("--review-mode <mode>", `Review quality mode (${VALID_REVIEW_MODES.join(", ")})`)
@@ -71,15 +72,6 @@ program
       console.log(`Valid agents: ${getAllAgentNames().join(", ")}, auto`);
       process.exit(1);
     }
-
-    // Validate --mode flag
-    const modeResult = parseModeFlagValue(options.mode);
-    if (!modeResult.valid) {
-      console.error(chalk.red(modeResult.error!));
-      console.log(chalk.dim(getModeHelpText()));
-      process.exit(1);
-    }
-    const mode = modeResult.mode!;
 
     // Validate --fallback-order flag
     const fallbackResult = parseFallbackOrderValue(options.fallbackOrder);
@@ -139,6 +131,17 @@ program
 
     const config = await loadConfig();
     const prd = await loadPRD(prdPath);
+    const prdPreferredMode =
+      prd.routingPreference?.type === "auto" ? prd.routingPreference.mode : undefined;
+    const modeValue =
+      options.mode ?? prdPreferredMode ?? config.autoMode?.defaultMode ?? DEFAULT_MODE;
+    const modeResult = parseModeFlagValue(modeValue);
+    if (!modeResult.valid) {
+      console.error(chalk.red(modeResult.error!));
+      console.log(chalk.dim(getModeHelpText()));
+      process.exit(1);
+    }
+    const mode = modeResult.mode!;
 
     // Display cost estimate before execution
     if (config.autoMode?.enabled !== false) {
@@ -211,11 +214,13 @@ program
 // Convert command
 program
   .command("convert <tasksMd>")
-  .description("Convert tasks.md to prd.json, optionally merging checklist.md criteria")
+  .description("Convert tasks.md to prd.json with smart routing classification")
   .requiredOption("-f, --feature <name>", "Feature name")
   .option("-d, --dir <path>", "Project directory", process.cwd())
   .option("--auto-number", "Auto-number the feature directory (e.g., 001-feature-name)", false)
   .option("--with-checklist", "Merge checklist items into acceptance criteria", false)
+  .option("--skip-routing", "Skip automatic routing classification (not recommended)", false)
+  .option("--mode <mode>", `Cost optimization mode for routing (${VALID_MODES.join(", ")})`, "good")
   .action(async (tasksMd, options) => {
     if (!existsSync(tasksMd)) {
       console.error(chalk.red(`File not found: ${tasksMd}`));
@@ -273,6 +278,51 @@ program
 
     const prd = createPRD(parsed, finalFeatureName);
 
+    // ROUTING CLASSIFICATION (unless --skip-routing is set)
+    if (!options.skipRouting) {
+      // Validate mode
+      const modeResult = parseModeFlagValue(options.mode);
+      if (!modeResult.valid) {
+        console.error(chalk.red(modeResult.error!));
+        console.log(chalk.dim(getModeHelpText()));
+        process.exit(1);
+      }
+      const mode = modeResult.mode!;
+
+      // Load config for routing
+      const config = await loadConfig();
+      const autoModeConfig = config.autoMode || { enabled: true, defaultMode: mode };
+
+      // Use mode from routingPreference if present, otherwise use CLI flag
+      const routingMode = prd.routingPreference?.mode ?? mode;
+
+      console.log(chalk.dim(`\nClassifying ${prd.userStories.length} stories for routing (mode: ${routingMode})...`));
+
+      let totalEstimatedCost = 0;
+      for (const story of prd.userStories) {
+        const decision = await routeTask(story, autoModeConfig, routingMode);
+        story.routing = {
+          complexity: decision.complexity,
+          harness: decision.harness,
+          model: decision.model,
+          mode: decision.mode,
+          estimatedCost: decision.estimatedCost,
+          classificationReasoning: decision.reasoning,
+        };
+        totalEstimatedCost += decision.estimatedCost;
+
+        // Show per-story routing
+        const costStr = decision.estimatedCost === 0 ? "free" : `$${decision.estimatedCost.toFixed(4)}`;
+        console.log(chalk.dim(`  ${story.id}: ${decision.complexity} → ${decision.harness}/${decision.model} (${costStr})`));
+      }
+
+      // Show total estimated cost
+      const totalCostStr = totalEstimatedCost === 0 ? "free" : `$${totalEstimatedCost.toFixed(4)}`;
+      console.log(chalk.cyan(`\n💰 Total estimated cost: ${totalCostStr}`));
+    } else {
+      console.log(chalk.yellow("\n⚠️  Routing skipped (--skip-routing). Stories will not have routing metadata."));
+    }
+
     // Save prd.json to feature folder
     const prdJsonPath = join(featureDir, "prd.json");
     await savePRD(prd, prdJsonPath);
@@ -281,8 +331,11 @@ program
     const tasksMdPath = join(featureDir, "prd.md");
     await Bun.write(tasksMdPath, tasksContent);
 
-    console.log(chalk.green(`✅ Created relentless/features/${finalFeatureName}/`));
+    console.log(chalk.green(`\n✅ Created relentless/features/${finalFeatureName}/`));
     console.log(chalk.dim(`  prd.json - ${prd.userStories.length} stories`));
+    if (!options.skipRouting) {
+      console.log(chalk.dim(`  ✓ Routing metadata included`));
+    }
     console.log(chalk.dim(`  prd.md - from tasks.md`));
     console.log(chalk.dim(`  progress.txt - progress log`));
     if (options.withChecklist && existsSync(join(featureDir, "checklist.md"))) {
@@ -290,6 +343,10 @@ program
     }
     console.log(chalk.dim(`\nProject: ${prd.project}`));
     console.log(chalk.dim(`Branch: ${prd.branchName}`));
+
+    // Suggest next step
+    console.log(chalk.dim(`\nNext step:`));
+    console.log(chalk.cyan(`  relentless run --feature ${finalFeatureName} --mode ${options.mode || "good"}`));
   });
 
 // Feature commands
@@ -729,19 +786,10 @@ program
   .command("estimate")
   .description("Estimate execution costs before running a feature")
   .requiredOption("-f, --feature <name>", "Feature name")
-  .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`, DEFAULT_MODE)
+  .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`)
   .option("--compare", "Show comparison across all modes", false)
   .option("-d, --dir <path>", "Project directory", process.cwd())
   .action(async (options) => {
-    // Validate --mode flag
-    const modeResult = parseModeFlagValue(options.mode);
-    if (!modeResult.valid) {
-      console.error(chalk.red(modeResult.error!));
-      console.log(chalk.dim(getModeHelpText()));
-      process.exit(1);
-    }
-    const mode = modeResult.mode!;
-
     const relentlessDir = findRelentlessDir(options.dir);
     if (!relentlessDir) {
       console.error(chalk.red("Relentless not initialized. Run: relentless init"));
@@ -763,6 +811,18 @@ program
 
     const config = await loadConfig();
     const prd = await loadPRD(prdPath);
+    const prdPreferredMode =
+      prd.routingPreference?.type === "auto" ? prd.routingPreference.mode : undefined;
+
+    const modeValue =
+      options.mode ?? prdPreferredMode ?? config.autoMode?.defaultMode ?? DEFAULT_MODE;
+    const modeResult = parseModeFlagValue(modeValue);
+    if (!modeResult.valid) {
+      console.error(chalk.red(modeResult.error!));
+      console.log(chalk.dim(getModeHelpText()));
+      process.exit(1);
+    }
+    const mode = modeResult.mode!;
 
     const incompleteCount = prd.userStories.filter((s) => !s.passes).length;
     const totalCount = prd.userStories.length;

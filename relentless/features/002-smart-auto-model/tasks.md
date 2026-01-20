@@ -110,7 +110,7 @@
 - [ ] Modify `src/agents/codex.ts` `invoke()` method to check for `options?.model`
 - [ ] When `options.model` is present, insert `--model` and the model value BEFORE the `-` stdin argument
 - [ ] Resulting CLI command format: `codex exec --model <model> -`
-- [ ] Add JSDoc documenting supported model values: `gpt-5-2-high`, `gpt-5-2-medium`, `gpt-5-2-low`
+- [ ] Add JSDoc documenting supported model values: `gpt-5.2-xhigh`, `gpt-5.2-high`, `gpt-5.2-medium`, `gpt-5.2-low`
 - [ ] If `options.model` is undefined, maintain existing behavior (no `--model` flag)
 - [ ] Create unit test verifying spawn args include `--model` when `options.model` is provided
 - [ ] Create unit test verifying spawn args do NOT include `--model` when `options.model` is undefined
@@ -131,18 +131,18 @@
 
 ### US-005: Add Model Selection Support to Droid Adapter
 
-**Description:** As a Relentless developer, I want to update the Droid adapter to support model selection via the `-m` flag so that the orchestrator can route tasks to Droid's various models including GLM-4.6, Claude 3.5 Sonnet, and GPT-4o.
+**Description:** As a Relentless developer, I want to update the Droid adapter to support model selection via the `-m` flag so that the orchestrator can route tasks to Droid's various models including GPT-5.2, Claude Sonnet 4.5, and Gemini 3 Pro Preview.
 
 **Acceptance Criteria:**
 - [ ] Modify `src/agents/droid.ts` `invoke()` method to check for `options?.model`
 - [ ] When `options.model` is present, insert `-m` and model value BEFORE `--auto high`
 - [ ] Resulting CLI command format: `droid exec -m <model> --auto high`
-- [ ] Add JSDoc documenting models: `glm-4.6` (0.25x), `gemini-2.0-flash` (0.5x), `claude-3-5-sonnet` (2.0x), `gpt-4o` (1.5x)
+- [ ] Add JSDoc documenting models: `gpt-5.2` (0.25x), `gemini-3-pro-preview` (0.5x), `claude-sonnet-4-5-20250929` (2.0x), `gpt-5.1-codex` (1.5x)
 - [ ] If `options.model` is undefined, maintain existing behavior (no `-m` flag)
 - [ ] Create unit test verifying spawn args include `-m` when `options.model` is provided
 - [ ] Create unit test verifying spawn args do NOT include `-m` when `options.model` is undefined
 - [ ] Create unit test verifying argument order: `["droid", "exec", "-m", "<model>", "--auto", "high"]`
-- [ ] Create unit test for each supported model (glm-4.6, gemini-2.0-flash, claude-3-5-sonnet, gpt-4o)
+- [ ] Create unit test for each supported model (gpt-5.2, gemini-3-pro-preview, claude-sonnet-4-5-20250929, gpt-5.1-codex)
 - [ ] Verify existing functionality (stdin prompt, `--auto high` flag) is not affected
 - [ ] Verify short flag `-m` is used (not `--model`) per Droid CLI specification
 - [ ] Run `bun run typecheck` with zero errors
@@ -186,22 +186,20 @@
 
 ### US-007: Add Model Selection Support to Amp Adapter
 
-**Description:** As a developer using Smart Auto Model Routing, I want the Amp adapter to support model/mode selection via the `AMP_MODE` environment variable so that tasks can be routed to use Amp's free tier or smart mode.
+**Description:** As a developer using Smart Auto Model Routing, I want the Amp adapter to support model/mode selection via the `-m` CLI flag and execute mode via `-x` so that tasks can be routed to use Amp's free tier or smart mode.
 
 **Acceptance Criteria:**
 - [ ] Modify `src/agents/amp.ts` `invoke()` method to accept `options.model` parameter
-- [ ] When `options.model` is provided, `AMP_MODE` environment variable is set
-- [ ] When `options.model` is omitted, no `AMP_MODE` is set (uses Amp default)
-- [ ] Environment variable is passed to `Bun.spawn()` via `env` option
-- [ ] Environment inherits from `process.env` (preserves existing env vars)
+- [ ] When `options.model` is provided, `-m` CLI flag is passed
+- [ ] When `options.model` is omitted, no `-m` flag is passed (uses Amp default)
+- [ ] Execute mode uses `-x` for non-interactive prompts
 - [ ] Supports Amp modes: `free`, `smart`
 - [ ] Mode parameter is validated (non-empty string when provided)
 - [ ] Error handling: Rate limit on free tier detected properly
 - [ ] Unit tests written BEFORE implementation (TDD)
-- [ ] Unit test: `invoke()` with model sets `AMP_MODE` environment variable
-- [ ] Unit test: `invoke()` without model does not set `AMP_MODE`
-- [ ] Unit test: Environment variable is correctly passed to spawn
-- [ ] Unit test: Existing environment variables are preserved
+- [ ] Unit test: `invoke()` with model sets `-m` CLI flag
+- [ ] Unit test: `invoke()` without model does not set `-m`
+- [ ] Unit test: `invoke()` includes `-x` execute flag
 - [ ] Typecheck passes: `bun run typecheck`
 - [ ] Lint passes: `bun run lint`
 - [ ] All tests pass: `bun test`
@@ -278,8 +276,8 @@
 
 **Acceptance Criteria:**
 - [ ] Router implements `MODE_MODEL_MATRIX` with 4 modes x 4 complexity levels = 16 routing rules
-- [ ] `free` mode routes: simple→glm-4.7/opencode, medium→amp-free/amp, complex→gemini-3-flash/gemini, expert→glm-4.7/opencode
-- [ ] `cheap` mode routes: simple→haiku-4.5/claude, medium→sonnet-4.5/claude, complex→gpt-5-2-medium/codex, expert→opus-4.5/claude
+- [ ] `free` mode routes: simple→glm-4.7/opencode, medium→amp-free/amp, complex→grok-code-fast-1/opencode, expert→grok-code-fast-1/opencode
+- [ ] `cheap` mode routes: simple→haiku-4.5/claude, medium→sonnet-4.5/claude, complex→gpt-5.2-medium/codex, expert→opus-4.5/claude
 - [ ] `good` mode routes: simple→sonnet-4.5/claude, medium→sonnet-4.5/claude, complex→opus-4.5/claude, expert→opus-4.5/claude
 - [ ] `genius` mode routes all complexity levels to opus-4.5/claude
 - [ ] `routeTask()` function accepts `UserStory` and `AutoModeConfig`, returns `RoutingDecision`
@@ -308,7 +306,7 @@
 - [ ] `executeWithCascade()` wraps task execution with automatic retry/escalation logic
 - [ ] Maximum escalation attempts configurable via `config.escalation.maxAttempts` (default: 3)
 - [ ] Escalation path defined in `config.escalation.escalationPath` mapping current→next model
-- [ ] Default escalation paths: haiku→sonnet, sonnet→opus, gpt-5-2-low→medium→high, glm-4.6→claude-3-5-sonnet, gemini-flash→gemini-pro
+- [ ] Default escalation paths: haiku→sonnet, sonnet→opus, gpt-5.2-low→medium→high→xhigh, grok-code-fast-1→gpt-5.2-low, gemini-flash→gemini-pro
 - [ ] Each attempt is recorded in `EscalationStep` with: attempt number, harness, model, result, error
 - [ ] On task failure, system automatically escalates to next model in path without user intervention
 - [ ] On successful execution, cascade returns immediately with `success: true` and final model info

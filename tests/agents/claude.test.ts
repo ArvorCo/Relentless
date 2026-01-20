@@ -42,16 +42,16 @@ describe("Claude Adapter", () => {
       };
 
       try {
-        await claudeAdapter.invoke("test prompt", { model: "opus-4-5" });
+        await claudeAdapter.invoke("test prompt", { model: "opus-4.5" });
 
         // Verify --model and model value are in args
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("opus-4-5");
+        expect(capturedArgs).toContain("claude-opus-4-5-20251101");
 
         // Verify the order: claude, -p, --dangerously-skip-permissions (optional), --model, modelValue
         const modelIndex = capturedArgs.indexOf("--model");
         expect(modelIndex).toBeGreaterThan(0);
-        expect(capturedArgs[modelIndex + 1]).toBe("opus-4-5");
+        expect(capturedArgs[modelIndex + 1]).toBe("claude-opus-4-5-20251101");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
         Bun.spawn = originalSpawn;
@@ -126,7 +126,7 @@ describe("Claude Adapter", () => {
       }
     });
 
-    it("includes --model with sonnet-4-5 model", async () => {
+    it("includes --model with sonnet-4.5 model", async () => {
       let capturedArgs: string[] = [];
 
       const originalSpawn = Bun.spawn;
@@ -150,17 +150,17 @@ describe("Claude Adapter", () => {
       };
 
       try {
-        await claudeAdapter.invoke("test prompt", { model: "sonnet-4-5" });
+        await claudeAdapter.invoke("test prompt", { model: "sonnet-4.5" });
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("sonnet-4-5");
+        expect(capturedArgs).toContain("claude-sonnet-4-5-20251020");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
         Bun.spawn = originalSpawn;
       }
     });
 
-    it("includes --model with haiku-4-5 model", async () => {
+    it("includes --model with haiku-4.5 model", async () => {
       let capturedArgs: string[] = [];
 
       const originalSpawn = Bun.spawn;
@@ -184,10 +184,10 @@ describe("Claude Adapter", () => {
       };
 
       try {
-        await claudeAdapter.invoke("test prompt", { model: "haiku-4-5" });
+        await claudeAdapter.invoke("test prompt", { model: "haiku-4.5" });
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("haiku-4-5");
+        expect(capturedArgs).toContain("claude-haiku-4-5-20251001");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
         Bun.spawn = originalSpawn;
@@ -219,12 +219,12 @@ describe("Claude Adapter", () => {
 
       try {
         await claudeAdapter.invoke("test prompt", {
-          model: "opus-4-5",
+          model: "opus-4.5",
           dangerouslyAllowAll: true,
         });
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("opus-4-5");
+        expect(capturedArgs).toContain("claude-opus-4-5-20251101");
         expect(capturedArgs).toContain("--dangerously-skip-permissions");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
@@ -256,7 +256,7 @@ describe("Claude Adapter", () => {
       };
 
       try {
-        await claudeAdapter.invoke("test prompt", { model: "opus-4-5" });
+        await claudeAdapter.invoke("test prompt", { model: "opus-4.5" });
 
         expect(capturedArgs[0]).toBe("claude");
       } finally {
@@ -292,7 +292,7 @@ describe("Claude Adapter", () => {
 
       try {
         // Consume the generator
-        const generator = claudeAdapter.invokeStream!("test prompt", { model: "opus-4-5" });
+        const generator = claudeAdapter.invokeStream!("test prompt", { model: "opus-4.5" });
         const chunks: string[] = [];
         let result;
         while (true) {
@@ -306,7 +306,7 @@ describe("Claude Adapter", () => {
 
         // Verify --model and model value are in args
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("opus-4-5");
+        expect(capturedArgs).toContain("claude-opus-4-5-20251101");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
         Bun.spawn = originalSpawn;
@@ -377,7 +377,7 @@ describe("Claude Adapter", () => {
 
       try {
         const generator = claudeAdapter.invokeStream!("test prompt", {
-          model: "sonnet-4-5",
+          model: "sonnet-4.5",
           dangerouslyAllowAll: true,
         });
         while (true) {
@@ -386,7 +386,7 @@ describe("Claude Adapter", () => {
         }
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("sonnet-4-5");
+        expect(capturedArgs).toContain("claude-sonnet-4-5-20251020");
         expect(capturedArgs).toContain("--dangerously-skip-permissions");
       } finally {
         // @ts-expect-error - restoring Bun.spawn

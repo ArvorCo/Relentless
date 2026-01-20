@@ -10,10 +10,11 @@ import { App } from "./App.js";
 import type { TUIState, Story, AgentState } from "./types.js";
 import type { AgentName } from "../agents/types.js";
 import type { PRD } from "../prd/types.js";
-import type { RelentlessConfig } from "../config/schema.js";
+import type { RelentlessConfig, Mode } from "../config/schema.js";
 import { getAgent, getInstalledAgents } from "../agents/registry.js";
 import { loadPRD, getNextStory, isComplete, countStories } from "../prd/index.js";
-import { routeStory } from "../execution/router.js";
+import { routeTask } from "../routing/router.js";
+import { getModelForHarnessAndMode, getFreeModeHarnesses } from "../routing/fallback.js";
 import { loadQueueForTUI, watchQueueFile, stopWatchingQueue, QUEUE_PANEL_REFRESH_INTERVAL } from "./components/QueuePanel.js";
 import { handleQueueKeypress, submitToQueue } from "./components/QueueInput.js";
 import { handleQueueDeletionKeypress, removeQueueItem, clearQueueItems } from "./components/QueueRemoval.js";
@@ -52,9 +53,17 @@ function TUIRunnerComponent({
   feature,
   config,
   dryRun = false,
+  mode,
+  fallbackOrder,
   onComplete,
 }: TUIRunnerProps): React.ReactElement {
   const { exit } = useApp();
+  const autoModeEnabled = preferredAgent === "auto";
+  const autoModeConfig = config.autoMode;
+  let autoMode = (mode ?? autoModeConfig.defaultMode) as Mode;
+  let effectiveFallbackOrder: AgentName[] = autoModeEnabled
+    ? getFreeModeHarnesses((fallbackOrder ?? autoModeConfig.fallbackOrder) as AgentName[])
+    : config.fallback.priority;
   const [state, setState] = useState<TUIState>({
     feature,
     project: "",
@@ -64,9 +73,11 @@ function TUIRunnerComponent({
     maxIterations,
     currentStory: null,
     currentAgent: null,
+    currentRouting: undefined,
     agents: [],
     outputLines: [],
     elapsedSeconds: 0,
+    idleSeconds: 0,
     isRunning: false,
     isComplete: false,
     queueItems: [],
@@ -80,6 +91,7 @@ function TUIRunnerComponent({
   // Queue file watcher ref
   const queueWatcherRef = React.useRef<FSWatcher | null>(null);
   const featurePathRef = React.useRef<string>("");
+  const lastOutputAtRef = React.useRef<number>(Date.now());
 
   // Load queue items function
   const loadQueueItems = useCallback(async () => {
@@ -248,14 +260,16 @@ function TUIRunnerComponent({
     }
   });
 
-  // Timer for elapsed time
+  // Timer for elapsed and idle time
   useEffect(() => {
     if (!state.isRunning) return;
 
     const interval = setInterval(() => {
+      const now = Date.now();
       setState((prev) => ({
         ...prev,
         elapsedSeconds: prev.elapsedSeconds + 1,
+        idleSeconds: Math.floor((now - lastOutputAtRef.current) / 1000),
       }));
     }, 1000);
 
@@ -269,6 +283,7 @@ function TUIRunnerComponent({
     
     if (cleanLines.length === 0) return; // Skip empty lines
     
+    lastOutputAtRef.current = Date.now();
     setState((prev) => ({
       ...prev,
       outputLines: [...prev.outputLines.slice(-100), ...cleanLines], // Keep last 100 lines
@@ -283,6 +298,24 @@ function TUIRunnerComponent({
       try {
         // Load PRD
         const prd = await loadPRD(prdPath);
+        const prdRoutingPreference = prd.routingPreference;
+        const preferredMode =
+          prdRoutingPreference?.type === "auto" ? prdRoutingPreference.mode : undefined;
+        autoMode = (mode ?? preferredMode ?? autoModeConfig.defaultMode) as Mode;
+        const allowFree =
+          prdRoutingPreference?.type === "auto"
+            ? prdRoutingPreference.allowFree !== false
+            : true;
+        const autoFallbackOrder = (fallbackOrder ?? autoModeConfig.fallbackOrder) as AgentName[];
+        const filteredFallbackOrder =
+          allowFree || autoMode === "free"
+            ? autoFallbackOrder
+            : autoFallbackOrder.filter((h) => h !== "opencode");
+        effectiveFallbackOrder = autoModeEnabled
+          ? autoMode === "free"
+            ? getFreeModeHarnesses(filteredFallbackOrder)
+            : filteredFallbackOrder
+          : config.fallback.priority;
 
         // Get installed agents
         const installed = await getInstalledAgents();
@@ -316,6 +349,10 @@ function TUIRunnerComponent({
 
         if (dryRun) {
           addOutput("DRY RUN - not executing agents");
+        }
+
+        if (autoModeEnabled && !autoModeConfig.enabled) {
+          addOutput("Auto mode routing enabled via CLI even though config.autoMode.enabled is false.");
         }
 
         // Track rate-limited agents
@@ -356,15 +393,41 @@ function TUIRunnerComponent({
               phase: story.phase,
             },
             elapsedSeconds: 0,
+            idleSeconds: 0,
+            currentRouting: autoModeEnabled ? prev.currentRouting : undefined,
           }));
+          lastOutputAtRef.current = Date.now();
 
           addOutput(`--- Iteration ${i}/${maxIterations} ---`);
           addOutput(`Story: ${story.id} - ${story.title}`);
 
           // Select agent
           let agentName: AgentName;
+          let autoRoutingDecision: Awaited<ReturnType<typeof routeTask>> | null = null;
+          let autoRoutingModel: string | undefined;
+
           if (preferredAgent === "auto") {
-            agentName = routeStory(story, config.routing);
+            autoRoutingDecision = await routeTask(story, autoModeConfig, autoMode);
+            if (!autoRoutingDecision) {
+              throw new Error("Failed to get routing decision");
+            }
+            const decision = autoRoutingDecision;
+            agentName = decision.harness as AgentName;
+            autoRoutingModel = decision.model;
+
+            setState((prev) => ({
+              ...prev,
+              currentRouting: {
+                mode: autoMode,
+                complexity: decision.complexity,
+                harness: agentName,
+                model: decision.model,
+              },
+            }));
+
+            addOutput(
+              `Routing: ${autoMode}/${decision.complexity} -> ${agentName}/${decision.model}`
+            );
           } else {
             agentName = preferredAgent;
           }
@@ -380,12 +443,34 @@ function TUIRunnerComponent({
               limitedAgents.delete(agentName);
             } else {
               // Try fallback
-              for (const fallbackName of config.fallback.priority) {
+              for (const fallbackName of effectiveFallbackOrder) {
                 if (!limitedAgents.has(fallbackName)) {
                   const installed = agentStates.find((a) => a.name === fallbackName);
                   if (installed) {
                     agentName = fallbackName;
-                    addOutput(`Switched to fallback agent: ${fallbackName}`);
+                    if (autoRoutingDecision && autoModeEnabled) {
+                      const fallbackModel = getModelForHarnessAndMode(
+                        fallbackName,
+                        autoMode,
+                        autoRoutingDecision.complexity,
+                        autoModeConfig
+                      );
+                      autoRoutingModel = fallbackModel;
+                      setState((prev) => ({
+                        ...prev,
+                        currentRouting: {
+                          mode: autoMode,
+                          complexity: autoRoutingDecision.complexity,
+                          harness: fallbackName,
+                          model: fallbackModel,
+                        },
+                      }));
+                      addOutput(
+                        `Switched to fallback agent: ${fallbackName} (model ${fallbackModel})`
+                      );
+                    } else {
+                      addOutput(`Switched to fallback agent: ${fallbackName}`);
+                    }
                     break;
                   }
                 }
@@ -427,7 +512,8 @@ function TUIRunnerComponent({
             const stream = agent.invokeStream(prompt, {
               workingDirectory,
               dangerouslyAllowAll: config.agents[agent.name]?.dangerouslyAllowAll ?? true,
-              model: config.agents[agent.name]?.model,
+              model: autoModeEnabled ? autoRoutingModel : config.agents[agent.name]?.model,
+              timeout: config.execution.timeout,
             });
 
             let result;
@@ -483,7 +569,8 @@ function TUIRunnerComponent({
             const result = await agent.invoke(prompt, {
               workingDirectory,
               dangerouslyAllowAll: config.agents[agent.name]?.dangerouslyAllowAll ?? true,
-              model: config.agents[agent.name]?.model,
+              model: autoModeEnabled ? autoRoutingModel : config.agents[agent.name]?.model,
+              timeout: config.execution.timeout,
             });
 
             // Add output preview

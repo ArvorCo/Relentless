@@ -10,9 +10,11 @@
  * Pass the model name in the `options.model` parameter.
  *
  * **Supported models:**
- * - `opus-4-5` (claude-opus-4-5-20251101) - SOTA, best for code review and architecture
- * - `sonnet-4-5` (claude-sonnet-4-5-20251020) - Balanced, good for daily coding
- * - `haiku-4-5` (claude-haiku-4-5-20251022) - Fast and cheap, good for simple tasks
+ * - `opus-4.5` (claude-opus-4-5-20251101) - SOTA, best for code review and architecture
+ * - `sonnet-4.5` (claude-sonnet-4-5-20251020) - Balanced, good for daily coding
+ * - `haiku-4.5` (claude-haiku-4-5-20251001) - Fast and cheap, good for simple tasks
+ *
+ * These IDs map to the full Claude model identifiers in the CLI.
  *
  * **CLI command format:**
  * ```
@@ -22,13 +24,15 @@
  * @example
  * ```typescript
  * const result = await claudeAdapter.invoke("Fix the bug", {
- *   model: "opus-4-5",
+ *   model: "opus-4.5",
  *   workingDirectory: "/path/to/project"
  * });
  * ```
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types.js";
+import { getModelById } from "../routing/registry";
+import { runCommand } from "./exec";
 
 export const claudeAdapter: AgentAdapter = {
   name: "claude",
@@ -60,7 +64,6 @@ export const claudeAdapter: AgentAdapter = {
   },
 
   async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
-    const startTime = Date.now();
     const args = ["-p"];
 
     if (options?.dangerouslyAllowAll) {
@@ -68,27 +71,30 @@ export const claudeAdapter: AgentAdapter = {
     }
 
     if (options?.model) {
-      args.push("--model", options.model);
+      const modelProfile = getModelById(options.model);
+      if (modelProfile?.harness === "claude") {
+        args.push("--model", modelProfile.cliValue);
+      } else {
+        args.push("--model", options.model);
+      }
     }
 
-    const proc = Bun.spawn(["claude", ...args], {
+    const result = await runCommand(["claude", ...args], {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
-      stdout: "pipe",
-      stderr: "pipe",
+      timeoutMs: options?.timeout,
     });
 
-    // Collect output
-    const stdout = await new Response(proc.stdout).text();
-    const stderr = await new Response(proc.stderr).text();
-    const exitCode = await proc.exited;
-
-    const output = stdout + (stderr ? `\n${stderr}` : "");
-    const duration = Date.now() - startTime;
+    const timeoutNote =
+      result.timedOut && options?.timeout
+        ? `\n[Relentless] Idle timeout after ${options.timeout}ms.`
+        : "";
+    const output = result.stdout + (result.stderr ? `\n${result.stderr}` : "") + timeoutNote;
+    const duration = result.duration;
 
     return {
       output,
-      exitCode,
+      exitCode: result.exitCode,
       isComplete: this.detectCompletion(output),
       duration,
     };
@@ -106,7 +112,12 @@ export const claudeAdapter: AgentAdapter = {
     }
 
     if (options?.model) {
-      args.push("--model", options.model);
+      const modelProfile = getModelById(options.model);
+      if (modelProfile?.harness === "claude") {
+        args.push("--model", modelProfile.cliValue);
+      } else {
+        args.push("--model", options.model);
+      }
     }
 
     const proc = Bun.spawn(["claude", ...args], {
@@ -153,6 +164,27 @@ export const claudeAdapter: AgentAdapter = {
   },
 
   detectRateLimit(output: string): RateLimitInfo {
+    if (output.includes("[Relentless] Idle timeout")) {
+      return {
+        limited: true,
+        message: "Claude idle timeout",
+      };
+    }
+
+    if (/(?:operation not permitted|permission denied|\beperm\b).*(?:\/\.claude|\.claude)/i.test(output)) {
+      return {
+        limited: true,
+        message: "Claude unavailable due to permission error",
+      };
+    }
+
+    if (/not_found_error/i.test(output) && /model/i.test(output)) {
+      return {
+        limited: true,
+        message: "Claude model not found",
+      };
+    }
+
     // Pattern: "You've hit your limit · resets 12am (America/Sao_Paulo)"
     if (output.includes("You've hit your limit") || output.includes("you've hit your limit")) {
       const resetMatch = output.match(/resets\s+(\d{1,2})(am|pm)/i);

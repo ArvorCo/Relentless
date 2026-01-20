@@ -64,6 +64,8 @@ export function App({ state }: AppProps): React.ReactElement {
           story={state.currentStory}
           elapsedSeconds={state.elapsedSeconds}
           isRunning={state.isRunning}
+          idleSeconds={state.idleSeconds}
+          routing={state.currentRouting}
         />
       </Box>
 

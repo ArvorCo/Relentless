@@ -13,7 +13,7 @@ import { z } from "zod";
 
 /**
  * Cost optimization mode for task routing.
- * - free: Use only free tier models (GLM-4.7, Amp Free, etc.)
+ * - free: Use only free tier models (GLM-4.7, etc.)
  * - cheap: Use low-cost models for most tasks, escalate only when needed
  * - good: Balanced quality/cost with smart routing (default)
  * - genius: Use SOTA models (Opus 4.5, GPT-5.2) for all tasks
@@ -90,9 +90,10 @@ export const EscalationConfigSchema = z.object({
   escalationPath: z.record(z.string(), z.string()).default({
     "haiku-4.5": "sonnet-4.5",
     "sonnet-4.5": "opus-4.5",
-    "gpt-5-2-low": "gpt-5-2-medium",
-    "gpt-5-2-medium": "gpt-5-2-high",
-    "glm-4.6": "claude-3-5-sonnet",
+    "gpt-5.2-low": "gpt-5.2-medium",
+    "gpt-5.2-medium": "gpt-5.2-high",
+    "gpt-5.2-high": "gpt-5.2-xhigh",
+    "grok-code-fast-1": "gpt-5.2-low",
     "gemini-3-flash": "gemini-3-pro",
   }),
 });
@@ -104,7 +105,7 @@ export type EscalationConfig = z.infer<typeof EscalationConfigSchema>;
  */
 export const AutoModeConfigSchema = z.object({
   /** Enable auto mode routing */
-  enabled: z.boolean().default(false),
+  enabled: z.boolean().default(true),
   /** Default cost optimization mode */
   defaultMode: ModeSchema.default("good"),
   /** Harness fallback order when rate limited */
@@ -189,7 +190,9 @@ export type RoutingConfig = z.infer<typeof RoutingConfigSchema>;
  * Complete Relentless configuration
  */
 export const RelentlessConfigSchema = z.object({
-  defaultAgent: z.enum(["claude", "amp", "opencode", "codex", "droid", "gemini"]).default("claude"),
+  defaultAgent: z
+    .enum(["auto", "claude", "amp", "opencode", "codex", "droid", "gemini"])
+    .default("auto"),
   agents: z.record(
     z.enum(["claude", "amp", "opencode", "codex", "droid", "gemini"]),
     AgentConfigSchema
@@ -210,7 +213,7 @@ export type RelentlessConfig = z.infer<typeof RelentlessConfigSchema>;
  * Default configuration
  */
 export const DEFAULT_CONFIG: RelentlessConfig = {
-  defaultAgent: "claude",
+  defaultAgent: "auto",
   agents: {
     claude: { dangerouslyAllowAll: true },
     amp: { dangerouslyAllowAll: true },
@@ -256,9 +259,10 @@ export const DEFAULT_CONFIG: RelentlessConfig = {
       escalationPath: {
         "haiku-4.5": "sonnet-4.5",
         "sonnet-4.5": "opus-4.5",
-        "gpt-5-2-low": "gpt-5-2-medium",
-        "gpt-5-2-medium": "gpt-5-2-high",
-        "glm-4.6": "claude-3-5-sonnet",
+        "gpt-5.2-low": "gpt-5.2-medium",
+        "gpt-5.2-medium": "gpt-5.2-high",
+        "gpt-5.2-high": "gpt-5.2-xhigh",
+        "grok-code-fast-1": "gpt-5.2-low",
         "gemini-3-flash": "gemini-3-pro",
       },
     },

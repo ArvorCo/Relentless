@@ -99,8 +99,9 @@ const createTestConfig = (
     escalationPath: {
       "haiku-4.5": "sonnet-4.5",
       "sonnet-4.5": "opus-4.5",
-      "gpt-5-2-low": "gpt-5-2-medium",
-      "gpt-5-2-medium": "gpt-5-2-high",
+      "gpt-5.2-low": "gpt-5.2-medium",
+      "gpt-5.2-medium": "gpt-5.2-high",
+      "gpt-5.2-high": "gpt-5.2-xhigh",
       "glm-4.7": "haiku-4.5",
       "amp-free": "sonnet-4.5",
       "gemini-3-flash": "gemini-3-pro",
@@ -506,9 +507,9 @@ describe("Auto-Mode Integration Tests", () => {
 
       // These harnesses have free tier models
       expect(hasFreeTierModel("opencode")).toBe(true);
-      expect(hasFreeTierModel("amp")).toBe(true);
-      expect(hasFreeTierModel("droid")).toBe(true);
-      expect(hasFreeTierModel("gemini")).toBe(true);
+      expect(hasFreeTierModel("amp")).toBe(false);
+      expect(hasFreeTierModel("droid")).toBe(false);
+      expect(hasFreeTierModel("gemini")).toBe(false);
 
       // Claude and Codex don't have free tiers
       expect(hasFreeTierModel("claude")).toBe(false);
@@ -520,6 +521,7 @@ describe("Auto-Mode Integration Tests", () => {
       );
       expect(freeHarnesses).not.toContain("claude");
       expect(freeHarnesses).not.toContain("codex");
+      expect(freeHarnesses).not.toContain("amp");
     });
   });
 

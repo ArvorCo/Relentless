@@ -14,6 +14,22 @@ Guide systematic implementation of features using TDD and quality-first approach
 
 ---
 
+## SpecKit Workflow
+
+This skill is **Step 6 of 6** in the Relentless workflow:
+
+specify → plan → tasks → convert → analyze → **implement**
+
+Prerequisites:
+- `spec.md` - Feature specification
+- `plan.md` - Technical implementation plan
+- `tasks.md` - User stories with acceptance criteria
+- `prd.json` - Converted PRD with routing metadata
+- `checklist.md` - Quality validation checklist
+- Analysis must PASS (run `/relentless.analyze` first)
+
+---
+
 ## The Job
 
 Implement user stories one at a time, following strict TDD and updating all tracking files.
@@ -25,8 +41,10 @@ Implement user stories one at a time, following strict TDD and updating all trac
 1. **Read the Constitution** - Review your project's constitution (if exists) for governance principles
 2. **Read prompt.md** - Review workflow guidelines (if exists)
 3. **Read progress.txt** - Check learnings from previous iterations
-4. **Review artifacts** - Ensure spec.md, plan.md, tasks.md, checklist.md exist
-5. **Identify Quality Commands** - Find your project's typecheck, lint, and test commands
+4. **Review artifacts** - Ensure spec.md, plan.md, tasks.md, prd.json, checklist.md exist
+5. **Verify Analysis Passed** - Run `/relentless.analyze` if not already done
+6. **Identify Quality Commands** - Find your project's typecheck, lint, and test commands
+7. **Check Branch** - Verify you're on the correct branch from PRD `branchName`
 
 ---
 
@@ -49,6 +67,11 @@ go build ./... && golangci-lint run && go test ./...
 # Rust:
 cargo check && cargo clippy && cargo test
 ```
+
+**Requirements:**
+- Typecheck: 0 errors
+- Lint: 0 errors AND 0 warnings
+- Tests: All pass
 
 **If ANY check fails, DO NOT mark the story as complete. Fix the issues first.**
 
@@ -81,6 +104,22 @@ For EVERY story, follow strict Test-Driven Development:
 
 ---
 
+## Research Phase (if story has `research: true`)
+
+If the current story has `research: true` in prd.json and no research file exists yet:
+
+1. **Explore the codebase** - Find relevant files, patterns, and dependencies
+2. **Document findings** in `relentless/features/<feature>/research/<story-id>.md`:
+   - Existing patterns that should be followed
+   - Files that will likely need modification
+   - Dependencies and integration points
+   - Potential gotchas or edge cases
+   - Recommended implementation approach
+3. **Do NOT implement** - only research and document
+4. Save your findings to the research file and end your turn
+
+---
+
 ## Per-Story Implementation Flow
 
 For each story (in dependency order):
@@ -89,11 +128,13 @@ For each story (in dependency order):
 - Read `prd.json` to find the next story where `passes: false`
 - Check dependencies are met (dependent stories have `passes: true`)
 - Read the story's acceptance criteria
+- Check routing metadata (complexity, model assigned)
 
 ### 2. Find Relevant Checklist Items
 - Open `checklist.md`
 - Find items tagged with `[US-XXX]` for this story
 - Note any governance/compliance items
+- **Ensure Quality Gates and TDD items are included**
 
 ### 3. Implement with TDD
 Follow the TDD workflow above for each acceptance criterion.
@@ -160,39 +201,22 @@ Append progress entry:
 - Patterns discovered
 - Gotchas encountered
 
+**Constitution Compliance:**
+- [list principles followed]
+
 ---
 ```
 
 ---
 
-## Example Per-Story Workflow
+## Check for Queued Prompts
 
-```markdown
-**Current:** US-001: Test Infrastructure Setup
+Between iterations, check `.queue.txt` for user input:
 
-**Acceptance Criteria:**
-- [ ] Test command runs successfully
-- [ ] Test files are auto-discovered
-- [ ] Coverage report available
-- [ ] Type checking passes
-- [ ] Linting passes
-
-**Relevant Checklist Items:**
-- [ ] CHK-001 [US-001] Test command executes successfully
-- [ ] CHK-002 [US-001] Test files are auto-discovered
-- [ ] CHK-007 Tests written BEFORE implementation
-
-**Implementation Steps:**
-1. Write a simple failing test first
-2. Configure test runner for your project
-3. Verify test discovery works
-4. Run type checking - must pass
-5. Run linting - must pass with 0 warnings
-6. Update tasks.md - check off completed criteria
-7. Update checklist.md - mark verified items
-8. Commit: "feat: US-001 - Test Infrastructure Setup"
-9. Update prd.json: set passes: true
-10. Update progress.txt with learnings
+```bash
+# If .queue.txt exists, read and process it
+# Acknowledge in progress.txt
+# Process in FIFO order
 ```
 
 ---
@@ -232,6 +256,32 @@ After completing each story, these files MUST be updated:
 
 ---
 
+## Stop Condition
+
+After completing a user story, check if ALL stories have `passes: true`.
+
+**If ALL stories are complete and passing, output:**
+```
+<promise>COMPLETE</promise>
+```
+
+**If there are still stories with `passes: false`, end your response normally** (another iteration will pick up the next story).
+
+---
+
+## Common Pitfalls to Avoid
+
+1. **Skipping TDD** - Never implement without tests first
+2. **Suppressing lints** - Fix issues properly, don't disable rules
+3. **Large commits** - Keep commits focused and atomic
+4. **Missing typecheck** - Always run typecheck before commit
+5. **Ignoring progress.txt** - Read learnings from previous iterations
+6. **Not checking queue** - Always check `.queue.txt` for user input
+7. **Skipping analysis** - Run `/relentless.analyze` before implementing
+8. **Ignoring routing metadata** - Check story complexity and model assignment
+
+---
+
 ## Notes
 
 - Work on ONE story at a time
@@ -240,8 +290,6 @@ After completing each story, these files MUST be updated:
 - Never skip quality checks
 - Commit after each story
 - Update ALL tracking files
-- This is a guided workflow for manual implementation
-
----
-
-*Adapt all commands and paths to your project's specific setup*
+- Check `.queue.txt` for mid-run input
+- This is a guided workflow for systematic implementation
+- **Adapt all commands and paths to your project's specific setup**

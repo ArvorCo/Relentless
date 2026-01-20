@@ -1,0 +1,38 @@
+{
+  "defaultAgent": "claude",
+  "agents": {
+    "claude": {
+      "dangerouslyAllowAll": true
+    },
+    "amp": {
+      "dangerouslyAllowAll": true
+    },
+    "gemini": {
+      "dangerouslyAllowAll": true
+    }
+  },
+  "routing": {
+    "rules": [],
+    "default": "claude"
+  },
+  "fallback": {
+    "enabled": true,
+    "priority": [
+      "claude",
+      "codex",
+      "amp",
+      "opencode",
+      "gemini"
+    ],
+    "autoRecovery": true,
+    "retryDelay": 2000
+  },
+  "execution": {
+    "maxIterations": 20,
+    "iterationDelay": 2000,
+    "timeout": 600000
+  },
+  "prompt": {
+    "path": "prompt.md"
+  }
+}

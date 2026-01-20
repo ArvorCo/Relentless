@@ -86,9 +86,10 @@ function createTestEscalationConfig(
     escalationPath: {
       "haiku-4.5": "sonnet-4.5",
       "sonnet-4.5": "opus-4.5",
-      "gpt-5-2-low": "gpt-5-2-medium",
-      "gpt-5-2-medium": "gpt-5-2-high",
-      "glm-4.6": "claude-3-5-sonnet",
+      "gpt-5.2-low": "gpt-5.2-medium",
+      "gpt-5.2-medium": "gpt-5.2-high",
+      "gpt-5.2-high": "gpt-5.2-xhigh",
+      "grok-code-fast-1": "claude-sonnet-4-5-20250929",
       "gemini-3-flash": "gemini-3-pro",
     },
     ...overrides,
@@ -569,14 +570,14 @@ describe("Cascade/Escalation Logic", () => {
       const story = createTestStory();
       const config = createTestEscalationConfig({
         escalationPath: {
-          "glm-4.6": "claude-3-5-sonnet", // Droid model to Claude model (cross-harness)
+          "grok-code-fast-1": "claude-sonnet-4-5-20250929", // OpenCode model to Claude model (cross-harness)
         },
       });
 
       const result = await executeWithCascade(
         story,
         "droid",
-        "glm-4.6",
+        "grok-code-fast-1",
         "Execute the task",
         config,
         async (harness, model, prompt) => {
@@ -603,9 +604,9 @@ describe("Cascade/Escalation Logic", () => {
 
       expect(result.success).toBe(true);
       expect(result.escalations[0].harness).toBe("droid");
-      expect(result.escalations[0].model).toBe("glm-4.6");
-      // The second escalation should use the harness for claude-3-5-sonnet
-      expect(result.escalations[1].model).toBe("claude-3-5-sonnet");
+      expect(result.escalations[0].model).toBe("grok-code-fast-1");
+      // The second escalation should use the harness for claude-sonnet-4-5-20250929
+      expect(result.escalations[1].model).toBe("claude-sonnet-4-5-20250929");
     });
   });
 

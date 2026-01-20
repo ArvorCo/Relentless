@@ -15,9 +15,9 @@
 import { z } from "zod";
 import type { UserStory } from "../prd/types";
 import type { AutoModeConfig, Mode, Complexity, HarnessName } from "../config/schema";
-import { HarnessNameSchema, ModeSchema, ComplexitySchema } from "../config/schema";
+import { HarnessNameSchema, ModeSchema, ComplexitySchema, DEFAULT_CONFIG } from "../config/schema";
 import { classifyTask } from "./classifier";
-import { getModelById } from "./registry";
+import { getHarnessForModel, getModelById } from "./registry";
 
 /**
  * A routing rule specifying harness and model for a mode/complexity combination.
@@ -56,8 +56,8 @@ export type RoutingDecision = z.infer<typeof RoutingDecisionSchema>;
  *
  * | Mode   | Simple           | Medium           | Complex          | Expert           |
  * |--------|------------------|------------------|------------------|------------------|
- * | free   | opencode/glm-4.7 | amp/amp-free     | gemini/flash     | opencode/glm-4.7 |
- * | cheap  | claude/haiku     | claude/sonnet    | codex/gpt-5-2-m  | claude/opus      |
+ * | free   | opencode/glm-4.7 | opencode/glm-4.7 | opencode/grok-code-fast-1 | opencode/grok-code-fast-1 |
+ * | cheap  | claude/haiku     | gemini/flash     | codex/gpt-5.2-low| codex/gpt-5.2-low|
  * | good   | claude/sonnet    | claude/sonnet    | claude/opus      | claude/opus      |
  * | genius | claude/opus      | claude/opus      | claude/opus      | claude/opus      |
  */
@@ -68,9 +68,9 @@ export const MODE_MODEL_MATRIX: Record<Mode, Record<Complexity, RoutingRule>> = 
    */
   free: {
     simple: { harness: "opencode", model: "glm-4.7" },
-    medium: { harness: "amp", model: "amp-free" },
-    complex: { harness: "gemini", model: "gemini-3-flash" },
-    expert: { harness: "opencode", model: "glm-4.7" },
+    medium: { harness: "opencode", model: "glm-4.7" },
+    complex: { harness: "opencode", model: "grok-code-fast-1" },
+    expert: { harness: "opencode", model: "grok-code-fast-1" },
   },
 
   /**
@@ -79,9 +79,9 @@ export const MODE_MODEL_MATRIX: Record<Mode, Record<Complexity, RoutingRule>> = 
    */
   cheap: {
     simple: { harness: "claude", model: "haiku-4.5" },
-    medium: { harness: "claude", model: "sonnet-4.5" },
-    complex: { harness: "codex", model: "gpt-5-2-medium" },
-    expert: { harness: "claude", model: "opus-4.5" },
+    medium: { harness: "gemini", model: "gemini-3-flash" },
+    complex: { harness: "codex", model: "gpt-5.2-low" },
+    expert: { harness: "codex", model: "gpt-5.2-low" },
   },
 
   /**
@@ -189,8 +189,8 @@ export async function routeTask(
   const classification = await classifyTask(story);
   const complexity = classification.complexity;
 
-  // Look up routing rule from matrix
-  const rule = MODE_MODEL_MATRIX[mode][complexity];
+  // Look up routing rule from matrix and apply config overrides
+  const rule = resolveRoutingRule(config, mode, complexity);
   const harness = rule.harness;
   const model = rule.model;
 
@@ -216,6 +216,42 @@ export async function routeTask(
     mode,
     estimatedCost,
     reasoning,
+  };
+}
+
+function hasCustomModeModels(config: AutoModeConfig): boolean {
+  const defaults = DEFAULT_CONFIG.autoMode.modeModels;
+  return (
+    config.modeModels.simple !== defaults.simple ||
+    config.modeModels.medium !== defaults.medium ||
+    config.modeModels.complex !== defaults.complex ||
+    config.modeModels.expert !== defaults.expert
+  );
+}
+
+function resolveRoutingRule(
+  config: AutoModeConfig,
+  mode: Mode,
+  complexity: Complexity
+): RoutingRule {
+  const rule = MODE_MODEL_MATRIX[mode][complexity];
+
+  // Only apply modeModels override for "good" mode
+  // Other modes (free, cheap, genius) should always use the matrix
+  if (mode !== "good" || !hasCustomModeModels(config)) {
+    return rule;
+  }
+
+  const overrideModel = config.modeModels[complexity];
+  const overrideProfile = getModelById(overrideModel);
+  if (!overrideProfile) {
+    return rule;
+  }
+
+  const overrideHarness = getHarnessForModel(overrideModel);
+  return {
+    harness: overrideHarness ?? rule.harness,
+    model: overrideModel,
   };
 }
 

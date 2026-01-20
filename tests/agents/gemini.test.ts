@@ -102,31 +102,33 @@ describe("Gemini Adapter", () => {
       }
     });
 
-    it('argument order is correct: gemini [--yolo] [--model <model>] "<prompt>"', async () => {
+    it('argument order is correct: gemini [--yolo] [--model <model>] --prompt "<prompt>"', async () => {
       const mock = mockBunSpawn();
 
       try {
         await geminiAdapter.invoke("test prompt", { model: "gemini-3-pro" });
 
-        // Expected order: gemini, --model, gemini-3-pro, "test prompt"
+        // Expected order: gemini, --model, gemini-3-pro, --prompt, "test prompt"
         expect(mock.capturedArgs[0]).toBe("gemini");
         expect(mock.capturedArgs[1]).toBe("--model");
         expect(mock.capturedArgs[2]).toBe("gemini-3-pro");
-        expect(mock.capturedArgs[3]).toBe("test prompt");
+        expect(mock.capturedArgs[3]).toBe("--prompt");
+        expect(mock.capturedArgs[4]).toBe("test prompt");
       } finally {
         mock.restore();
       }
     });
 
-    it('maintains correct order without model: gemini "<prompt>"', async () => {
+    it('maintains correct order without model: gemini --prompt "<prompt>"', async () => {
       const mock = mockBunSpawn();
 
       try {
         await geminiAdapter.invoke("test prompt");
 
-        // Expected order: gemini, "test prompt"
+        // Expected order: gemini, --prompt, "test prompt"
         expect(mock.capturedArgs[0]).toBe("gemini");
-        expect(mock.capturedArgs[1]).toBe("test prompt");
+        expect(mock.capturedArgs[1]).toBe("--prompt");
+        expect(mock.capturedArgs[2]).toBe("test prompt");
       } finally {
         mock.restore();
       }
@@ -208,7 +210,7 @@ describe("Gemini Adapter", () => {
       }
     });
 
-    it("maintains correct argument order with both flags: gemini --yolo --model <model> <prompt>", async () => {
+    it("maintains correct argument order with both flags: gemini --yolo --model <model> --prompt <prompt>", async () => {
       const mock = mockBunSpawn();
 
       try {
@@ -217,12 +219,13 @@ describe("Gemini Adapter", () => {
           model: "gemini-3-flash",
         });
 
-        // Expected order: gemini, --yolo, --model, gemini-3-flash, "test prompt"
+        // Expected order: gemini, --yolo, --model, gemini-3-flash, --prompt, "test prompt"
         expect(mock.capturedArgs[0]).toBe("gemini");
         expect(mock.capturedArgs[1]).toBe("--yolo");
         expect(mock.capturedArgs[2]).toBe("--model");
         expect(mock.capturedArgs[3]).toBe("gemini-3-flash");
-        expect(mock.capturedArgs[4]).toBe("test prompt");
+        expect(mock.capturedArgs[4]).toBe("--prompt");
+        expect(mock.capturedArgs[5]).toBe("test prompt");
       } finally {
         mock.restore();
       }
@@ -286,6 +289,12 @@ describe("Gemini Adapter", () => {
 
     it("detects rate limit from too many requests message", () => {
       const output = "Error: too many requests";
+      const result = geminiAdapter.detectRateLimit(output);
+      expect(result.limited).toBe(true);
+    });
+
+    it("detects module resolution failures", () => {
+      const output = "Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'zod-to-json-schema'";
       const result = geminiAdapter.detectRateLimit(output);
       expect(result.limited).toBe(true);
     });

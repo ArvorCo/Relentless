@@ -20,7 +20,7 @@
  * - Does not modify project root files (CLAUDE.md, AGENTS.md, etc.)
  */
 
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import chalk from "chalk";
 import { checkAgentHealth } from "../agents/registry";
@@ -39,10 +39,10 @@ premium models. This typically saves 50-75% on API costs.
  * Descriptions for each cost mode
  */
 export const MODE_DESCRIPTIONS: Record<Mode, string> = {
-  free: "Free tier models only (Gemini, Codex free) - Maximum savings",
-  cheap: "Budget models (Haiku, GPT-4o-mini) - High savings, good quality",
-  good: "Balanced models (Sonnet, GPT-4o) - Good savings, high quality (Recommended)",
-  genius: "Premium models (Opus, GPT-5.2) - No savings, maximum quality",
+  free: "Free tier models only (OpenCode) - Maximum savings",
+  cheap: "Budget models (Haiku, Gemini Flash, GPT-5.2 low effort) - High savings, good quality",
+  good: "Balanced models (Sonnet, GPT-5.2 medium effort) - Good savings, high quality (Recommended)",
+  genius: "Premium models (Opus, GPT-5.2 high effort) - No savings, maximum quality",
 };
 
 /**
@@ -244,18 +244,12 @@ export function generateAutoModeYamlConfig(config: AutoModeConfigResult): string
     lines.push("  #   - gemini");
     lines.push("  #   - droid");
     lines.push("");
-    lines.push("  # Custom model mappings per mode (uncomment to customize)");
+    lines.push("  # Custom model mappings by complexity (uncomment to customize)");
     lines.push("  # modeModels:");
-    lines.push("  #   free:");
-    lines.push("  #     simple: gemini-2.0-flash");
-    lines.push("  #     medium: gemini-2.0-flash");
-    lines.push("  #     complex: codex-mini-latest");
-    lines.push("  #     expert: codex-mini-latest");
-    lines.push("  #   cheap:");
-    lines.push("  #     simple: haiku-4-5");
-    lines.push("  #     medium: gpt-4o-mini");
-    lines.push("  #     complex: sonnet-4-5");
-    lines.push("  #     expert: sonnet-4-5");
+    lines.push("  #   simple: haiku-4.5");
+    lines.push("  #   medium: sonnet-4.5");
+    lines.push("  #   complex: opus-4.5");
+    lines.push("  #   expert: opus-4.5");
   }
 
   lines.push("");
@@ -437,6 +431,7 @@ export async function initProject(
     "specify",
     "plan",
     "tasks",
+    "convert",
     "checklist",
     "clarify",
     "analyze",
@@ -648,6 +643,7 @@ export async function initProject(
     "relentless.checklist.md",
     "relentless.clarify.md",
     "relentless.constitution.md",
+    "relentless.convert.md",
     "relentless.implement.md",
     "relentless.plan.md",
     "relentless.specify.md",
@@ -839,6 +835,8 @@ For full documentation, see: https://github.com/ArvorCo/Relentless
   console.log(chalk.dim("\n4. Convert to JSON and run:"));
   console.log(`   ${chalk.cyan("relentless convert relentless/features/NNN-feature/tasks.md --feature NNN-feature")}`);
   console.log(`   ${chalk.cyan("relentless run --feature NNN-feature --tui")}`);
+  console.log(chalk.dim("\nUpgrade note:"));
+  console.log(chalk.dim("If you are upgrading Relentless, re-run /relentless.constitution to refresh prompt.md with the latest instructions."));
   console.log("");
 }
 
@@ -928,11 +926,7 @@ export function listFeatures(projectDir: string): string[] {
     return [];
   }
 
-  const entries = Bun.spawnSync(["ls", "-1", featuresDir]);
-  const output = new TextDecoder().decode(entries.stdout);
-
-  return output
-    .split("\n")
+  return readdirSync(featuresDir)
     .map((s) => s.trim())
     .filter((s) => s && s !== ".gitkeep");
 }

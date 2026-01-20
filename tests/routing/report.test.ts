@@ -342,9 +342,9 @@ describe("Cost Reporting (US-025)", () => {
 
     it("should calculate savings percentage vs baseline (SOTA)", () => {
       // Using larger token counts to generate a higher baseline cost
-      // Baseline = (100000/1000000 * 15) + (50000/1000000 * 75) = 1.5 + 3.75 = 5.25
+      // Baseline = (100000/1000000 * 5.0) + (50000/1000000 * 25.0) = 0.5 + 1.25 = 1.75
       const executions = [
-        mockStoryExecution({ actualCost: 2.00, inputTokens: 100000, outputTokens: 50000 }),
+        mockStoryExecution({ actualCost: 1.00, inputTokens: 100000, outputTokens: 50000 }),
       ];
 
       const report = generateCostReport(
@@ -355,8 +355,8 @@ describe("Cost Reporting (US-025)", () => {
         new Date().toISOString()
       );
 
-      // Savings should be calculated vs SOTA pricing
-      // With baseline of 5.25 and actual of 2.00, savings should be ~62%
+      // Savings should be calculated vs SOTA pricing (opus-4.5 costs: input=$5.0/MTok, output=$25.0/MTok)
+      // With baseline of 1.75 and actual of 1.00, savings should be ~43%
       expect(report.savingsPercent).toBeGreaterThan(0);
       expect(report.baselineCost).toBeGreaterThan(report.totalActualCost);
     });
@@ -647,16 +647,16 @@ describe("Cost Reporting (US-025)", () => {
     it("should format estimated vs actual comparison", () => {
       const line = formatComparisonLine(2.50, 2.75);
 
-      // "Estimated: $2.50, Actual: $2.75 (+10%)"
+      // "Estimated: $2.50, Actual: $2.75 (+10.0%)"
       expect(line).toContain("Estimated: $2.50");
       expect(line).toContain("Actual: $2.75");
-      expect(line).toContain("+10%");
+      expect(line).toContain("+10.0%");
     });
 
     it("should show negative percentage when under budget", () => {
       const line = formatComparisonLine(2.50, 2.25);
 
-      expect(line).toContain("-10%");
+      expect(line).toContain("-10.0%");
     });
   });
 
@@ -742,6 +742,24 @@ Some progress...
 
       expect(history.length).toBe(0);
     });
+
+    it("should parse negative and decimal savings percentages", async () => {
+      const mockContent = `
+## Cost Report - 2026-01-19T14:00:00Z
+Feature: test-feature
+Mode: good
+Actual cost: $3.25 (saved -5.5% vs single-model execution)
+`;
+
+      const mockReadFile = mock(() => Promise.resolve(mockContent));
+
+      const history = await loadHistoricalCosts("/tmp/test-feature/progress.txt", {
+        readFile: mockReadFile,
+      });
+
+      expect(history.length).toBe(1);
+      expect(history[0]!.savingsPercent).toBeCloseTo(-5.5, 5);
+    });
   });
 
   describe("getBaselineCost()", () => {
@@ -752,9 +770,9 @@ Some progress...
       const baselineCost = getBaselineCost(inputTokens, outputTokens);
 
       // Should use Opus 4.5 pricing (SOTA)
-      // Opus: $15/MTok input, $75/MTok output
-      // Expected: (1000/1000000 * 15) + (500/1000000 * 75) = 0.015 + 0.0375 = 0.0525
-      expect(baselineCost).toBeCloseTo(0.0525, 4);
+      // Opus: $5/MTok input, $25/MTok output
+      // Expected: (1000/1000000 * 5) + (500/1000000 * 25) = 0.005 + 0.0125 = 0.0175
+      expect(baselineCost).toBeCloseTo(0.0175, 4);
     });
   });
 

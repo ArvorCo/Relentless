@@ -202,11 +202,12 @@ describe("MODEL_REGISTRY", () => {
     expect(claudeModels).toContain("haiku-4.5");
   });
 
-  it("contains Codex models: gpt-5-2-high, gpt-5-2-medium, gpt-5-2-low", () => {
+  it("contains Codex models: gpt-5.2-xhigh, gpt-5.2-high, gpt-5.2-medium, gpt-5.2-low", () => {
     const codexModels = MODEL_REGISTRY.filter((m) => m.harness === "codex").map((m) => m.id);
-    expect(codexModels).toContain("gpt-5-2-high");
-    expect(codexModels).toContain("gpt-5-2-medium");
-    expect(codexModels).toContain("gpt-5-2-low");
+    expect(codexModels).toContain("gpt-5.2-xhigh");
+    expect(codexModels).toContain("gpt-5.2-high");
+    expect(codexModels).toContain("gpt-5.2-medium");
+    expect(codexModels).toContain("gpt-5.2-low");
   });
 
   it("contains OpenCode models: glm-4.7, grok-code-fast-1, minimax-m2.1", () => {
@@ -294,10 +295,10 @@ describe("HARNESS_PROFILES", () => {
     expect(claude?.modelSelectionMethod).toBe("flag");
   });
 
-  it("Amp uses env-based model selection", () => {
+  it("Amp uses flag-based model selection", () => {
     const amp = HARNESS_PROFILES.find((h) => h.name === "amp");
     expect(amp?.supportsModelSelection).toBe(true);
-    expect(amp?.modelSelectionMethod).toBe("env");
+    expect(amp?.modelSelectionMethod).toBe("flag");
   });
 });
 
@@ -317,7 +318,8 @@ describe("getModelById", () => {
 
   it("returns correct model for each harness", () => {
     expect(getModelById("sonnet-4.5")?.harness).toBe("claude");
-    expect(getModelById("gpt-5-2-high")?.harness).toBe("codex");
+    expect(getModelById("gpt-5.2-high")?.harness).toBe("codex");
+    expect(getModelById("gpt-5.2-xhigh")?.harness).toBe("codex");
     expect(getModelById("glm-4.7")?.harness).toBe("opencode");
     expect(getModelById("gemini-3-pro")?.harness).toBe("gemini");
   });
@@ -392,8 +394,8 @@ describe("getDefaultModelForHarness", () => {
     expect(getDefaultModelForHarness("claude")).toBe("sonnet-4.5");
   });
 
-  it("returns gpt-5-2-medium as default for Codex", () => {
-    expect(getDefaultModelForHarness("codex")).toBe("gpt-5-2-medium");
+  it("returns gpt-5.2-medium as default for Codex", () => {
+    expect(getDefaultModelForHarness("codex")).toBe("gpt-5.2-medium");
   });
 
   it("returns glm-4.7 as default for OpenCode", () => {
@@ -419,8 +421,9 @@ describe("getHarnessForModel", () => {
     expect(getHarnessForModel("opus-4.5")).toBe("claude");
   });
 
-  it("returns codex for gpt-5-2-high", () => {
-    expect(getHarnessForModel("gpt-5-2-high")).toBe("codex");
+  it("returns codex for gpt-5.2-high and gpt-5.2-xhigh", () => {
+    expect(getHarnessForModel("gpt-5.2-high")).toBe("codex");
+    expect(getHarnessForModel("gpt-5.2-xhigh")).toBe("codex");
   });
 
   it("returns opencode for glm-4.7", () => {

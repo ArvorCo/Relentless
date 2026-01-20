@@ -17,7 +17,7 @@ Smart Auto Model Routing enables Relentless to automatically select the optimal 
 
 | Mode | Description | Target Savings | Use Case |
 |------|-------------|----------------|----------|
-| `free` | Maximizes use of free models (GLM-4.7, Amp Free, Gemini Flash) | 80-90% | Prototyping, learning, tight budgets |
+| `free` | Maximizes use of free models (GLM-4.7, Grok Code Fast 1, Amp Free) | 80-90% | Prototyping, learning, tight budgets |
 | `cheap` | Prioritizes low-cost models, escalates only when needed | 60-75% | Most development work |
 | `good` | Balanced approach with proven models | 40-50% | Production features |
 | `genius` | Uses SOTA models throughout | 0-20% | Critical/complex features |
@@ -28,7 +28,7 @@ When a harness is unavailable (rate limits, missing API keys), the system falls 
 
 **Default**: Claude Code > Codex > Droid > OpenCode Zen > Amp > Gemini
 
-**Rationale**: Droid is a top-tier harness with access to many models (including GLM-4.7, and others), so it ranks third. Each harness has its own model ecosystem that must be orchestrated independently.
+**Rationale**: Droid is a top-tier harness with access to Claude/GPT/Gemini models, so it ranks third. Each harness has its own model ecosystem that must be orchestrated independently.
 
 Users can override with `--fallback-order` or in `relentless.config.yaml`.
 
@@ -96,7 +96,7 @@ Maintain a knowledge base of available harnesses, their models, capabilities, co
 
 1. **Given** the system starts, **When** registry is loaded, **Then** it contains all supported harnesses (Claude, Amp, OpenCode, Codex, Gemini, Droid) with their available models
 2. **Given** a query for "free models", **When** registry is searched, **Then** it returns GLM-4.7, Grok Code Fast, Amp Free with their capabilities
-3. **Given** a model capability query, **When** user asks "best for code review", **Then** registry returns Opus 4.5 and GPT-5.2 High with benchmark scores
+3. **Given** a model capability query, **When** user asks "best for code review", **Then** registry returns Opus 4.5 and GPT-5.2 (reasoning-effort xhigh) with benchmark scores
 
 ---
 
@@ -271,13 +271,13 @@ IF complexity == "simple" AND task_type IN ["formatting", "typo_fix", "doc_updat
     route_to(free_model)  # GLM-4.7, Grok Code Fast, Amp Free
 
 ELIF complexity == "simple" AND task_type IN ["unit_test", "small_function"]:
-    route_to(haiku_or_mini)  # Haiku 4.5, GPT-5.2 Low
+    route_to(haiku_or_low)  # Haiku 4.5, GPT-5.2 (reasoning-effort low)
 
 ELIF complexity == "medium" AND task_type IN ["feature", "refactor", "api"]:
-    route_to(sonnet_or_medium)  # Sonnet 4.5, GPT-5.2 Medium
+    route_to(sonnet_or_medium)  # Sonnet 4.5, GPT-5.2 (reasoning-effort medium)
 
 ELIF complexity == "complex" AND task_type IN ["architecture", "security", "multi_system"]:
-    route_to(sota_model)  # Opus 4.5, GPT-5.2 High
+    route_to(sota_model)  # Opus 4.5, GPT-5.2 (reasoning-effort xhigh)
 
 ELIF complexity == "expert" OR task_type == "final_review":
     route_to(sota_model)  # Always SOTA for expert tasks and reviews
@@ -347,33 +347,17 @@ autoMode:
   fallbackOrder:
     - claude      # Best ecosystem, primary choice
     - codex       # Strong for reviews and reasoning
-    - droid       # Top-tier with many models (GLM-4.7, etc.)
+    - droid       # Top-tier with Claude/GPT/Gemini models
     - opencode    # Free models (GLM-4.7, Grok Code Fast)
     - amp         # $10/day free grant
     - gemini      # Good for frontend/UI
 
-  # Mode-specific model mappings
+  # Model overrides (applies across modes; free mode only accepts free-tier overrides)
   modeModels:
-    free:
-      simple: glm-4.7
-      medium: amp-free
-      complex: gemini-3-flash
-      expert: glm-4.7  # Escalate to cheap mode if fails
-    cheap:
-      simple: haiku-4.5
-      medium: sonnet-4.5
-      complex: gpt-5.2-medium
-      expert: opus-4.5
-    good:
-      simple: sonnet-4.5
-      medium: sonnet-4.5
-      complex: opus-4.5
-      expert: opus-4.5
-    genius:
-      simple: opus-4.5
-      medium: opus-4.5
-      complex: opus-4.5
-      expert: opus-4.5
+    simple: haiku-4.5
+    medium: sonnet-4.5
+    complex: opus-4.5
+    expert: opus-4.5
 
   # Review configuration
   review:

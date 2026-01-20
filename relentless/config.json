@@ -1,5 +1,5 @@
 {
-  "defaultAgent": "claude",
+  "defaultAgent": "auto",
   "agents": {
     "claude": {
       "dangerouslyAllowAll": true
@@ -34,5 +34,49 @@
   },
   "prompt": {
     "path": "prompt.md"
+  },
+  "autoMode": {
+    "enabled": true,
+    "defaultMode": "good",
+    "fallbackOrder": [
+      "claude",
+      "codex",
+      "droid",
+      "opencode",
+      "amp",
+      "gemini"
+    ],
+    "modeModels": {
+      "simple": "haiku-4.5",
+      "medium": "sonnet-4.5",
+      "complex": "opus-4.5",
+      "expert": "opus-4.5"
+    },
+    "review": {
+      "promptUser": true,
+      "defaultMode": "good",
+      "microTasks": [
+        "typecheck",
+        "lint",
+        "test",
+        "security",
+        "quality",
+        "docs"
+      ],
+      "maxRetries": 3
+    },
+    "escalation": {
+      "enabled": true,
+      "maxAttempts": 3,
+      "escalationPath": {
+        "haiku-4.5": "sonnet-4.5",
+        "sonnet-4.5": "opus-4.5",
+        "gpt-5.2-low": "gpt-5.2-medium",
+        "gpt-5.2-medium": "gpt-5.2-high",
+        "gpt-5.2-high": "gpt-5.2-xhigh",
+        "grok-code-fast-1": "gpt-5.2-low",
+        "gemini-3-flash": "gemini-3-pro"
+      }
+    }
   }
 }

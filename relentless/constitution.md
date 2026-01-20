@@ -54,7 +54,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 - Routing decisions MUST be made at planning time, not runtime
 - Model/harness performance history MUST be tracked for future planning
 - Simple tasks MUST be routable to cheaper/free models when user opts in
-- Complex tasks and final reviews MUST use SOTA models (Opus 4.5, GPT-5-2, etc.)
+- Complex tasks and final reviews MUST use SOTA models (Opus 4.5, GPT-5.2, etc.)
 
 **SHOULD:**
 - Maintain a knowledge base of model/harness capabilities and strengths
@@ -109,7 +109,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 **MUST:**
 - Every feature MUST have a final review phase before completion
-- Review MUST be performed by SOTA model (Opus 4.5, GPT-5-2, or equivalent)
+- Review MUST be performed by SOTA model (Opus 4.5, GPT-5.2, or equivalent)
 - Review scope MUST adapt to feature size:
   - Small features: Full codebase review in single context
   - Large features: Multi-context review with summary aggregation

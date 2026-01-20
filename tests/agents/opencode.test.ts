@@ -38,8 +38,7 @@ function mockBunSpawn(): { capturedArgs: string[]; restore: () => void } {
   return {
     capturedArgs,
     restore: () => {
-      // @ts-expect-error - restoring Bun.spawn
-      Bun.spawn = originalSpawn;
+      (Bun as any).spawn = originalSpawn;
     },
   };
 }
@@ -54,7 +53,7 @@ describe("OpenCode Adapter", () => {
 
         // Verify --model and model value are in args
         expect(mock.capturedArgs).toContain("--model");
-        expect(mock.capturedArgs).toContain("glm-4.7");
+        expect(mock.capturedArgs).toContain("opencode/glm-4.7-free");
       } finally {
         mock.restore();
       }
@@ -95,7 +94,7 @@ describe("OpenCode Adapter", () => {
         });
 
         expect(mock.capturedArgs).toContain("--model");
-        expect(mock.capturedArgs).toContain("grok-code-fast-1");
+        expect(mock.capturedArgs).toContain("opencode/grok-code");
       } finally {
         mock.restore();
       }
@@ -108,7 +107,7 @@ describe("OpenCode Adapter", () => {
         await opencodeAdapter.invoke("test prompt", { model: "minimax-m2.1" });
 
         expect(mock.capturedArgs).toContain("--model");
-        expect(mock.capturedArgs).toContain("minimax-m2.1");
+        expect(mock.capturedArgs).toContain("opencode/minimax-m2.1-free");
       } finally {
         mock.restore();
       }
@@ -120,12 +119,15 @@ describe("OpenCode Adapter", () => {
       try {
         await opencodeAdapter.invoke("test prompt", { model: "glm-4.7" });
 
-        // Expected order: opencode, run, --model, glm-4.7, "test prompt"
+        // Expected order: opencode, run, --print-logs, --log-level, INFO, --model, opencode/glm-4.7-free, "test prompt"
         expect(mock.capturedArgs[0]).toBe("opencode");
         expect(mock.capturedArgs[1]).toBe("run");
-        expect(mock.capturedArgs[2]).toBe("--model");
-        expect(mock.capturedArgs[3]).toBe("glm-4.7");
-        expect(mock.capturedArgs[4]).toBe("test prompt");
+        expect(mock.capturedArgs[2]).toBe("--print-logs");
+        expect(mock.capturedArgs[3]).toBe("--log-level");
+        expect(mock.capturedArgs[4]).toBe("INFO");
+        expect(mock.capturedArgs[5]).toBe("--model");
+        expect(mock.capturedArgs[6]).toBe("opencode/glm-4.7-free");
+        expect(mock.capturedArgs[7]).toBe("test prompt");
       } finally {
         mock.restore();
       }
@@ -137,10 +139,13 @@ describe("OpenCode Adapter", () => {
       try {
         await opencodeAdapter.invoke("test prompt");
 
-        // Expected order: opencode, run, "test prompt"
+        // Expected order: opencode, run, --print-logs, --log-level, INFO, "test prompt"
         expect(mock.capturedArgs[0]).toBe("opencode");
         expect(mock.capturedArgs[1]).toBe("run");
-        expect(mock.capturedArgs[2]).toBe("test prompt");
+        expect(mock.capturedArgs[2]).toBe("--print-logs");
+        expect(mock.capturedArgs[3]).toBe("--log-level");
+        expect(mock.capturedArgs[4]).toBe("INFO");
+        expect(mock.capturedArgs[5]).toBe("test prompt");
       } finally {
         mock.restore();
       }
@@ -148,15 +153,20 @@ describe("OpenCode Adapter", () => {
 
     it("different models produce different command args", async () => {
       const models = ["glm-4.7", "grok-code-fast-1", "minimax-m2.1"];
+      const expectedCliValues = [
+        "opencode/glm-4.7-free",
+        "opencode/grok-code",
+        "opencode/minimax-m2.1-free",
+      ];
 
-      for (const model of models) {
+      for (const [index, model] of models.entries()) {
         const mock = mockBunSpawn();
 
         try {
           await opencodeAdapter.invoke("test prompt", { model });
 
           expect(mock.capturedArgs).toContain("--model");
-          expect(mock.capturedArgs).toContain(model);
+          expect(mock.capturedArgs).toContain(expectedCliValues[index]);
         } finally {
           mock.restore();
         }

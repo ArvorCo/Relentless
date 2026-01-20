@@ -917,49 +917,42 @@
         <div class="container">
             <h2 class="section-title">How It <span>Works</span></h2>
             <p class="section-subtitle">
-                Each iteration spawns a fresh agent with clean context. Memory persists through Git and tracking files.
+                A simplified 5-step SpecKit workflow. Tasks auto-convert to prd.json with smart routing.
             </p>
             <div class="steps-container">
                 <div class="step">
                     <div class="step-number">1</div>
                     <div class="step-content">
-                        <h3>Fresh Context</h3>
-                        <p>New agent instance spawned with clean context window. No accumulated confusion.</p>
+                        <h3>Specify</h3>
+                        <p>Describe your feature in natural language. Interactive clarification ensures nothing is missed.</p>
                     </div>
                 </div>
                 <div class="step">
                     <div class="step-number">2</div>
                     <div class="step-content">
-                        <h3>Load Constitution</h3>
-                        <p>Agent reads project coding principles and governance rules. Stays on track.</p>
+                        <h3>Plan</h3>
+                        <p>Generate technical implementation plan with architecture decisions and patterns.</p>
                     </div>
                 </div>
                 <div class="step">
                     <div class="step-number">3</div>
                     <div class="step-content">
-                        <h3>Find Next Story</h3>
-                        <p>Agent reads PRD, finds next incomplete story with all dependencies met.</p>
+                        <h3>Tasks</h3>
+                        <p>Create dependency-ordered user stories. Auto-converts to prd.json with smart routing.</p>
                     </div>
                 </div>
                 <div class="step">
                     <div class="step-number">4</div>
                     <div class="step-content">
-                        <h3>Implement & Commit</h3>
-                        <p>Agent implements the story, runs tests, commits changes to Git.</p>
+                        <h3>Analyze</h3>
+                        <p>Validate consistency across all artifacts. Catch issues before implementation.</p>
                     </div>
                 </div>
                 <div class="step">
                     <div class="step-number">5</div>
                     <div class="step-content">
-                        <h3>Update Progress</h3>
-                        <p>Sets passes: true for completed story. Adds learnings to progress.txt.</p>
-                    </div>
-                </div>
-                <div class="step">
-                    <div class="step-number">6</div>
-                    <div class="step-content">
-                        <h3>Loop Until Done</h3>
-                        <p>Process repeats until all stories pass. Memory persists via Git history.</p>
+                        <h3>Implement</h3>
+                        <p>AI agents build with TDD. Loop until done. Smart routing saves 50-75% on costs.</p>
                     </div>
                 </div>
             </div>
@@ -984,14 +977,14 @@
                     <p>Interactive specification, technical planning, task breakdown, and quality checklists. Full workflow support.</p>
                 </div>
                 <div class="roadmap-card">
-                    <span class="roadmap-status status-soon">Coming Soon</span>
+                    <span class="roadmap-status status-live">Live</span>
                     <h3>&#x1F9E0; Smart Model Routing</h3>
-                    <p>Automatically use cheaper/faster models (Haiku, GPT-4o-mini) for simple tasks. Save money without sacrificing quality.</p>
+                    <p>Automatically use cheaper/faster models (Haiku, Gemini Flash, GPT-5.2 low reasoning-effort) for simple tasks. Save 50-75% without sacrificing quality.</p>
                 </div>
                 <div class="roadmap-card">
-                    <span class="roadmap-status status-soon">Coming Soon</span>
+                    <span class="roadmap-status status-live">Live</span>
                     <h3>&#x1F4B0; Cost Optimization</h3>
-                    <p>Track costs per feature. Route tasks to the most cost-effective agent. Budget limits and alerts.</p>
+                    <p>Track costs per feature. Four cost modes (free, cheap, good, genius). Automatic escalation when needed.</p>
                 </div>
                 <div class="roadmap-card">
                     <span class="roadmap-status status-planned">Planned</span>
@@ -1035,12 +1028,13 @@
 <span class="command">relentless</span> init
 
 <span class="comment"># Create spec and run (Claude Code / Amp)</span>
+<span class="command">/relentless.constitution</span>         <span class="comment"># One-time setup</span>
 <span class="command">/relentless.specify</span> <span class="string">Add user authentication with OAuth2</span>
 <span class="command">/relentless.plan</span>
-<span class="command">/relentless.tasks</span>
+<span class="command">/relentless.tasks</span>                <span class="comment"># Auto-converts to prd.json!</span>
+<span class="command">/relentless.analyze</span>              <span class="comment"># Validate consistency</span>
 
-<span class="comment"># Convert and run with beautiful TUI</span>
-<span class="command">relentless</span> convert relentless/features/001-auth/tasks.md <span class="flag">--feature</span> <span class="string">001-auth</span>
+<span class="comment"># Run with beautiful TUI</span>
 <span class="command">relentless</span> run <span class="flag">--feature</span> <span class="string">001-auth</span> <span class="flag">--tui</span></code>
             </div>
 
@@ -1058,12 +1052,13 @@
 <span class="command">relentless</span> init
 
 <span class="comment"># Create spec and run (Claude Code / Amp)</span>
+<span class="command">/relentless.constitution</span>         <span class="comment"># One-time setup</span>
 <span class="command">/relentless.specify</span> <span class="string">Add user authentication with OAuth2</span>
 <span class="command">/relentless.plan</span>
-<span class="command">/relentless.tasks</span>
+<span class="command">/relentless.tasks</span>                <span class="comment"># Auto-converts to prd.json!</span>
+<span class="command">/relentless.analyze</span>              <span class="comment"># Validate consistency</span>
 
-<span class="comment"># Convert and run with beautiful TUI</span>
-<span class="command">relentless</span> convert relentless/features/001-auth/tasks.md <span class="flag">--feature</span> <span class="string">001-auth</span>
+<span class="comment"># Run with beautiful TUI</span>
 <span class="command">relentless</span> run <span class="flag">--feature</span> <span class="string">001-auth</span> <span class="flag">--tui</span></code>
             </div>
 

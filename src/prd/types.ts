@@ -159,6 +159,16 @@ export const PRDSchema = z.object({
   project: z.string(),
   branchName: z.string(),
   description: z.string(),
+  routingPreference: z
+    .object({
+      type: z.enum(["auto", "harness"]).optional(),
+      mode: ModeSchema.optional(),
+      allowFree: z.boolean().optional(),
+      harness: HarnessNameSchema.optional(),
+      model: z.string().optional(),
+      raw: z.string().optional(),
+    })
+    .optional(),
   userStories: z.array(UserStorySchema),
 });
 

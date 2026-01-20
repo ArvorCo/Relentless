@@ -50,11 +50,11 @@ describe("Droid Adapter", () => {
       const mock = mockBunSpawn();
 
       try {
-        await droidAdapter.invoke("test prompt", { model: "glm-4.6" });
+        await droidAdapter.invoke("test prompt", { model: "gpt-5.2" });
 
         // Verify -m and model value are in args
         expect(mock.capturedArgs).toContain("-m");
-        expect(mock.capturedArgs).toContain("glm-4.6");
+        expect(mock.capturedArgs).toContain("gpt-5.2");
       } finally {
         mock.restore();
       }
@@ -86,40 +86,40 @@ describe("Droid Adapter", () => {
       }
     });
 
-    it("includes -m with gemini-2.0-flash model", async () => {
+    it("includes -m with gemini-3-pro-preview model", async () => {
       const mock = mockBunSpawn();
 
       try {
-        await droidAdapter.invoke("test prompt", { model: "gemini-2.0-flash" });
+        await droidAdapter.invoke("test prompt", { model: "gemini-3-pro-preview" });
 
         expect(mock.capturedArgs).toContain("-m");
-        expect(mock.capturedArgs).toContain("gemini-2.0-flash");
+        expect(mock.capturedArgs).toContain("gemini-3-pro-preview");
       } finally {
         mock.restore();
       }
     });
 
-    it("includes -m with claude-3-5-sonnet model", async () => {
+    it("includes -m with claude-sonnet-4-5-20250929 model", async () => {
       const mock = mockBunSpawn();
 
       try {
-        await droidAdapter.invoke("test prompt", { model: "claude-3-5-sonnet" });
+        await droidAdapter.invoke("test prompt", { model: "claude-sonnet-4-5-20250929" });
 
         expect(mock.capturedArgs).toContain("-m");
-        expect(mock.capturedArgs).toContain("claude-3-5-sonnet");
+        expect(mock.capturedArgs).toContain("claude-sonnet-4-5-20250929");
       } finally {
         mock.restore();
       }
     });
 
-    it("includes -m with gpt-4o model", async () => {
+    it("includes -m with gpt-5.1-codex model", async () => {
       const mock = mockBunSpawn();
 
       try {
-        await droidAdapter.invoke("test prompt", { model: "gpt-4o" });
+        await droidAdapter.invoke("test prompt", { model: "gpt-5.1-codex" });
 
         expect(mock.capturedArgs).toContain("-m");
-        expect(mock.capturedArgs).toContain("gpt-4o");
+        expect(mock.capturedArgs).toContain("gpt-5.1-codex");
       } finally {
         mock.restore();
       }
@@ -129,13 +129,13 @@ describe("Droid Adapter", () => {
       const mock = mockBunSpawn();
 
       try {
-        await droidAdapter.invoke("test prompt", { model: "glm-4.6" });
+        await droidAdapter.invoke("test prompt", { model: "gpt-5.2" });
 
-        // Expected order: droid, exec, -m, glm-4.6, --auto, high
+        // Expected order: droid, exec, -m, gpt-5.2, --auto, high
         expect(mock.capturedArgs[0]).toBe("droid");
         expect(mock.capturedArgs[1]).toBe("exec");
         expect(mock.capturedArgs[2]).toBe("-m");
-        expect(mock.capturedArgs[3]).toBe("glm-4.6");
+        expect(mock.capturedArgs[3]).toBe("gpt-5.2");
         expect(mock.capturedArgs[4]).toBe("--auto");
         expect(mock.capturedArgs[5]).toBe("high");
       } finally {
@@ -163,7 +163,7 @@ describe("Droid Adapter", () => {
       const mock = mockBunSpawn();
 
       try {
-        await droidAdapter.invoke("test prompt", { model: "glm-4.6" });
+        await droidAdapter.invoke("test prompt", { model: "gpt-5.2" });
 
         // Verify -m is used, NOT --model
         expect(mock.capturedArgs).toContain("-m");
@@ -221,6 +221,13 @@ describe("Droid Adapter", () => {
 
     it("detects rate limit from too many requests message", () => {
       const output = "Too many requests. Please wait and retry.";
+      const result = droidAdapter.detectRateLimit(output);
+      expect(result.limited).toBe(true);
+    });
+
+    it("detects MCP initialization failures", () => {
+      const output =
+        "[exec] MCP start failed; continuing without MCP tools: [McpService] Error reloading MCP servers";
       const result = droidAdapter.detectRateLimit(output);
       expect(result.limited).toBe(true);
     });

@@ -9,12 +9,46 @@ Create detailed technical plans that translate feature specifications into imple
 
 ---
 
+## SpecKit Workflow
+
+This skill is **Step 2 of 6** in the Relentless workflow:
+
+specify → **plan** → tasks → convert → analyze → implement
+
+What flows from spec:
+- User requirements → technical approach
+- Routing preference → carried forward
+- Acceptance criteria → test specifications
+
+What flows to tasks:
+- Technical approach → implementation breakdown
+- Test specifications → TDD acceptance criteria
+
+---
+
+## TDD is MANDATORY
+
+The technical plan MUST include concrete test specifications:
+- **Test file locations** (where tests will live)
+- **Test class/function names** (what to create)
+- **Mock/fixture requirements** (what test data needed)
+- **Coverage targets** per component
+
+**The agent MUST write tests BEFORE implementation code.**
+
+This is non-negotiable. Plans without test specifications are incomplete.
+
+---
+
 ## The Job
 
 1. Read the feature specification (`spec.md`)
-2. Read project constitution for technical constraints
-3. Generate technical architecture and implementation plan
-4. Save to `plan.md` in the feature directory
+2. **Extract and validate routing preference (Step 2)**
+3. Read project constitution for technical constraints
+4. Generate technical architecture and implementation plan
+5. **Include complete test specifications**
+6. **Validate against quality gates**
+7. Save to `plan.md` in the feature directory
 
 ---
 
@@ -27,16 +61,34 @@ Find the current feature directory:
 
 ---
 
-## Step 2: Load Context
+## Step 2: Extract Routing Preference
+
+1. Read `spec.md` and extract routing preference
+2. If missing, DEFAULT to: `auto: good | allow free: yes`
+3. Validate format is correct
+4. Carry forward to plan.md metadata
+5. Update progress.txt with routing decision
+
+Example:
+```
+Spec says: **Routing Preference**: auto: genius | allow free: no
+Plan carries: **Routing Preference**: auto: genius | allow free: no
+```
+
+---
+
+## Step 3: Load Context
 
 Read these files:
 1. **relentless/constitution.md** - Project governance and technical standards
 2. **relentless/features/NNN-feature/spec.md** - Feature requirements
 3. Project README or docs for tech stack information
 
+Note all MUST and SHOULD rules from constitution - these are quality gates.
+
 ---
 
-## Step 3: Generate Technical Plan
+## Step 4: Generate Technical Plan
 
 Using the template at `templates/plan.md`, create a plan with:
 
@@ -46,6 +98,7 @@ Using the template at `templates/plan.md`, create a plan with:
 - Architecture approach
 - Key technologies to use (from constitution/existing stack)
 - Integration points
+- Routing preference carried from spec (auto mode or harness/model)
 
 **2. Data Models**
 - Database schemas
@@ -64,11 +117,12 @@ Using the template at `templates/plan.md`, create a plan with:
 - Dependencies between components
 - Integration approach
 
-**5. Testing Strategy**
-- Unit test approach
-- Integration test scenarios
-- E2E test cases
-- Test data requirements
+**5. Test Specifications (MANDATORY)**
+- Test file structure
+- Unit test table (component → test file → functions)
+- Integration test table (flow → test file → scenarios)
+- Mock requirements
+- Coverage targets (minimum 80%)
 
 **6. Security Considerations**
 - Authentication/authorization
@@ -84,24 +138,37 @@ Using the template at `templates/plan.md`, create a plan with:
 
 ---
 
-## Step 4: Ensure Constitution Compliance
+## Step 5: Ensure Constitution Compliance
 
 Validate the plan against constitution:
-- **MUST** rules: Required, plan must follow these
-- **SHOULD** rules: Best practices, document any deviations
+
+### Quality Gates Check
+
+Before completing the plan, validate:
+- [ ] **TDD approach defined** - test specs with file locations
+- [ ] **Quality commands identified** - typecheck, lint, test
+- [ ] **Routing preference carried** from spec
+- [ ] **All MUST rules** from constitution addressed
+- [ ] **No `any` types** planned in TypeScript
+- [ ] **Error handling strategy** defined
+
+**MUST** rules: Required, plan must follow these
+**SHOULD** rules: Best practices, document any deviations
 
 If plan violates MUST rules, revise until compliant.
 
 ---
 
-## Step 5: Save & Report
+## Step 6: Save & Report
 
 1. Save plan to `relentless/features/NNN-feature/plan.md`
-2. Update progress.txt with plan creation timestamp
+2. Update progress.txt with plan creation timestamp and routing info
 3. Report:
    - Plan location
    - Key technical decisions
+   - Test specifications summary
    - Constitution compliance: PASS/FAIL
+   - Routing preference: [carried value]
    - Next step: `/relentless.tasks`
 
 ---
@@ -110,6 +177,8 @@ If plan violates MUST rules, revise until compliant.
 
 ```markdown
 # Technical Implementation Plan: User Authentication
+
+**Routing Preference**: auto: good | allow free: yes
 
 ## Technical Overview
 
@@ -153,20 +222,58 @@ CREATE INDEX idx_users_email ON users(email);
 }
 \`\`\`
 
-## Testing Strategy
+## Test Specifications (MANDATORY)
 
-**Unit Tests:**
-- Password hashing utility
-- Email validation
-- Token generation/verification
+### Test File Structure
+\`\`\`
+tests/
+├── unit/
+│   ├── auth/
+│   │   ├── password.test.ts
+│   │   └── email-validation.test.ts
+│   └── token/
+│       └── jwt.test.ts
+├── integration/
+│   └── auth/
+│       ├── register.test.ts
+│       └── login.test.ts
+└── e2e/
+    └── auth-flow.test.ts
+\`\`\`
 
-**Integration Tests:**
-- Full registration flow
-- Email sending
-- Database operations
+### Unit Tests
+| Component | Test File | Functions to Test |
+|-----------|-----------|-------------------|
+| Password | `tests/unit/auth/password.test.ts` | hashPassword, verifyPassword |
+| Email | `tests/unit/auth/email-validation.test.ts` | validateEmail |
+| JWT | `tests/unit/token/jwt.test.ts` | generateToken, verifyToken |
 
-**E2E Tests:**
-- Complete user journey from signup to login
+### Integration Tests
+| Flow | Test File | Scenarios |
+|------|-----------|-----------|
+| Register | `tests/integration/auth/register.test.ts` | success, duplicate email, invalid input |
+| Login | `tests/integration/auth/login.test.ts` | success, wrong password, unconfirmed |
+
+### Mock Requirements
+- Database mock (in-memory or test container)
+- Email service mock (no actual sends)
+- Time mock for token expiration tests
+
+### Coverage Targets
+- Unit: 90% minimum (critical auth code)
+- Integration: All happy paths + error paths
+- E2E: Complete registration and login flow
+
+## Constitution Compliance
+
+**MUST Rules Checked:**
+- [x] TDD is mandatory - test specs defined above
+- [x] Quality gates defined - typecheck, lint, test commands
+- [x] Routing preference carried from spec
+- [x] No `any` types planned
+- [x] Error handling strategy defined
+
+**If any MUST rule cannot be satisfied, document the exception and remediation plan.**
 ```
 
 ---
@@ -177,3 +284,5 @@ CREATE INDEX idx_users_email ON users(email);
 - Include specific technologies and patterns
 - Must comply with constitution
 - Detailed enough for task generation
+- **Test specifications are mandatory** - no tests = incomplete plan
+- **Routing preference must be carried forward** from spec

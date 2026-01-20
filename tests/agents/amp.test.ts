@@ -3,46 +3,37 @@
  *
  * Tests for US-007: Add Model Selection Support to Amp Adapter
  *
- * Amp uses the AMP_MODE environment variable for model/mode selection,
- * unlike other adapters which use CLI flags.
+ * Amp uses the -m CLI flag for mode selection and -x for execute mode.
  *
  * @module tests/agents/amp.test.ts
  */
 
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { ampAdapter } from "../../src/agents/amp";
 
 /**
- * Mock for Bun.spawn that captures spawn options including environment variables
+ * Mock for Bun.spawn that captures spawn options
  */
 interface SpawnCapture {
   capturedArgs: string[];
-  capturedEnv: Record<string, string | undefined> | undefined;
   capturedOptions: {
     cwd?: string;
-    env?: Record<string, string | undefined>;
   };
   restore: () => void;
 }
 
 /**
- * Mock Bun.spawn to capture CLI arguments and environment variables
+ * Mock Bun.spawn to capture CLI arguments
  */
 function mockBunSpawn(): SpawnCapture {
   const capturedArgs: string[] = [];
-  let capturedEnv: Record<string, string | undefined> | undefined;
   const capturedOptions: SpawnCapture["capturedOptions"] = {};
   const originalSpawn = Bun.spawn;
 
   // @ts-expect-error - mocking Bun.spawn
-  Bun.spawn = (
-    args: string[],
-    options?: { cwd?: string; env?: Record<string, string | undefined> }
-  ) => {
+  Bun.spawn = (args: string[], options?: { cwd?: string }) => {
     capturedArgs.push(...args);
-    capturedEnv = options?.env;
     capturedOptions.cwd = options?.cwd;
-    capturedOptions.env = options?.env;
 
     return {
       stdout: new ReadableStream({
@@ -62,9 +53,6 @@ function mockBunSpawn(): SpawnCapture {
 
   return {
     capturedArgs,
-    get capturedEnv() {
-      return capturedEnv;
-    },
     capturedOptions,
     restore: () => {
       // @ts-expect-error - restoring Bun.spawn
@@ -74,95 +62,53 @@ function mockBunSpawn(): SpawnCapture {
 }
 
 describe("Amp Adapter", () => {
-  describe("invoke() model selection via AMP_MODE environment variable", () => {
-    it("sets AMP_MODE environment variable when options.model is provided", async () => {
+  describe("invoke() model selection via -m flag", () => {
+    it("adds -m flag when options.model is provided", async () => {
       const mock = mockBunSpawn();
 
       try {
         await ampAdapter.invoke("test prompt", { model: "free" });
 
-        // Verify AMP_MODE is set in the environment
-        expect(mock.capturedEnv).toBeDefined();
-        expect(mock.capturedEnv?.AMP_MODE).toBe("free");
+        // Verify -m and value are in args
+        expect(mock.capturedArgs).toContain("-m");
+        expect(mock.capturedArgs).toContain("free");
       } finally {
         mock.restore();
       }
     });
 
-    it("does NOT set AMP_MODE when options.model is undefined", async () => {
+    it("does NOT add -m when options.model is undefined", async () => {
       const mock = mockBunSpawn();
 
       try {
         await ampAdapter.invoke("test prompt");
 
-        // When no model specified, env should not contain AMP_MODE
-        // (or env object may be undefined/not include AMP_MODE)
-        if (mock.capturedEnv) {
-          expect(mock.capturedEnv.AMP_MODE).toBeUndefined();
-        }
+        expect(mock.capturedArgs).not.toContain("-m");
       } finally {
         mock.restore();
       }
     });
 
-    it("does NOT set AMP_MODE when options is undefined", async () => {
+    it("does NOT add -m when options is undefined", async () => {
       const mock = mockBunSpawn();
 
       try {
         await ampAdapter.invoke("test prompt", undefined);
 
-        // When options undefined, should not have AMP_MODE
-        if (mock.capturedEnv) {
-          expect(mock.capturedEnv.AMP_MODE).toBeUndefined();
-        }
+        expect(mock.capturedArgs).not.toContain("-m");
       } finally {
         mock.restore();
       }
     });
 
-    it("sets AMP_MODE=smart when model is 'smart'", async () => {
+    it("adds -m smart when model is 'smart'", async () => {
       const mock = mockBunSpawn();
 
       try {
         await ampAdapter.invoke("test prompt", { model: "smart" });
 
-        expect(mock.capturedEnv).toBeDefined();
-        expect(mock.capturedEnv?.AMP_MODE).toBe("smart");
-      } finally {
-        mock.restore();
-      }
-    });
-
-    it("preserves existing environment variables when setting AMP_MODE", async () => {
-      const mock = mockBunSpawn();
-
-      // Verify that process.env values are preserved
-      const hasPath = process.env.PATH !== undefined;
-
-      try {
-        await ampAdapter.invoke("test prompt", { model: "free" });
-
-        expect(mock.capturedEnv).toBeDefined();
-        // AMP_MODE should be set
-        expect(mock.capturedEnv?.AMP_MODE).toBe("free");
-        // PATH should be preserved from process.env
-        if (hasPath) {
-          expect(mock.capturedEnv?.PATH).toBe(process.env.PATH);
-        }
-      } finally {
-        mock.restore();
-      }
-    });
-
-    it("environment variable is passed to Bun.spawn via env option", async () => {
-      const mock = mockBunSpawn();
-
-      try {
-        await ampAdapter.invoke("test prompt", { model: "free" });
-
-        // The env option should be passed to spawn
-        expect(mock.capturedOptions.env).toBeDefined();
-        expect(mock.capturedOptions.env?.AMP_MODE).toBe("free");
+        expect(mock.capturedArgs).toContain("-m");
+        expect(mock.capturedArgs).toContain("smart");
       } finally {
         mock.restore();
       }
@@ -177,8 +123,8 @@ describe("Amp Adapter", () => {
         try {
           await ampAdapter.invoke("test prompt", { model: mode });
 
-          expect(mock.capturedEnv).toBeDefined();
-          expect(mock.capturedEnv?.AMP_MODE).toBe(mode);
+          expect(mock.capturedArgs).toContain("-m");
+          expect(mock.capturedArgs).toContain(mode);
         } finally {
           mock.restore();
         }
@@ -207,6 +153,18 @@ describe("Amp Adapter", () => {
         await ampAdapter.invoke("test prompt", { dangerouslyAllowAll: true });
 
         expect(mock.capturedArgs).toContain("--dangerously-allow-all");
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it("includes -x execute flag for non-interactive prompt", async () => {
+      const mock = mockBunSpawn();
+
+      try {
+        await ampAdapter.invoke("test prompt");
+
+        expect(mock.capturedArgs).toContain("-x");
       } finally {
         mock.restore();
       }
@@ -286,6 +244,18 @@ describe("Amp Adapter", () => {
 
     it("detects rate limit from too many requests message", () => {
       const output = "Error: too many requests";
+      const result = ampAdapter.detectRateLimit(output);
+      expect(result.limited).toBe(true);
+    });
+
+    it("detects execute mode not permitted message", () => {
+      const output = "Error: Execute mode is not permitted with --mode 'free'";
+      const result = ampAdapter.detectRateLimit(output);
+      expect(result.limited).toBe(true);
+    });
+
+    it("detects amp CLI internal errors", () => {
+      const output = "Error: Unexpected error inside Amp CLI.";
       const result = ampAdapter.detectRateLimit(output);
       expect(result.limited).toBe(true);
     });

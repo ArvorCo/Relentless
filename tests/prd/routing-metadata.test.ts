@@ -51,7 +51,7 @@ describe("US-026: PRD.json Schema Extension for Routing Metadata", () => {
       const routingWithoutReasoning = {
         complexity: "complex",
         harness: "codex",
-        model: "gpt-5-2-high",
+        model: "gpt-5.2-high",
         mode: "good",
         estimatedCost: 0.45,
       };
@@ -192,7 +192,7 @@ describe("US-026: PRD.json Schema Extension for Routing Metadata", () => {
       const attempt = {
         attempt: 1,
         harness: "codex",
-        model: "gpt-5-2-high",
+        model: "gpt-5.2-high",
         result: "rate_limited",
         error: "429: Too many requests",
         cost: 0.01,
@@ -587,6 +587,33 @@ describe("US-026: PRD.json Schema Extension for Routing Metadata", () => {
       expect(result.success).toBe(true);
     });
 
+    it("should accept routingPreference at the PRD level", () => {
+      const prd = {
+        project: "Routing Pref Test",
+        branchName: "feature/routing-pref",
+        description: "Test routing preference",
+        routingPreference: {
+          type: "auto",
+          mode: "cheap",
+          allowFree: false,
+        },
+        userStories: [
+          {
+            id: "US-001",
+            title: "Story 1",
+            description: "First story",
+            acceptanceCriteria: ["AC1"],
+            priority: 1,
+            passes: false,
+            notes: "",
+          },
+        ],
+      };
+
+      const result = PRDSchema.safeParse(prd);
+      expect(result.success).toBe(true);
+    });
+
     it("should preserve routing metadata when parsing and re-serializing", () => {
       const prd = {
         project: "Routing Test",
@@ -604,7 +631,7 @@ describe("US-026: PRD.json Schema Extension for Routing Metadata", () => {
             routing: {
               complexity: "complex",
               harness: "codex",
-              model: "gpt-5-2-high",
+              model: "gpt-5.2-high",
               mode: "good",
               estimatedCost: 0.45,
               classificationReasoning: "Security-related task",

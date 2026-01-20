@@ -9,13 +9,13 @@
  * - `smart` - Smart mode (uses Amp's intelligent model selection)
  *
  * ## Model Selection Method
- * Amp uses the `AMP_MODE` environment variable for mode selection,
- * unlike other adapters which use CLI flags.
+ * Amp uses the `-m`/`--mode` CLI flag for mode selection.
+ * Amp uses `-x`/`--execute` to run a single prompt non-interactively.
  *
  * ## Usage Example
  * ```typescript
  * const result = await ampAdapter.invoke("Fix the bug", {
- *   model: "free",  // Sets AMP_MODE=free environment variable
+ *   model: "free",  // Uses -m free
  *   workingDirectory: "/path/to/project"
  * });
  * ```
@@ -24,6 +24,8 @@
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
+import { getModelById } from "../routing/registry";
+import { runCommand } from "./exec";
 
 export const ampAdapter: AgentAdapter = {
   name: "amp",
@@ -55,49 +57,41 @@ export const ampAdapter: AgentAdapter = {
   },
 
   async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
-    const startTime = Date.now();
     const args: string[] = [];
 
     if (options?.dangerouslyAllowAll) {
       args.push("--dangerously-allow-all");
     }
 
-    // Build spawn options with environment variables
-    const spawnOptions: {
-      cwd?: string;
-      stdin: Blob;
-      stdout: "pipe";
-      stderr: "pipe";
-      env?: Record<string, string | undefined>;
-    } = {
-      cwd: options?.workingDirectory,
-      stdin: new Blob([prompt]),
-      stdout: "pipe",
-      stderr: "pipe",
-    };
-
-    // Set AMP_MODE environment variable if model is provided
-    // Amp uses environment variable instead of CLI flag for mode selection
+    // Add mode flag if model is provided
     if (options?.model) {
-      spawnOptions.env = {
-        ...process.env,
-        AMP_MODE: options.model,
-      };
+      const modelProfile = getModelById(options.model);
+      const modeValue =
+        modelProfile?.harness === "amp" ? modelProfile.cliValue : options.model;
+      const modeFlag =
+        modelProfile?.harness === "amp" ? modelProfile.cliFlag : "-m";
+      args.push(modeFlag, modeValue);
     }
 
-    const proc = Bun.spawn(["amp", ...args], spawnOptions);
+    // Execute single prompt in non-interactive mode
+    args.push("-x");
 
-    // Collect output
-    const stdout = await new Response(proc.stdout).text();
-    const stderr = await new Response(proc.stderr).text();
-    const exitCode = await proc.exited;
+    const result = await runCommand(["amp", ...args], {
+      cwd: options?.workingDirectory,
+      stdin: new Blob([prompt]),
+      timeoutMs: options?.timeout,
+    });
 
-    const output = stdout + (stderr ? `\n${stderr}` : "");
-    const duration = Date.now() - startTime;
+    const timeoutNote =
+      result.timedOut && options?.timeout
+        ? `\n[Relentless] Idle timeout after ${options.timeout}ms.`
+        : "";
+    const output = result.stdout + (result.stderr ? `\n${result.stderr}` : "") + timeoutNote;
+    const duration = result.duration;
 
     return {
       output,
-      exitCode,
+      exitCode: result.exitCode,
       isComplete: this.detectCompletion(output),
       duration,
     };
@@ -108,12 +102,22 @@ export const ampAdapter: AgentAdapter = {
   },
 
   detectRateLimit(output: string): RateLimitInfo {
+    if (output.includes("[Relentless] Idle timeout")) {
+      return {
+        limited: true,
+        message: "Amp idle timeout",
+      };
+    }
+
     // Amp rate limit patterns
     const patterns = [
       /quota exceeded/i,
       /limit reached/i,
       /rate limit/i,
       /too many requests/i,
+      /execute mode is not permitted/i,
+      /unexpected error inside amp cli/i,
+      /amp threads share --support/i,
     ];
 
     for (const pattern of patterns) {

@@ -15,7 +15,8 @@
 
 import { z } from "zod";
 import type { HarnessName, AutoModeConfig, Mode, Complexity } from "../config/schema";
-import { getModelsByHarness } from "./registry";
+import { DEFAULT_CONFIG } from "../config/schema";
+import { getModelById, getModelsByHarness } from "./registry";
 import { MODE_MODEL_MATRIX } from "./router";
 
 /**
@@ -85,9 +86,9 @@ export type FallbackEvent = z.infer<typeof FallbackEventSchema>;
 const HARNESS_ENV_VARS: Partial<Record<HarnessName, string>> = {
   claude: "ANTHROPIC_API_KEY",
   codex: "OPENAI_API_KEY",
+  droid: "FACTORY_API_KEY",
   gemini: "GOOGLE_API_KEY",
   // amp can work without API key in free mode
-  // droid uses free models (glm-4.6), no API key required
   // opencode uses free models, no API key required
 };
 
@@ -96,9 +97,7 @@ const HARNESS_ENV_VARS: Partial<Record<HarnessName, string>> = {
  */
 const FREE_TIER_HARNESSES: Set<HarnessName> = new Set([
   "opencode", // glm-4.7, grok-code-fast-1, minimax-m2.1
-  "amp", // amp-free mode
-  "droid", // glm-4.6 is free
-  "gemini", // gemini-3-flash is free/cheap
+  // gemini requires API key and has paid tiers
 ]);
 
 /**
@@ -416,7 +415,7 @@ export async function selectHarnessWithFallback(
     }
 
     // Harness available - get model
-    const model = getModelForHarnessAndMode(harness, mode, complexity);
+    const model = getModelForHarnessAndMode(harness, mode, complexity, config);
 
     return {
       harness,
@@ -447,10 +446,21 @@ export async function selectHarnessWithFallback(
 export function getModelForHarnessAndMode(
   harness: HarnessName,
   mode: Mode,
-  complexity: Complexity
+  complexity: Complexity,
+  config?: AutoModeConfig
 ): string {
   // Use MODE_MODEL_MATRIX to get the default routing
   const rule = MODE_MODEL_MATRIX[mode][complexity];
+
+  if (config && hasCustomModeModels(config)) {
+    const overrideModel = config.modeModels[complexity];
+    const overrideProfile = getModelById(overrideModel);
+    if (overrideProfile && overrideProfile.harness === harness) {
+      if (mode !== "free" || overrideProfile.tier === "free") {
+        return overrideModel;
+      }
+    }
+  }
 
   // If the matrix specifies this harness, use its model
   if (rule.harness === harness) {
@@ -489,4 +499,14 @@ export function getModelForHarnessAndMode(
 
   // Default to first available model
   return models[0].id;
+}
+
+function hasCustomModeModels(config: AutoModeConfig): boolean {
+  const defaults = DEFAULT_CONFIG.autoMode.modeModels;
+  return (
+    config.modeModels.simple !== defaults.simple ||
+    config.modeModels.medium !== defaults.medium ||
+    config.modeModels.complex !== defaults.complex ||
+    config.modeModels.expert !== defaults.expert
+  );
 }

@@ -9,9 +9,9 @@
  * - `gemini-3-flash` - Gemini 3 Flash (faster, more cost-effective for simpler tasks)
  *
  * ## CLI Command Format
- * With model: `gemini --model <model> "<prompt>"`
- * Without model: `gemini "<prompt>"`
- * With dangerous mode: `gemini --yolo --model <model> "<prompt>"`
+ * With model: `gemini --model <model> --prompt "<prompt>"`
+ * Without model: `gemini --prompt "<prompt>"`
+ * With dangerous mode: `gemini --yolo --model <model> --prompt "<prompt>"`
  *
  * ## Usage Example
  * ```typescript
@@ -26,6 +26,8 @@
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
+import { getModelById } from "../routing/registry";
+import { runCommand } from "./exec";
 
 export const geminiAdapter: AgentAdapter = {
   name: "gemini",
@@ -57,7 +59,6 @@ export const geminiAdapter: AgentAdapter = {
   },
 
   async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
-    const startTime = Date.now();
     const args: string[] = [];
 
     if (options?.dangerouslyAllowAll) {
@@ -65,29 +66,35 @@ export const geminiAdapter: AgentAdapter = {
     }
 
     if (options?.model) {
-      args.push("--model", options.model);
+      const modelProfile = getModelById(options.model);
+      if (modelProfile?.harness === "gemini") {
+        args.push("--model", modelProfile.cliValue);
+        if (modelProfile.cliArgs) {
+          args.push(...modelProfile.cliArgs);
+        }
+      } else {
+        args.push("--model", options.model);
+      }
     }
 
-    // Gemini CLI accepts prompt as positional argument
-    args.push(prompt);
+    // Gemini CLI uses -p/--prompt for non-interactive prompts
+    args.push("--prompt", prompt);
 
-    const proc = Bun.spawn(["gemini", ...args], {
+    const result = await runCommand(["gemini", ...args], {
       cwd: options?.workingDirectory,
-      stdout: "pipe",
-      stderr: "pipe",
+      timeoutMs: options?.timeout,
     });
 
-    // Collect output
-    const stdout = await new Response(proc.stdout).text();
-    const stderr = await new Response(proc.stderr).text();
-    const exitCode = await proc.exited;
-
-    const output = stdout + (stderr ? `\n${stderr}` : "");
-    const duration = Date.now() - startTime;
+    const timeoutNote =
+      result.timedOut && options?.timeout
+        ? `\n[Relentless] Idle timeout after ${options.timeout}ms.`
+        : "";
+    const output = result.stdout + (result.stderr ? `\n${result.stderr}` : "") + timeoutNote;
+    const duration = result.duration;
 
     return {
       output,
-      exitCode,
+      exitCode: result.exitCode,
       isComplete: this.detectCompletion(output),
       duration,
     };
@@ -98,6 +105,13 @@ export const geminiAdapter: AgentAdapter = {
   },
 
   detectRateLimit(output: string): RateLimitInfo {
+    if (output.includes("[Relentless] Idle timeout")) {
+      return {
+        limited: true,
+        message: "Gemini idle timeout",
+      };
+    }
+
     // Gemini rate limit patterns
     const patterns = [
       /quota exceeded/i,
@@ -105,6 +119,15 @@ export const geminiAdapter: AgentAdapter = {
       /rate limit/i,
       /\b429\b/,
       /too many requests/i,
+      /operation not permitted/i,
+      /\beperm\b/i,
+      /error initializing chat recording service/i,
+      /err_module_not_found/i,
+      /cannot find package/i,
+      /data collection is disabled/i,
+      /gemini_api_key/i,
+      /google_genai_use_vertexai/i,
+      /google_genai_use_gca/i,
     ];
 
     for (const pattern of patterns) {

@@ -50,11 +50,13 @@ describe("Codex Adapter", () => {
       const mock = mockBunSpawn();
 
       try {
-        await codexAdapter.invoke("test prompt", { model: "gpt-5-2-high" });
+        await codexAdapter.invoke("test prompt", { model: "gpt-5.2-high" });
 
         // Verify --model and model value are in args
         expect(mock.capturedArgs).toContain("--model");
-        expect(mock.capturedArgs).toContain("gpt-5-2-high");
+        expect(mock.capturedArgs).toContain("gpt-5.2");
+        expect(mock.capturedArgs).toContain("-c");
+        expect(mock.capturedArgs).toContain("reasoning_effort=\"high\"");
       } finally {
         mock.restore();
       }
@@ -86,44 +88,65 @@ describe("Codex Adapter", () => {
       }
     });
 
-    it("includes --model with gpt-5-2-medium model", async () => {
+    it("includes --model with gpt-5.2-medium model", async () => {
       const mock = mockBunSpawn();
 
       try {
-        await codexAdapter.invoke("test prompt", { model: "gpt-5-2-medium" });
+        await codexAdapter.invoke("test prompt", { model: "gpt-5.2-medium" });
 
         expect(mock.capturedArgs).toContain("--model");
-        expect(mock.capturedArgs).toContain("gpt-5-2-medium");
+        expect(mock.capturedArgs).toContain("gpt-5.2");
+        expect(mock.capturedArgs).toContain("-c");
+        expect(mock.capturedArgs).toContain("reasoning_effort=\"medium\"");
       } finally {
         mock.restore();
       }
     });
 
-    it("includes --model with gpt-5-2-low model", async () => {
+    it("includes --model with gpt-5.2-low model", async () => {
       const mock = mockBunSpawn();
 
       try {
-        await codexAdapter.invoke("test prompt", { model: "gpt-5-2-low" });
+        await codexAdapter.invoke("test prompt", { model: "gpt-5.2-low" });
 
         expect(mock.capturedArgs).toContain("--model");
-        expect(mock.capturedArgs).toContain("gpt-5-2-low");
+        expect(mock.capturedArgs).toContain("gpt-5.2");
+        expect(mock.capturedArgs).toContain("-c");
+        expect(mock.capturedArgs).toContain("reasoning_effort=\"low\"");
       } finally {
         mock.restore();
       }
     });
 
-    it("argument order is correct: codex exec --model <model> -", async () => {
+    it("includes --model with gpt-5.2-xhigh model", async () => {
       const mock = mockBunSpawn();
 
       try {
-        await codexAdapter.invoke("test prompt", { model: "gpt-5-2-high" });
+        await codexAdapter.invoke("test prompt", { model: "gpt-5.2-xhigh" });
 
-        // Expected order: codex, exec, --model, gpt-5-2-high, -
+        expect(mock.capturedArgs).toContain("--model");
+        expect(mock.capturedArgs).toContain("gpt-5.2");
+        expect(mock.capturedArgs).toContain("-c");
+        expect(mock.capturedArgs).toContain("reasoning_effort=\"xhigh\"");
+      } finally {
+        mock.restore();
+      }
+    });
+
+    it("argument order is correct: codex exec --model gpt-5.2 -c reasoning_effort=\"<tier>\" -", async () => {
+      const mock = mockBunSpawn();
+
+      try {
+        await codexAdapter.invoke("test prompt", { model: "gpt-5.2-high" });
+
+        // Expected order: codex, exec, --model, gpt-5.2, -c, reasoning_effort="high", -
         expect(mock.capturedArgs[0]).toBe("codex");
         expect(mock.capturedArgs[1]).toBe("exec");
         expect(mock.capturedArgs[2]).toBe("--model");
-        expect(mock.capturedArgs[3]).toBe("gpt-5-2-high");
-        expect(mock.capturedArgs[4]).toBe("-");
+        expect(mock.capturedArgs[3]).toBe("gpt-5.2");
+        expect(mock.capturedArgs[4]).toBe("-c");
+        expect(mock.capturedArgs[5]).toBe("reasoning_effort=\"high\"");
+        expect(mock.capturedArgs[6]).toBe("-");
       } finally {
         mock.restore();
       }
@@ -192,6 +215,13 @@ describe("Codex Adapter", () => {
 
     it("detects rate limit from too many requests message", () => {
       const output = "Too many requests. Please wait and retry.";
+      const result = codexAdapter.detectRateLimit(output);
+      expect(result.limited).toBe(true);
+    });
+
+    it("detects session permission errors", () => {
+      const output =
+        "Error: Fatal error: Codex cannot access session files at /Users/test/.codex/sessions (permission denied).";
       const result = codexAdapter.detectRateLimit(output);
       expect(result.limited).toBe(true);
     });
