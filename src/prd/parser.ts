@@ -81,7 +81,17 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
     }
 
     // Parse section headers (## Section)
+    // This ends the current story (if any) and starts a new section
     if (trimmed.startsWith("## ")) {
+      // Save current story before switching sections
+      if (currentStory && currentStory.id) {
+        if (descriptionLines.length > 0 && !currentStory.description) {
+          currentStory.description = descriptionLines.join(" ").trim();
+        }
+        prd.userStories!.push(currentStory as UserStory);
+        currentStory = null;
+        descriptionLines = [];
+      }
       currentSection = trimmed.replace("## ", "").toLowerCase();
       inAcceptanceCriteria = false;
       continue;
@@ -134,13 +144,17 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
     }
 
     // Parse dependencies (Dependencies: US-001, US-002)
+    // Extracts only valid story IDs (US-XXX pattern), ignoring annotations like "(foundational)"
     if (currentStory && trimmed.match(/^\*\*Dependencies:?\*\*/i)) {
-      const deps = trimmed
-        .replace(/^\*\*Dependencies:?\*\*/i, "")
-        .trim()
+      const depsText = trimmed.replace(/^\*\*Dependencies:?\*\*/i, "").trim();
+      const deps = depsText
         .split(/[,;]/)
-        .map((d) => d.trim())
-        .filter((d) => d && !["none", "n/a", "-", "na"].includes(d.toLowerCase()));
+        .map((d) => {
+          // Extract US-XXX pattern from strings like "US-001 (authentication must work first)"
+          const match = d.match(/US-\d+/i);
+          return match ? match[0].toUpperCase() : null;
+        })
+        .filter((d): d is string => d !== null);
       if (deps.length > 0) {
         currentStory.dependencies = deps;
       }
