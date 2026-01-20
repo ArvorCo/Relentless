@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0] - 2026-01-20
+## [0.4.3] - 2026-01-20
+
+### Fixed
+- **Parser**: Extract only valid story IDs (US-XXX) from dependency annotations (#4 - thanks @aruj0!)
+  - `"US-001 (auth must work first)"` now correctly extracts `US-001`
+  - `"None (foundational)"` and `"Phase 5"` no longer cause errors
+- **Parser**: Section boundary fix prevents content from `## Implementation Tasks` bleeding into last story
+
+### Changed
+- **Constitution v2.1.0**: Added SpecKit Workflow as Principle 1 (now 16 principles total)
+- **SpecKit Workflow**: Added user interview/feedback step for better requirement gathering
+- **Skills updated**: plan, tasks, specify, checklist - improved TDD and workflow guidance
+- **README**: Revised for clarity and updated command examples
+- **prompt.md**: Refreshed with template version tracking and improved structure
+
+### Documentation
+- Constitution now includes template version header for upgrade tracking
+- Added explicit 6-step workflow documentation: specify → plan → tasks → convert → analyze → implement
+
+## [0.4.2] - 2026-01-20
 
 ### Major Features
 
@@ -392,7 +411,9 @@ Relentless evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) 
 - **License**: MIT
 - **Inspiration**: [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) by Geoffrey Huntley
 
-[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/ArvorCo/Relentless/compare/v0.4.2...v0.4.3
+[0.4.2]: https://github.com/ArvorCo/Relentless/compare/v0.4.0...v0.4.2
 [0.4.0]: https://github.com/ArvorCo/Relentless/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ArvorCo/Relentless/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ArvorCo/Relentless/compare/v0.1.27...v0.2.0
