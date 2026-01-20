@@ -13,7 +13,7 @@ Create detailed technical plans that translate feature specifications into imple
 
 This skill is **Step 2 of 6** in the Relentless workflow:
 
-specify → **plan** → tasks → convert → analyze → implement
+specify → **plan** → tasks → analyze → implement
 
 What flows from spec:
 - User requirements → technical approach
@@ -157,6 +157,8 @@ Before completing the plan, validate:
 
 If plan violates MUST rules, revise until compliant.
 
+If plan generates any doubts, interview the user about them with insightful questions to improve the plan.
+
 ---
 
 ## Step 6: Save & Report
@@ -284,5 +286,6 @@ tests/
 - Include specific technologies and patterns
 - Must comply with constitution
 - Detailed enough for task generation
+- Interview user if you have any doubts or suggestions
 - **Test specifications are mandatory** - no tests = incomplete plan
 - **Routing preference must be carried forward** from spec
