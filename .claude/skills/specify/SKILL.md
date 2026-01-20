@@ -13,7 +13,7 @@ Create structured feature specifications from natural language descriptions.
 
 This skill is **Step 1 of 6** in the Relentless workflow:
 
-**specify** → plan → tasks → convert → analyze → implement
+**specify** → plan → tasks → analyze → implement (task by task) or relentless run --feature [FEATURE NAME] --tui
 
 What flows to next step:
 - User requirements → plan will create technical approach
@@ -140,11 +140,12 @@ Using the template at `templates/spec.md`, create a specification with:
 ## Step 4: Handle Ambiguities
 
 If aspects are unclear:
-- Make informed guesses based on context
+- Interview the user first with questions to clarify any doubts, concerns or about his opinion on eventual ideas to improve the feature.
 - Only mark `[NEEDS CLARIFICATION: specific question]` if:
   - Choice significantly impacts scope or UX
   - Multiple reasonable interpretations exist
   - No reasonable default exists
+  - Question not already solved by interview
 - **LIMIT: Maximum 3 clarifications**
 
 If clarifications needed, present to user:
