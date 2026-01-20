@@ -187,6 +187,34 @@ await cleanup();
 - `.claude/commands/relentless.*.md` - Command wrappers
 - `docs/` - Additional documentation (Gemini setup, etc.)
 
+### Auto Mode (Smart Routing) Module
+
+The Auto Mode feature provides intelligent task-to-model routing:
+
+**Routing Module (`src/routing/`):**
+- `classifier.ts` - Hybrid complexity classifier (heuristic + LLM fallback)
+- `router.ts` - Mode-Model matrix router (free/cheap/good/genius × complexity)
+- `cascade.ts` - Escalation logic (automatic retry with more capable models)
+- `fallback.ts` - Harness fallback (rate limit handling, availability checks)
+- `estimate.ts` - Cost estimation (per-story and feature-level)
+- `report.ts` - Cost reporting (actual vs estimated, model utilization)
+- `registry.ts` - Model registry (capabilities, pricing, harness mapping)
+
+**CLI Flags (`src/cli/`):**
+- `mode-flag.ts` - `--mode` flag parsing (free/cheap/good/genius)
+- `fallback-order.ts` - `--fallback-order` flag parsing
+- `review-flags.ts` - `--skip-review` and `--review-mode` flags
+
+**Review Module (`src/review/`):**
+- `types.ts` - Review schemas (micro-tasks, fix tasks, summary)
+- Review micro-tasks: typecheck, lint, test, security, quality, docs
+
+**Testing Patterns:**
+- Unit tests: `tests/routing/*.test.ts` (267 tests, 96.98% coverage)
+- Integration tests: `tests/integration/auto-mode.test.ts` (33 tests)
+- Use `createMockAdapter()` for deterministic testing
+- Use `createTestPRD()` fixture for mixed complexity tasks
+
 ### Documentation Guidelines
 
 **Root Directory:**

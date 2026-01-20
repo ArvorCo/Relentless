@@ -54,13 +54,28 @@ export async function loadConfig(configPath?: string): Promise<RelentlessConfig>
 
   if (!path) {
     console.warn(`No relentless/${CONFIG_FILENAME} found, using defaults`);
-    return DEFAULT_CONFIG;
+    const config = { ...DEFAULT_CONFIG };
+    const timeoutOverride = process.env.RELENTLESS_EXECUTION_TIMEOUT_MS;
+    if (timeoutOverride) {
+      const parsed = Number.parseInt(timeoutOverride, 10);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        config.execution.timeout = parsed;
+      }
+    }
+    return config;
   }
 
   try {
     const content = await Bun.file(path).text();
     const json = JSON.parse(content);
     const validated = RelentlessConfigSchema.parse(json);
+    const timeoutOverride = process.env.RELENTLESS_EXECUTION_TIMEOUT_MS;
+    if (timeoutOverride) {
+      const parsed = Number.parseInt(timeoutOverride, 10);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        validated.execution.timeout = parsed;
+      }
+    }
     return validated;
   } catch (error) {
     if (error instanceof SyntaxError) {

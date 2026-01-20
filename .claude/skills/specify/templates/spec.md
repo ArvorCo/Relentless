@@ -1,9 +1,11 @@
 # Feature Specification: [FEATURE NAME]
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
-**Status**: Draft  
+**Feature Branch**: `[###-feature-name]`
+**Created**: [DATE]
+**Status**: Draft
 **Input**: User description: "$ARGUMENTS"
+**Routing Preference**: auto: good | allow free: yes
+<!-- Options: auto: free|cheap|good|genius | allow free: yes|no | OR specific: harness/model -->
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -11,13 +13,16 @@
   IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
   Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
   you should still have a viable MVP (Minimum Viable Product) that delivers value.
-  
+
   Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
   Think of each story as a standalone slice of functionality that can be:
   - Developed independently
   - Tested independently
   - Deployed independently
   - Demonstrated to users independently
+
+  TDD REQUIREMENT: All acceptance scenarios MUST be in Given/When/Then format
+  to enable direct test implementation.
 -->
 
 ### User Story 1 - [Brief Title] (Priority: P1)
@@ -70,6 +75,7 @@
 <!--
   ACTION REQUIRED: The content in this section represents placeholders.
   Fill them out with the right edge cases.
+  Edge cases are critical for TDD - they define boundary conditions to test.
 -->
 
 - What happens when [boundary condition]?
@@ -80,12 +86,13 @@
 <!--
   ACTION REQUIRED: The content in this section represents placeholders.
   Fill them out with the right functional requirements.
+  Each requirement must be TESTABLE - ask "how would I verify this?"
 -->
 
 ### Functional Requirements
 
 - **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
+- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]
 - **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
@@ -99,6 +106,34 @@
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
+
+## Test Strategy (MANDATORY)
+
+<!--
+  TDD REQUIREMENT: This section is mandatory and must be completed before implementation.
+  Tests are written BEFORE implementation code in Relentless.
+-->
+
+### Unit Test Approach
+
+- [Business logic to test - e.g., "validation functions", "calculations", "transformations"]
+- [Data processing to test - e.g., "parsers", "formatters", "serializers"]
+
+### Integration Test Scenarios
+
+- [API flow to test - e.g., "full registration flow", "checkout process"]
+- [Data flow to test - e.g., "database operations", "cache interactions"]
+
+### Edge Case Tests
+
+- [Boundary condition - e.g., "empty input", "maximum length"]
+- [Error condition - e.g., "network failure", "invalid format"]
+- [Race condition - e.g., "concurrent requests", "duplicate submissions"]
+
+### Test Data Requirements
+
+- [Fixtures needed - e.g., "sample users", "mock responses"]
+- [Edge case data - e.g., "unicode strings", "very long inputs"]
 
 ## Success Criteria *(mandatory)*
 

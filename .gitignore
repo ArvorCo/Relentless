@@ -34,3 +34,7 @@ coverage/
 .factory/
 .gemini/
 .opencode/
+
+# Tool artifacts
+.serena/
+*.bak

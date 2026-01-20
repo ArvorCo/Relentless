@@ -1,11 +1,31 @@
 /**
  * Amp Agent Adapter
  *
- * Adapter for Sourcegraph's Amp CLI
+ * Adapter for Sourcegraph's Amp CLI with model/mode selection support.
  * https://ampcode.com
+ *
+ * ## Supported Modes
+ * - `free` - Free tier mode ($10/day grant, may have rate limits)
+ * - `smart` - Smart mode (uses Amp's intelligent model selection)
+ *
+ * ## Model Selection Method
+ * Amp uses the `-m`/`--mode` CLI flag for mode selection.
+ * Amp uses `-x`/`--execute` to run a single prompt non-interactively.
+ *
+ * ## Usage Example
+ * ```typescript
+ * const result = await ampAdapter.invoke("Fix the bug", {
+ *   model: "free",  // Uses -m free
+ *   workingDirectory: "/path/to/project"
+ * });
+ * ```
+ *
+ * @module agents/amp
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
+import { getModelById } from "../routing/registry";
+import { runCommand } from "./exec";
 
 export const ampAdapter: AgentAdapter = {
   name: "amp",
@@ -37,31 +57,41 @@ export const ampAdapter: AgentAdapter = {
   },
 
   async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
-    const startTime = Date.now();
     const args: string[] = [];
 
     if (options?.dangerouslyAllowAll) {
       args.push("--dangerously-allow-all");
     }
 
-    const proc = Bun.spawn(["amp", ...args], {
+    // Add mode flag if model is provided
+    if (options?.model) {
+      const modelProfile = getModelById(options.model);
+      const modeValue =
+        modelProfile?.harness === "amp" ? modelProfile.cliValue : options.model;
+      const modeFlag =
+        modelProfile?.harness === "amp" ? modelProfile.cliFlag : "-m";
+      args.push(modeFlag, modeValue);
+    }
+
+    // Execute single prompt in non-interactive mode
+    args.push("-x");
+
+    const result = await runCommand(["amp", ...args], {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
-      stdout: "pipe",
-      stderr: "pipe",
+      timeoutMs: options?.timeout,
     });
 
-    // Collect output
-    const stdout = await new Response(proc.stdout).text();
-    const stderr = await new Response(proc.stderr).text();
-    const exitCode = await proc.exited;
-
-    const output = stdout + (stderr ? `\n${stderr}` : "");
-    const duration = Date.now() - startTime;
+    const timeoutNote =
+      result.timedOut && options?.timeout
+        ? `\n[Relentless] Idle timeout after ${options.timeout}ms.`
+        : "";
+    const output = result.stdout + (result.stderr ? `\n${result.stderr}` : "") + timeoutNote;
+    const duration = result.duration;
 
     return {
       output,
-      exitCode,
+      exitCode: result.exitCode,
       isComplete: this.detectCompletion(output),
       duration,
     };
@@ -72,12 +102,22 @@ export const ampAdapter: AgentAdapter = {
   },
 
   detectRateLimit(output: string): RateLimitInfo {
+    if (output.includes("[Relentless] Idle timeout")) {
+      return {
+        limited: true,
+        message: "Amp idle timeout",
+      };
+    }
+
     // Amp rate limit patterns
     const patterns = [
       /quota exceeded/i,
       /limit reached/i,
       /rate limit/i,
       /too many requests/i,
+      /execute mode is not permitted/i,
+      /unexpected error inside amp cli/i,
+      /amp threads share --support/i,
     ];
 
     for (const pattern of patterns) {

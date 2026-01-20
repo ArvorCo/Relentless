@@ -9,10 +9,42 @@ Systematically identify and resolve ambiguities in feature specifications.
 
 ---
 
+## SpecKit Workflow
+
+Clarify can be invoked at any stage when ambiguities arise:
+
+specify ↔ **clarify** ↔ plan ↔ **clarify** ↔ tasks
+
+The skill helps resolve ambiguities that could affect:
+- **Test design** (unclear acceptance criteria)
+- **Routing decisions** (unclear complexity)
+- **Implementation choices** (unclear requirements)
+
+---
+
+## Testability Requirements
+
+When clarifying requirements, ensure answers are:
+- **Specific enough to write tests against**
+- **Measurable** (can verify with automated tests)
+- **Unambiguous** (no multiple interpretations)
+
+### Good vs Bad Clarifications
+
+| Bad (vague) | Good (testable) |
+|-------------|-----------------|
+| "How should validation work?" | "Should email validation reject 'user@localhost'?" |
+| "What about error handling?" | "Should invalid password show 'Invalid credentials' or 'Password too short'?" |
+| "How secure should it be?" | "Should we require 2FA for admin users?" |
+
+**Every clarification should result in a testable requirement.**
+
+---
+
 ## The Job
 
 1. Read spec.md
-2. Scan for 9 types of ambiguities
+2. Scan for 10 types of ambiguities (including testability)
 3. Present clarification questions to user
 4. Update spec with answers
 5. Save clarification log
@@ -27,7 +59,7 @@ Read `relentless/features/NNN-feature/spec.md`
 
 ## Step 2: Scan for Ambiguities
 
-Check for these 9 types:
+Check for these 10 types:
 
 **1. Behavioral Ambiguities**
 - What happens when [action]?
@@ -75,6 +107,24 @@ Check for these 9 types:
 - Race conditions?
 - Example: "What if two users register with same email simultaneously?"
 
+**10. Testability Ambiguities (NEW)**
+- Are acceptance criteria specific enough to test?
+- What edge cases need test coverage?
+- What test data/fixtures are required?
+- What should unit vs integration tests cover?
+- Example: "Should we test with unicode characters in email addresses?"
+
+---
+
+## Optional: Clarify Routing Preference
+
+If routing preference is unclear or missing from spec, ask:
+- "Is this feature simple, medium, complex, or expert-level?"
+- "Should it use free/cheap/good/genius models?"
+- "Any specific AI model requirements?"
+
+Record the answer and update spec.md metadata.
+
 ---
 
 ## Step 3: Present Questions
@@ -88,10 +138,12 @@ For each ambiguity found (max 5 most critical):
 
 **What we need to know:** [Specific question]
 
+**Testability Impact:** [How this affects test design]
+
 **Options:**
-A. [Option 1] - [Implications]
-B. [Option 2] - [Implications]
-C. [Option 3] - [Implications]
+A. [Option 1] - [Implications + how to test]
+B. [Option 2] - [Implications + how to test]
+C. [Option 3] - [Implications + how to test]
 D. Custom - [Your answer]
 
 **Your choice:** _
@@ -105,6 +157,7 @@ After receiving answers:
 1. Update spec.md with clarifications
 2. Remove `[NEEDS CLARIFICATION]` markers
 3. Add concrete details based on answers
+4. **Ensure updated requirements are testable (Given/When/Then)**
 
 ---
 
@@ -120,6 +173,7 @@ Create `relentless/features/NNN-feature/clarification-log.md`:
 **Question:** [Question]
 **Answer:** [User's choice]
 **Updated Sections:** [List spec sections updated]
+**Test Impact:** [What tests can now be written]
 
 ## Q2: [Topic] - DEFERRED
 **Date:** 2026-01-11
@@ -138,10 +192,12 @@ Create `relentless/features/NNN-feature/clarification-log.md`:
 
 **What we need to know:** What are the specific password requirements?
 
+**Testability Impact:** Need exact rules to write validation tests.
+
 **Options:**
-A. Basic (min 8 characters) - Simple, user-friendly
-B. Moderate (min 8 chars + number + symbol) - Balanced security
-C. Strict (min 12 chars + number + symbol + upper/lower) - High security
+A. Basic (min 8 characters) - Simple, user-friendly. Test: reject 7 chars, accept 8.
+B. Moderate (min 8 chars + number + symbol) - Balanced security. Test: reject "password", accept "Pass1!"
+C. Strict (min 12 chars + number + symbol + upper/lower) - High security. Test: comprehensive regex.
 D. Custom - Define your own rules
 
 **Your choice:** B
@@ -154,10 +210,12 @@ D. Custom - Define your own rules
 
 **What we need to know:** How should we handle repeated failed logins?
 
+**Testability Impact:** Need exact limits to write rate limiting tests.
+
 **Options:**
-A. No limit - Allow unlimited attempts
-B. Rate limit - Max 5 attempts per minute per IP
-C. Account lockout - Lock account after 5 failed attempts for 30 minutes
+A. No limit - Allow unlimited attempts. Test: N/A (no limit to test)
+B. Rate limit - Max 5 attempts per minute per IP. Test: 6th attempt in 60s fails.
+C. Account lockout - Lock account after 5 failed attempts for 30 minutes. Test: verify lockout and unlock timing.
 D. Custom - Define your own approach
 
 **Your choice:** C
@@ -172,3 +230,4 @@ D. Custom - Define your own approach
 - Some ambiguities can be deferred to implementation
 - Update spec immediately after clarification
 - Keep clarification log for future reference
+- **Every resolved ambiguity should enable writing tests**

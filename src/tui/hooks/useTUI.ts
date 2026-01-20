@@ -35,6 +35,7 @@ export function useTUI(options: UseTUIOptions): UseTUIReturn {
     agents: options.agents,
     outputLines: [],
     elapsedSeconds: 0,
+    idleSeconds: 0,
     isRunning: false,
     isComplete: false,
     error: undefined,

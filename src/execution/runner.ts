@@ -9,12 +9,13 @@ import { join, dirname } from "node:path";
 import chalk from "chalk";
 import type { AgentAdapter, AgentName } from "../agents/types";
 import { getAgent, getInstalledAgents } from "../agents/registry";
-import type { RelentlessConfig } from "../config/schema";
+import type { RelentlessConfig, Mode, Complexity, HarnessName } from "../config/schema";
 import { loadConstitution, validateConstitution } from "../config/loader";
-import { loadPRD, getNextStory, isComplete, countStories, markStoryAsSkipped } from "../prd";
-import type { UserStory } from "../prd/types";
+import { loadPRD, getNextStory, isComplete, countStories, markStoryAsSkipped, updateStoryExecution } from "../prd";
+import type { UserStory, EscalationAttempt } from "../prd/types";
 import { loadProgress, updateProgressMetadata, syncPatternsFromContent, appendProgress } from "../prd/progress";
-import { routeStory } from "./router";
+import { routeTask, type RoutingDecision } from "../routing/router";
+import { getModelForHarnessAndMode, getFreeModeHarnesses } from "../routing/fallback";
 import { buildStoryPromptAddition } from "./story-prompt";
 import { processQueue } from "../queue";
 import type { QueueProcessResult } from "../queue/types";
@@ -50,6 +51,14 @@ export interface RunOptions {
   dryRun: boolean;
   /** Configuration */
   config: RelentlessConfig;
+  /** Cost optimization mode */
+  mode?: "free" | "cheap" | "good" | "genius";
+  /** Harness fallback order */
+  fallbackOrder?: ("claude" | "codex" | "droid" | "opencode" | "amp" | "gemini")[];
+  /** Skip final review phase */
+  skipReview?: boolean;
+  /** Review quality mode (can differ from execution mode) */
+  reviewMode?: "free" | "cheap" | "good" | "genius";
 }
 
 export interface RunResult {
@@ -366,6 +375,32 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const startTime = Date.now();
   let iterations = 0;
   let storiesCompleted = 0;
+  const autoModeEnabled = options.agent === "auto";
+  const autoModeConfig = options.config.autoMode;
+  if (!existsSync(options.prdPath)) {
+    throw new Error(`PRD file not found: ${options.prdPath}`);
+  }
+  const prd = await loadPRD(options.prdPath);
+  const prdRoutingPreference = prd.routingPreference;
+  const preferredMode =
+    prdRoutingPreference?.type === "auto" ? prdRoutingPreference.mode : undefined;
+  const autoMode = options.mode ?? preferredMode ?? autoModeConfig.defaultMode;
+  const autoFallbackOrder = (options.fallbackOrder ?? autoModeConfig.fallbackOrder) as AgentName[];
+  const allowFree =
+    prdRoutingPreference?.type === "auto"
+      ? prdRoutingPreference.allowFree !== false
+      : true;
+  const filteredFallbackOrder =
+    allowFree || autoMode === "free"
+      ? autoFallbackOrder
+      : autoFallbackOrder.filter((h) => h !== "opencode");
+  const effectiveAutoFallbackOrder =
+    autoMode === "free"
+      ? (getFreeModeHarnesses(filteredFallbackOrder as HarnessName[]) as AgentName[])
+      : filteredFallbackOrder;
+  const fallbackPriority = autoModeEnabled
+    ? effectiveAutoFallbackOrder
+    : options.config.fallback.priority;
 
   // Track rate-limited agents
   const limitedAgents = new Map<AgentName, AgentLimitState>();
@@ -373,11 +408,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
   // Current active agent
   let _currentAgentName: AgentName | null = options.agent === "auto" ? null : options.agent;
 
-  // Load PRD
-  if (!existsSync(options.prdPath)) {
-    throw new Error(`PRD file not found: ${options.prdPath}`);
-  }
-  const prd = await loadPRD(options.prdPath);
+  // PRD already loaded above for routing preferences.
   const initialCount = countStories(prd);
 
   // Calculate progress.txt path
@@ -390,8 +421,13 @@ export async function run(options: RunOptions): Promise<RunResult> {
   console.log(`Stories: ${chalk.green(initialCount.completed)}/${initialCount.total} complete`);
   console.log(`Max iterations: ${chalk.yellow(options.maxIterations)}`);
 
+  if (autoModeEnabled && !autoModeConfig.enabled) {
+    console.log(chalk.yellow("Auto mode routing enabled via CLI even though config.autoMode.enabled is false."));
+  }
+
   if (options.config.fallback.enabled) {
-    console.log(`Fallback: ${chalk.green("enabled")} (${options.config.fallback.priority.join(" → ")})`);
+    const orderLabel = autoModeEnabled ? effectiveAutoFallbackOrder : options.config.fallback.priority;
+    console.log(`Fallback: ${chalk.green("enabled")} (${orderLabel.join(" → ")})`);
   }
 
   if (options.dryRun) {
@@ -420,22 +456,38 @@ export async function run(options: RunOptions): Promise<RunResult> {
 
     // Select agent
     let agent: AgentAdapter | null = null;
+    let autoRoutingDecision: RoutingDecision | null = null;
+    let autoRoutingModel: string | undefined;
 
     if (options.agent === "auto") {
-      // Smart routing
-      const routedName = routeStory(story, options.config.routing);
+      // Auto mode routing (mode/model matrix)
+      autoRoutingDecision = await routeTask(story, autoModeConfig, autoMode);
+      const prioritizedOrder: AgentName[] = [
+        autoRoutingDecision.harness,
+        ...effectiveAutoFallbackOrder.filter((name) => name !== autoRoutingDecision!.harness),
+      ];
+
       agent = await getNextAvailableAgent(
-        options.config.fallback.priority,
+        prioritizedOrder,
         limitedAgents,
-        routedName
+        autoRoutingDecision.harness
       );
       if (agent) {
         _currentAgentName = agent.name;
+        autoRoutingModel =
+          agent.name === autoRoutingDecision.harness
+            ? autoRoutingDecision.model
+            : getModelForHarnessAndMode(
+                agent.name as HarnessName,
+                autoMode as Mode,
+                autoRoutingDecision.complexity as Complexity,
+                autoModeConfig
+              );
       }
     } else if (options.config.fallback.enabled) {
       // Use fallback if enabled
       agent = await getNextAvailableAgent(
-        options.config.fallback.priority,
+        fallbackPriority,
         limitedAgents,
         options.agent
       );
@@ -487,6 +539,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
     console.log(chalk.bold(`  Agent: ${chalk.cyan(agent.displayName)}`));
     console.log(chalk.bold(`  Story: ${chalk.yellow(story.id)} - ${story.title}`));
     console.log(chalk.bold(`${"═".repeat(60)}\n`));
+
+    if (autoModeEnabled && autoRoutingDecision && autoRoutingModel) {
+      console.log(
+        chalk.dim(
+          `  Routing: ${autoMode}/${autoRoutingDecision.complexity} -> ${agent.name}/${autoRoutingModel}`
+        )
+      );
+    }
 
     // Process queue at start of iteration
     const featureDir = dirname(options.prdPath);
@@ -592,7 +652,15 @@ export async function run(options: RunOptions): Promise<RunResult> {
     }
 
     if (options.dryRun) {
-      console.log(chalk.dim("  [Dry run - skipping execution]"));
+      if (options.agent === "auto" && autoRoutingDecision && autoRoutingModel && agent) {
+        console.log(
+          chalk.dim(
+            `  [Dry run] Routing: ${autoMode}/${autoRoutingDecision.complexity} -> ${agent.name}/${autoRoutingModel}`
+          )
+        );
+      } else {
+        console.log(chalk.dim("  [Dry run - skipping execution]"));
+      }
       continue;
     }
 
@@ -622,7 +690,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
         const researchResult = await agent.invoke(researchPrompt, {
           workingDirectory: options.workingDirectory,
           dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,
-          model: options.config.agents[agent.name]?.model,
+          model: autoModeEnabled ? autoRoutingModel : options.config.agents[agent.name]?.model,
+          timeout: options.config.execution.timeout,
         });
 
         // Check for rate limit during research phase
@@ -635,12 +704,23 @@ export async function run(options: RunOptions): Promise<RunResult> {
           });
           if (options.config.fallback.enabled) {
             const fallbackAgent = await getNextAvailableAgent(
-              options.config.fallback.priority,
+              fallbackPriority,
               limitedAgents
             );
             if (fallbackAgent) {
               console.log(chalk.green(`  Switching to: ${fallbackAgent.displayName}`));
               _currentAgentName = fallbackAgent.name;
+              if (autoModeEnabled && autoRoutingDecision) {
+                autoRoutingModel =
+                  fallbackAgent.name === autoRoutingDecision.harness
+                    ? autoRoutingDecision.model
+                    : getModelForHarnessAndMode(
+                        fallbackAgent.name as HarnessName,
+                        autoMode as Mode,
+                        autoRoutingDecision.complexity as Complexity,
+                        autoModeConfig
+                      );
+              }
               await sleep(options.config.fallback.retryDelay);
               i--;
               continue;
@@ -671,7 +751,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
       const result = await agent.invoke(prompt, {
         workingDirectory: options.workingDirectory,
         dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,
-        model: options.config.agents[agent.name]?.model,
+        model: autoModeEnabled ? autoRoutingModel : options.config.agents[agent.name]?.model,
+        timeout: options.config.execution.timeout,
       });
 
       // Check for rate limit
@@ -692,13 +773,24 @@ export async function run(options: RunOptions): Promise<RunResult> {
         // Try to get fallback agent
         if (options.config.fallback.enabled) {
           const fallbackAgent = await getNextAvailableAgent(
-            options.config.fallback.priority,
+            fallbackPriority,
             limitedAgents
           );
 
           if (fallbackAgent) {
             console.log(chalk.green(`  Switching to: ${fallbackAgent.displayName}`));
             _currentAgentName = fallbackAgent.name;
+            if (autoModeEnabled && autoRoutingDecision) {
+              autoRoutingModel =
+                fallbackAgent.name === autoRoutingDecision.harness
+                  ? autoRoutingDecision.model
+                  : getModelForHarnessAndMode(
+                      fallbackAgent.name as HarnessName,
+                      autoMode as Mode,
+                      autoRoutingDecision.complexity as Complexity,
+                      autoModeConfig
+                    );
+            }
             // Wait before retry
             await sleep(options.config.fallback.retryDelay);
             i--; // Retry this iteration with new agent
@@ -738,8 +830,39 @@ export async function run(options: RunOptions): Promise<RunResult> {
       // Count completed stories
       const updatedPRD = await loadPRD(options.prdPath);
       const updatedCount = countStories(updatedPRD);
-      if (updatedCount.completed > initialCount.completed + storiesCompleted) {
+      const previousStoryCount = initialCount.completed + storiesCompleted;
+      if (updatedCount.completed > previousStoryCount) {
         storiesCompleted = updatedCount.completed - initialCount.completed;
+
+        // Save execution history for the completed story
+        if (story && agent) {
+          const executionAttempt: EscalationAttempt = {
+            attempt: 1,
+            harness: agent.name as HarnessName,
+            model: autoRoutingModel || options.config.agents[agent.name]?.model || "unknown",
+            result: "success",
+            cost: story.routing?.estimatedCost ?? 0, // Use estimated cost as proxy
+            duration: result.duration,
+          };
+
+          try {
+            await updateStoryExecution(options.prdPath, story.id, {
+              attempts: 1,
+              escalations: [executionAttempt],
+              actualCost: story.routing?.estimatedCost ?? 0,
+              actualHarness: agent.name as HarnessName,
+              actualModel: autoRoutingModel || options.config.agents[agent.name]?.model || "unknown",
+            });
+
+            // Log cost comparison if routing was used
+            if (story.routing?.estimatedCost !== undefined) {
+              const estimated = story.routing.estimatedCost;
+              console.log(chalk.dim(`  Cost: estimated $${estimated.toFixed(4)} (actual tracking pending)`));
+            }
+          } catch (execError) {
+            console.warn(chalk.yellow(`  ⚠️  Failed to save execution history: ${execError}`));
+          }
+        }
       }
 
       console.log(chalk.dim(`  Stories: ${updatedCount.completed}/${updatedCount.total} complete`));

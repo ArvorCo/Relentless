@@ -42,12 +42,21 @@ export interface TUIState {
   currentStory: Story | null;
   /** Current agent */
   currentAgent: AgentState | null;
+  /** Current routing decision (auto mode) */
+  currentRouting?: {
+    mode: "free" | "cheap" | "good" | "genius";
+    complexity: "simple" | "medium" | "complex" | "expert";
+    harness: AgentName;
+    model: string;
+  };
   /** All agents with their states */
   agents: AgentState[];
   /** Agent output lines */
   outputLines: string[];
   /** Elapsed time in seconds */
   elapsedSeconds: number;
+  /** Idle time in seconds since last output */
+  idleSeconds: number;
   /** Is running */
   isRunning: boolean;
   /** Is complete */

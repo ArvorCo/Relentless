@@ -1,11 +1,39 @@
 /**
  * Codex Agent Adapter
  *
- * Adapter for OpenAI's Codex CLI
+ * Adapter for OpenAI's Codex CLI.
  * https://developers.openai.com/codex/cli/
+ *
+ * ## Model Selection
+ *
+ * Codex supports model selection via the `--model` flag.
+ * Pass the model name in the `options.model` parameter.
+ *
+ * **Supported models (GPT-5.2 reasoning tiers):**
+ * - `gpt-5.2-xhigh` - reasoning-effort xhigh (~$1.75/$14 per MTok)
+ * - `gpt-5.2-high` - reasoning-effort high (~$1.75/$14 per MTok)
+ * - `gpt-5.2-medium` - reasoning-effort medium (~$1.25/$10 per MTok)
+ * - `gpt-5.2-low` - reasoning-effort low (~$0.75/$6 per MTok)
+ *
+ * These IDs map to `--model gpt-5.2 -c reasoning_effort="<tier>"` in the CLI.
+ *
+ * **CLI command format:**
+ * ```
+ * codex exec --model gpt-5.2 -c reasoning_effort="<low|medium|high|xhigh>" -
+ * ```
+ *
+ * @example
+ * ```typescript
+ * const result = await codexAdapter.invoke("Fix the bug", {
+ *   model: "gpt-5.2-high",
+ *   workingDirectory: "/path/to/project"
+ * });
+ * ```
  */
 
 import type { AgentAdapter, AgentResult, InvokeOptions, RateLimitInfo } from "./types";
+import { getModelById } from "../routing/registry";
+import { runCommand } from "./exec";
 
 export const codexAdapter: AgentAdapter = {
   name: "codex",
@@ -37,27 +65,40 @@ export const codexAdapter: AgentAdapter = {
   },
 
   async invoke(prompt: string, options?: InvokeOptions): Promise<AgentResult> {
-    const startTime = Date.now();
+    const args = ["exec"];
 
-    // Codex uses `codex exec -` to read from stdin
-    const proc = Bun.spawn(["codex", "exec", "-"], {
+    // Add model selection if specified
+    if (options?.model) {
+      const modelProfile = getModelById(options.model);
+      if (modelProfile?.harness === "codex") {
+        args.push(modelProfile.cliFlag, modelProfile.cliValue);
+        if (modelProfile.cliArgs) {
+          args.push(...modelProfile.cliArgs);
+        }
+      } else {
+        args.push("--model", options.model);
+      }
+    }
+
+    // Codex uses `-` to read from stdin
+    args.push("-");
+
+    const result = await runCommand(["codex", ...args], {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
-      stdout: "pipe",
-      stderr: "pipe",
+      timeoutMs: options?.timeout,
     });
 
-    // Collect output
-    const stdout = await new Response(proc.stdout).text();
-    const stderr = await new Response(proc.stderr).text();
-    const exitCode = await proc.exited;
-
-    const output = stdout + (stderr ? `\n${stderr}` : "");
-    const duration = Date.now() - startTime;
+    const timeoutNote =
+      result.timedOut && options?.timeout
+        ? `\n[Relentless] Idle timeout after ${options.timeout}ms.`
+        : "";
+    const output = result.stdout + (result.stderr ? `\n${result.stderr}` : "") + timeoutNote;
+    const duration = result.duration;
 
     return {
       output,
-      exitCode,
+      exitCode: result.exitCode,
       isComplete: this.detectCompletion(output),
       duration,
     };
@@ -68,6 +109,24 @@ export const codexAdapter: AgentAdapter = {
   },
 
   detectRateLimit(output: string): RateLimitInfo {
+    if (output.includes("[Relentless] Idle timeout")) {
+      return {
+        limited: true,
+        message: "Codex idle timeout",
+      };
+    }
+
+    if (
+      /cannot access session files/i.test(output) ||
+      /failed to create session/i.test(output) ||
+      /(permission denied|operation not permitted).*\/\.codex\/sessions/i.test(output)
+    ) {
+      return {
+        limited: true,
+        message: "Codex unavailable due to session permissions",
+      };
+    }
+
     // Codex/OpenAI rate limit patterns
     const patterns = [
       /rate limit exceeded/i,

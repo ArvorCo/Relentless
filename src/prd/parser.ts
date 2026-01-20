@@ -4,7 +4,8 @@
  * Parses PRD markdown files and converts them to prd.json format
  */
 
-import { PRDSchema, type PRD, type UserStory } from "./types";
+import { PRDSchema, type PRD, type UserStory, type ExecutionHistory, type EscalationAttempt } from "./types";
+import type { Mode, HarnessName } from "../config/schema";
 
 /**
  * Check if a criterion line is valid (not a file path, divider, etc.)
@@ -56,6 +57,26 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
     // Parse title (# PRD: Title or # Title)
     if (trimmed.startsWith("# ") && !trimmed.startsWith("## ") && !trimmed.startsWith("### ")) {
       prd.project = trimmed.replace(/^#\s*(PRD:\s*)?/, "").trim();
+      continue;
+    }
+
+    // Parse routing preference line
+    if (trimmed.match(/^(\*\*Routing Preference\*\*|Routing Preference):/i)) {
+      const raw = trimmed.replace(/^(\*\*Routing Preference\*\*|Routing Preference):/i, "").trim();
+      const lower = raw.toLowerCase();
+      const modeMatch = lower.match(/\b(free|cheap|good|genius)\b/);
+      const allowFreeMatch = lower.match(/allow\s+free:\s*(yes|no)/);
+      const harnessMatch = lower.match(/\b(claude|amp|opencode|codex|droid|gemini)\b/);
+      const modelMatch = raw.match(/\/([^\s]+)/);
+
+      prd.routingPreference = {
+        raw,
+        type: lower.includes("auto") ? "auto" : harnessMatch ? "harness" : undefined,
+        mode: modeMatch ? (modeMatch[1] as Mode) : undefined,
+        allowFree: allowFreeMatch ? allowFreeMatch[1] === "yes" : undefined,
+        harness: harnessMatch ? (harnessMatch[1] as HarnessName) : undefined,
+        model: modelMatch ? modelMatch[1].replace(/[,)]$/, "") : undefined,
+      };
       continue;
     }
 
@@ -258,6 +279,10 @@ export function createPRD(parsed: Partial<PRD>, featureName?: string): PRD {
     })),
   };
 
+  if (parsed.routingPreference) {
+    prd.routingPreference = parsed.routingPreference;
+  }
+
   // Validate
   return PRDSchema.parse(prd);
 }
@@ -417,5 +442,71 @@ export async function prioritizeStory(
   return {
     success: true,
     previousPriority,
+  };
+}
+
+/**
+ * Result of updating story execution history
+ */
+export interface UpdateExecutionResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Update a story's execution history after it completes
+ *
+ * @param prdPath - Path to the prd.json file
+ * @param storyId - The ID of the completed story
+ * @param executionData - Execution data to save
+ * @returns Result indicating success or failure
+ */
+export async function updateStoryExecution(
+  prdPath: string,
+  storyId: string,
+  executionData: {
+    attempts: number;
+    escalations: EscalationAttempt[];
+    actualCost: number;
+    actualHarness: HarnessName;
+    actualModel: string;
+    inputTokens?: number;
+    outputTokens?: number;
+  }
+): Promise<UpdateExecutionResult> {
+  // Load current PRD
+  const prd = await loadPRD(prdPath);
+
+  // Find the story
+  const storyIndex = prd.userStories.findIndex((s) => s.id === storyId);
+  if (storyIndex === -1) {
+    return {
+      success: false,
+      error: `Story ${storyId} not found in PRD`,
+    };
+  }
+
+  // Build execution history
+  const executionHistory: ExecutionHistory = {
+    attempts: executionData.attempts,
+    escalations: executionData.escalations,
+    actualCost: executionData.actualCost,
+    actualHarness: executionData.actualHarness,
+    actualModel: executionData.actualModel,
+    inputTokens: executionData.inputTokens,
+    outputTokens: executionData.outputTokens,
+  };
+
+  // Update the story with execution history
+  prd.userStories[storyIndex] = {
+    ...prd.userStories[storyIndex],
+    execution: executionHistory,
+  };
+
+  // Save the updated PRD
+  await savePRD(prd, prdPath);
+
+  return {
+    success: true,
   };
 }

@@ -16,7 +16,13 @@ import { loadConfig, findRelentlessDir } from "../src/config";
 import { loadPRD, savePRD, parsePRDMarkdown, createPRD, analyzeConsistency, formatReport, generateGitHubIssues } from "../src/prd";
 import { run } from "../src/execution/runner";
 import { runTUI } from "../src/tui/TUIRunner";
-import { initProject, createFeature, listFeatures, createProgressTemplate } from "../src/init/scaffolder";
+import { initProject, createFeature, listFeatures, createProgressTemplate, parseAutoModeFlags } from "../src/init/scaffolder";
+import { parseModeFlagValue, getModeHelpText, VALID_MODES, DEFAULT_MODE } from "../src/cli/mode-flag";
+import { parseFallbackOrderValue, getFallbackOrderHelpText, VALID_HARNESSES } from "../src/cli/fallback-order";
+import { parseReviewFlagsValue, getReviewFlagsHelpText, VALID_REVIEW_MODES } from "../src/cli/review-flags";
+import { estimateFeatureCost, formatCostEstimate, formatCostBreakdown, compareModes, formatModeComparison } from "../src/routing/estimate";
+import { loadHistoricalCosts } from "../src/routing/report";
+import { routeTask } from "../src/routing/router";
 
 // Read version from package.json dynamically
 const packageJson = await Bun.file(join(import.meta.dir, "..", "package.json")).json();
@@ -35,8 +41,14 @@ program
   .description("Initialize Relentless in the current project")
   .option("-d, --dir <path>", "Project directory", process.cwd())
   .option("-f, --force", "Force reinstall - overwrite existing files", false)
+  .option("-y, --yes", "Auto-accept defaults (enables Auto Mode with 'good' mode)", false)
+  .option("--no-auto-mode", "Disable Auto Mode without prompting", false)
   .action(async (options) => {
-    await initProject(options.dir, options.force);
+    const autoModeOptions = parseAutoModeFlags({
+      yes: options.yes,
+      noAutoMode: !options.autoMode, // Commander converts --no-auto-mode to autoMode: false
+    });
+    await initProject(options.dir, options.force, autoModeOptions);
   });
 
 // Run command
@@ -44,8 +56,12 @@ program
   .command("run")
   .description("Run the orchestration loop for a feature")
   .requiredOption("-f, --feature <name>", "Feature name to run")
-  .option("-a, --agent <name>", "Agent to use (claude, amp, opencode, codex, droid, gemini, auto)", "claude")
+  .option("-a, --agent <name>", "Agent to use (claude, amp, opencode, codex, droid, gemini, auto)", "auto")
   .option("-m, --max-iterations <n>", "Maximum iterations", "20")
+  .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`)
+  .option("--fallback-order <harnesses>", `Harness fallback order (${VALID_HARNESSES.join(",")})`)
+  .option("--skip-review", "Skip final review phase", false)
+  .option("--review-mode <mode>", `Review quality mode (${VALID_REVIEW_MODES.join(", ")})`)
   .option("--dry-run", "Show what would be executed without running", false)
   .option("--tui", "Use beautiful terminal UI interface", false)
   .option("-d, --dir <path>", "Working directory", process.cwd())
@@ -55,6 +71,34 @@ program
       console.error(chalk.red(`Invalid agent: ${agent}`));
       console.log(`Valid agents: ${getAllAgentNames().join(", ")}, auto`);
       process.exit(1);
+    }
+
+    // Validate --fallback-order flag
+    const fallbackResult = parseFallbackOrderValue(options.fallbackOrder);
+    if (!fallbackResult.valid) {
+      console.error(chalk.red(fallbackResult.error!));
+      console.log(chalk.dim(getFallbackOrderHelpText()));
+      process.exit(1);
+    }
+    const fallbackOrder = fallbackResult.order!;
+    if (fallbackResult.warning) {
+      console.log(chalk.yellow(`⚠️ ${fallbackResult.warning}`));
+    }
+
+    // Validate review flags (--skip-review and --review-mode)
+    const reviewResult = parseReviewFlagsValue({
+      skipReview: options.skipReview,
+      reviewMode: options.reviewMode,
+    });
+    if (!reviewResult.valid) {
+      console.error(chalk.red(reviewResult.error!));
+      console.log(chalk.dim(getReviewFlagsHelpText()));
+      process.exit(1);
+    }
+    const skipReview = reviewResult.skipReview!;
+    const reviewMode = reviewResult.reviewMode;
+    if (reviewResult.warningMessage && skipReview) {
+      console.log(chalk.yellow(`⚠️ ${reviewResult.warningMessage}`));
     }
 
     const relentlessDir = findRelentlessDir(options.dir);
@@ -86,6 +130,38 @@ program
     }
 
     const config = await loadConfig();
+    const prd = await loadPRD(prdPath);
+    const prdPreferredMode =
+      prd.routingPreference?.type === "auto" ? prd.routingPreference.mode : undefined;
+    const modeValue =
+      options.mode ?? prdPreferredMode ?? config.autoMode?.defaultMode ?? DEFAULT_MODE;
+    const modeResult = parseModeFlagValue(modeValue);
+    if (!modeResult.valid) {
+      console.error(chalk.red(modeResult.error!));
+      console.log(chalk.dim(getModeHelpText()));
+      process.exit(1);
+    }
+    const mode = modeResult.mode!;
+
+    // Display cost estimate before execution
+    if (config.autoMode?.enabled !== false) {
+      const estimate = await estimateFeatureCost(prd, config.autoMode || {}, mode);
+      console.log(chalk.cyan(`\n💰 ${formatCostEstimate(estimate)}`));
+      if (estimate.storyEstimates.length > 0 && estimate.storyEstimates.length <= 10) {
+        console.log(chalk.dim(formatCostBreakdown(estimate.storyEstimates)));
+      } else if (estimate.storyEstimates.length > 10) {
+        console.log(chalk.dim(`  ${estimate.storyEstimates.length} stories to estimate...`));
+      }
+    }
+
+    // Log mode and fallback order selection
+    console.log(chalk.dim(`Mode: ${mode}`));
+    if (options.fallbackOrder) {
+      console.log(chalk.dim(`Fallback order: ${fallbackOrder.join(" > ")}`));
+    }
+    if (!skipReview && reviewMode) {
+      console.log(chalk.dim(`Review mode: ${reviewMode}`));
+    }
 
     // Use TUI if requested
     if (options.tui) {
@@ -98,6 +174,10 @@ program
         feature: options.feature,
         config,
         dryRun: options.dryRun,
+        mode,
+        fallbackOrder,
+        skipReview,
+        reviewMode,
       });
       process.exit(success ? 0 : 1);
     }
@@ -111,6 +191,10 @@ program
       promptPath,
       dryRun: options.dryRun,
       config,
+      mode,
+      fallbackOrder,
+      skipReview,
+      reviewMode,
     });
 
     if (result.success) {
@@ -130,11 +214,13 @@ program
 // Convert command
 program
   .command("convert <tasksMd>")
-  .description("Convert tasks.md to prd.json, optionally merging checklist.md criteria")
+  .description("Convert tasks.md to prd.json with smart routing classification")
   .requiredOption("-f, --feature <name>", "Feature name")
   .option("-d, --dir <path>", "Project directory", process.cwd())
   .option("--auto-number", "Auto-number the feature directory (e.g., 001-feature-name)", false)
   .option("--with-checklist", "Merge checklist items into acceptance criteria", false)
+  .option("--skip-routing", "Skip automatic routing classification (not recommended)", false)
+  .option("--mode <mode>", `Cost optimization mode for routing (${VALID_MODES.join(", ")})`, "good")
   .action(async (tasksMd, options) => {
     if (!existsSync(tasksMd)) {
       console.error(chalk.red(`File not found: ${tasksMd}`));
@@ -192,6 +278,51 @@ program
 
     const prd = createPRD(parsed, finalFeatureName);
 
+    // ROUTING CLASSIFICATION (unless --skip-routing is set)
+    if (!options.skipRouting) {
+      // Validate mode
+      const modeResult = parseModeFlagValue(options.mode);
+      if (!modeResult.valid) {
+        console.error(chalk.red(modeResult.error!));
+        console.log(chalk.dim(getModeHelpText()));
+        process.exit(1);
+      }
+      const mode = modeResult.mode!;
+
+      // Load config for routing
+      const config = await loadConfig();
+      const autoModeConfig = config.autoMode || { enabled: true, defaultMode: mode };
+
+      // Use mode from routingPreference if present, otherwise use CLI flag
+      const routingMode = prd.routingPreference?.mode ?? mode;
+
+      console.log(chalk.dim(`\nClassifying ${prd.userStories.length} stories for routing (mode: ${routingMode})...`));
+
+      let totalEstimatedCost = 0;
+      for (const story of prd.userStories) {
+        const decision = await routeTask(story, autoModeConfig, routingMode);
+        story.routing = {
+          complexity: decision.complexity,
+          harness: decision.harness,
+          model: decision.model,
+          mode: decision.mode,
+          estimatedCost: decision.estimatedCost,
+          classificationReasoning: decision.reasoning,
+        };
+        totalEstimatedCost += decision.estimatedCost;
+
+        // Show per-story routing
+        const costStr = decision.estimatedCost === 0 ? "free" : `$${decision.estimatedCost.toFixed(4)}`;
+        console.log(chalk.dim(`  ${story.id}: ${decision.complexity} → ${decision.harness}/${decision.model} (${costStr})`));
+      }
+
+      // Show total estimated cost
+      const totalCostStr = totalEstimatedCost === 0 ? "free" : `$${totalEstimatedCost.toFixed(4)}`;
+      console.log(chalk.cyan(`\n💰 Total estimated cost: ${totalCostStr}`));
+    } else {
+      console.log(chalk.yellow("\n⚠️  Routing skipped (--skip-routing). Stories will not have routing metadata."));
+    }
+
     // Save prd.json to feature folder
     const prdJsonPath = join(featureDir, "prd.json");
     await savePRD(prd, prdJsonPath);
@@ -200,8 +331,11 @@ program
     const tasksMdPath = join(featureDir, "prd.md");
     await Bun.write(tasksMdPath, tasksContent);
 
-    console.log(chalk.green(`✅ Created relentless/features/${finalFeatureName}/`));
+    console.log(chalk.green(`\n✅ Created relentless/features/${finalFeatureName}/`));
     console.log(chalk.dim(`  prd.json - ${prd.userStories.length} stories`));
+    if (!options.skipRouting) {
+      console.log(chalk.dim(`  ✓ Routing metadata included`));
+    }
     console.log(chalk.dim(`  prd.md - from tasks.md`));
     console.log(chalk.dim(`  progress.txt - progress log`));
     if (options.withChecklist && existsSync(join(featureDir, "checklist.md"))) {
@@ -209,6 +343,10 @@ program
     }
     console.log(chalk.dim(`\nProject: ${prd.project}`));
     console.log(chalk.dim(`Branch: ${prd.branchName}`));
+
+    // Suggest next step
+    console.log(chalk.dim(`\nNext step:`));
+    console.log(chalk.cyan(`  relentless run --feature ${finalFeatureName} --mode ${options.mode || "good"}`));
   });
 
 // Feature commands
@@ -641,6 +779,155 @@ program
       console.error(chalk.red(`\n❌ ${(error as Error).message}\n`));
       process.exit(1);
     }
+  });
+
+// Estimate command - display cost estimates without executing
+program
+  .command("estimate")
+  .description("Estimate execution costs before running a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`)
+  .option("--compare", "Show comparison across all modes", false)
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (options) => {
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    if (!existsSync(featureDir)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    const prdPath = join(featureDir, "prd.json");
+    if (!existsSync(prdPath)) {
+      console.error(chalk.red(`PRD file not found: ${prdPath}`));
+      process.exit(1);
+    }
+
+    const config = await loadConfig();
+    const prd = await loadPRD(prdPath);
+    const prdPreferredMode =
+      prd.routingPreference?.type === "auto" ? prd.routingPreference.mode : undefined;
+
+    const modeValue =
+      options.mode ?? prdPreferredMode ?? config.autoMode?.defaultMode ?? DEFAULT_MODE;
+    const modeResult = parseModeFlagValue(modeValue);
+    if (!modeResult.valid) {
+      console.error(chalk.red(modeResult.error!));
+      console.log(chalk.dim(getModeHelpText()));
+      process.exit(1);
+    }
+    const mode = modeResult.mode!;
+
+    const incompleteCount = prd.userStories.filter((s) => !s.passes).length;
+    const totalCount = prd.userStories.length;
+
+    console.log(chalk.bold(`\n💰 Cost Estimate: ${options.feature}\n`));
+    console.log(chalk.dim(`Stories: ${incompleteCount}/${totalCount} incomplete`));
+
+    if (incompleteCount === 0) {
+      console.log(chalk.green("\n✅ All stories are complete. No execution needed.\n"));
+      return;
+    }
+
+    if (options.compare) {
+      // Show comparison across all modes
+      console.log(chalk.dim(`\nComparing all modes...\n`));
+      const comparison = await compareModes(prd, config.autoMode || {});
+      console.log(formatModeComparison(comparison));
+    } else {
+      // Show estimate for selected mode
+      const estimate = await estimateFeatureCost(prd, config.autoMode || {}, mode);
+      console.log(chalk.cyan(`\n${formatCostEstimate(estimate)}\n`));
+
+      if (estimate.storyEstimates.length > 0) {
+        console.log(formatCostBreakdown(estimate.storyEstimates));
+      }
+
+      // Show brief comparison hint
+      console.log(chalk.dim(`\nTip: Use --compare to see cost comparison across all modes`));
+    }
+  });
+
+// Report command - show historical cost data
+program
+  .command("report")
+  .description("Show historical cost reports for a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("--last <n>", "Show only last N reports", "10")
+  .action(async (options) => {
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    if (!existsSync(featureDir)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    const progressPath = join(featureDir, "progress.txt");
+    if (!existsSync(progressPath)) {
+      console.error(chalk.red(`Progress file not found: ${progressPath}`));
+      process.exit(1);
+    }
+
+    console.log(chalk.bold(`\n📊 Cost Report History: ${options.feature}\n`));
+
+    const history = await loadHistoricalCosts(progressPath);
+
+    if (history.length === 0) {
+      console.log(chalk.dim("No cost reports found yet."));
+      console.log(chalk.dim("\nCost reports are generated after feature execution completes."));
+      console.log(chalk.dim("Run: relentless run --feature " + options.feature + "\n"));
+      return;
+    }
+
+    // Limit to last N reports
+    const limit = parseInt(options.last, 10);
+    const reportsToShow = history.slice(-limit);
+
+    // Calculate totals
+    let totalCost = 0;
+    let totalSavings = 0;
+    for (const entry of history) {
+      totalCost += entry.actualCost;
+      // Savings is calculated against baseline, so we approximate savings amount
+      const baselineCost = entry.actualCost / (1 - entry.savingsPercent / 100);
+      totalSavings += baselineCost - entry.actualCost;
+    }
+
+    // Display reports
+    console.log(chalk.dim("Timestamp                    Mode     Cost       Savings"));
+    console.log(chalk.dim("─".repeat(60)));
+
+    for (const entry of reportsToShow) {
+      const timestamp = entry.timestamp.substring(0, 19).replace("T", " ");
+      const mode = entry.mode.padEnd(8);
+      const cost = `$${entry.actualCost.toFixed(2)}`.padStart(8);
+      const savings = `${entry.savingsPercent}%`.padStart(6);
+      console.log(`${timestamp}  ${mode} ${cost}    ${savings}`);
+    }
+
+    console.log(chalk.dim("─".repeat(60)));
+
+    // Summary
+    if (history.length > limit) {
+      console.log(chalk.dim(`\nShowing last ${limit} of ${history.length} reports`));
+    }
+
+    console.log(chalk.cyan(`\nTotal Cost:    $${totalCost.toFixed(2)}`));
+    console.log(chalk.green(`Total Savings: ~$${totalSavings.toFixed(2)}`));
+    console.log(chalk.dim(`Reports:       ${history.length}\n`));
   });
 
 // PRD command (for agents without skill support)

@@ -1,0 +1,85 @@
+{
+  "project": "Auto Mode Smoke Test (Docs Only)",
+  "branchName": "ralph/999-auto-mode-smoke-test-docs-only",
+  "description": "This is a harmless documentation-only feature to validate auto mode routing across multiple modes.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Fix a typo and add a brief introduction",
+      "description": "Fix a small typo while adding a new MANUAL.md file that introduces the project purpose in 3-5 sentences.",
+      "acceptanceCriteria": [
+        "Create MANUAL.md at the repository root",
+        "Include a short introduction section with 3-5 sentences",
+        "Keep language simple and neutral"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add a Quickstart section with a basic test plan",
+      "description": "Add a Quickstart section with 3-5 bullet steps and a basic test note describing how to start.",
+      "acceptanceCriteria": [
+        "Add a \"Quickstart\" heading",
+        "Include 3-5 bullet steps",
+        "Do not include any commands that modify system state"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add a Usage Examples section for security and OAuth migration",
+      "description": "Add a Usage Examples section with two short scenarios that mention security and OAuth migration guidance.",
+      "acceptanceCriteria": [
+        "Add a \"Usage Examples\" heading",
+        "Provide two short example scenarios in bullet form",
+        "Keep each example under 3 lines"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Add a Troubleshooting checklist for performance and concurrency",
+      "description": "Add a Troubleshooting section with a short checklist of common performance and concurrency issues.",
+      "acceptanceCriteria": [
+        "Add a \"Troubleshooting\" heading",
+        "Include a checklist of 4-6 common issues",
+        "Each item is one sentence max"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Add a Glossary",
+      "description": "Add a Glossary section that defines 4-6 key terms.",
+      "acceptanceCriteria": [
+        "Add a \"Glossary\" heading",
+        "Include 4-6 terms and brief definitions",
+        "Use a simple list format"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add a Support section",
+      "description": "Add a Support section describing where to ask for help.",
+      "acceptanceCriteria": [
+        "Add a \"Support\" heading",
+        "Mention GitHub Issues as the primary support channel",
+        "Keep it to 2-3 sentences"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
