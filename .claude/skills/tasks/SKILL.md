@@ -151,6 +151,7 @@ For each user story, create implementation tasks using format:
 **Phase:** Stories
 **Priority:** 3
 ```
+If you have any doubts or suggestions about any specific task, interview the user about them to improve your execution.
 
 ---
 
