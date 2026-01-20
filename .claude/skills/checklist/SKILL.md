@@ -13,7 +13,7 @@ Generate domain-specific quality checklists to validate implementation completen
 
 This skill runs **after tasks, before analyze**:
 
-specify → plan → tasks → convert → **checklist** → analyze → implement
+specify → plan → tasks → **checklist** → analyze → implement
 
 Purpose:
 - Generate validation checklist from spec/plan/tasks
@@ -118,6 +118,7 @@ Create 7-10 categories based on feature domain:
 - Performance & UX
 - Documentation
 
+If you have any doubts or suggestions about the checklist, please, interview the user.
 ---
 
 ## Step 4: Generate Checklist Items
