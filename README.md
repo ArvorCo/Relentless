@@ -424,7 +424,7 @@ Relentless uses a simplified 5-step SpecKit workflow:
 ### Core Commands
 
 ```bash
-relentless init                              # Initialize project
+relentless init                              # Initialize project; -f if upgrading to force overwrite
 relentless run --feature <name> --tui        # Run orchestration
 relentless status --feature <name>           # Show progress
 relentless reset <story-id> --feature <name> # Re-run a story
@@ -460,7 +460,7 @@ relentless agents list                       # Show installed agents
 relentless agents doctor                     # Health check
 ```
 
-### Slash Commands (Claude/Amp/OpenCode)
+### Slash Commands (Claude/Amp/OpenCode/Codex/Droid)
 
 ```bash
 /relentless.constitution    # Create project rules + prompt.md
@@ -569,11 +569,12 @@ Each iteration has access to:
 - **progress.txt** — YAML metadata + learnings
 - **prd.json** — Task completion status
 - **constitution.md** — Project rules
+- **spec.md**, **plan.md** and **tasks.md** - Feature specification and task definition files
 - **checklist.md** — Quality validation (now included in prompts!)
 
 ---
 
-## Writing Good PRDs
+## Writing Good Specs
 
 ### Right-Sized Stories
 
@@ -596,6 +597,8 @@ Make criteria **verifiable**:
 - `Typecheck passes` in every story
 - `Tests pass` in every story
 - `Verify in browser` for UI stories
+
+**ALWAYS REVIEW YOUR SPECS, PLANS AND PRD FILES!**
 
 ---
 
@@ -624,7 +627,7 @@ A: Estimates include a 12% buffer for potential escalation. Actual costs may be 
 A: Yes, set `autoMode.escalation.enabled: false` in config. Tasks will fail instead of escalating.
 
 **Q: Which mode should I use?**
-A: Start with `good` (default). Use `cheap` for well-defined tasks. Use `genius` for complex architecture. Use `free` only for experimentation.
+A: Start with `good` (default). Use `cheap` for well-defined tasks. Use `genius` for complex architecture. Use `free` only for experimentation and simple tasks, like translation, documentation, change variable names etc.
 
 ---
 
