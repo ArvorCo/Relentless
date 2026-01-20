@@ -9,26 +9,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2026-01-20
 
-### Changed
-- **Simplified SpecKit workflow**: `tasks` skill now auto-runs `convert`
-- **Updated all skill documentation** with TDD, routing, and quality gates
-- **Synchronized implement skill and prompt.md** for uniform behavior
+### Major Features
+
+#### Smart Auto Mode - Save 50-75% on AI Costs
+- **Intelligent task routing**: Tasks automatically classified by complexity (simple/medium/complex/expert)
+- **Mode-Model matrix**: Four cost modes route to optimal models
+  - `free`: OpenCode free models (~95% savings)
+  - `cheap`: Haiku 4.5, Gemini Flash, GPT-5.2-low (~75% savings)
+  - `good`: Sonnet 4.5 (default, ~50% savings)
+  - `genius`: Opus 4.5, GPT-5.2-xhigh (premium quality)
+- **Automatic escalation**: When smaller models fail, automatically retry with more capable models
+- **Cost estimation**: See estimated costs before execution
+- **Cost reporting**: Compare estimated vs actual costs after execution
+
+#### New Routing Module (`src/routing/`)
+- `classifier.ts` - Hybrid complexity classifier (heuristic + LLM fallback)
+- `router.ts` - Mode-Model matrix router
+- `cascade.ts` - Automatic escalation logic
+- `fallback.ts` - Harness fallback and rate limit handling
+- `estimate.ts` - Per-story and feature-level cost estimation
+- `report.ts` - Cost reporting with actual vs estimated comparison
+- `registry.ts` - Model registry with capabilities and pricing
+
+#### New Review Module (`src/review/`)
+- Post-story quality review with micro-tasks
+- Review tasks: typecheck, lint, test, security, quality, docs
+- Configurable retry logic for transient failures
+- Review mode selection (free/cheap/good/genius)
+
+#### New CLI Flags
+- `--mode <mode>`: Select cost mode (free, cheap, good, genius)
+- `--fallback-order <list>`: Custom harness priority order
+- `--skip-review`: Skip post-story review phase
+- `--review-mode <mode>`: Separate mode for review tasks
+- `--dry-run`: Preview routing decisions without execution
 
 ### Added
+- **Simplified SpecKit workflow**: `tasks` skill now auto-runs `convert`
 - **Upgrade detection** in constitution skill for existing users
-- **SpecKit workflow section** in tasks skill (specify → plan → tasks → analyze → implement)
 - **VERSION comments** in constitution templates for tracking updates
-- **Upgrade notice** in README for existing users
+- **Convert skill** (`.claude/skills/convert/`) for manual conversions
+- **Analysis report template** for analyze skill
+- 1302 tests across 47 files (96.98% coverage on routing module)
 
-### Improved
-- **Documentation**: README updated with simplified 5-step workflow
-- **Landing page**: docs/index.html updated with new features
-- **Quality gates**: All skills now enforce typecheck, lint, test
+### Changed
+- Auto mode is now the default agent (`defaultAgent: "auto"`)
+- PRD format extended with routing metadata per story
+- TUI shows current routing decision and idle time per story
+- All skills updated with TDD, routing, and quality gates documentation
+
+### Documentation
+- README: Added Auto Mode section, simplified 5-step workflow, upgrade notice
+- CLAUDE.md: Added Auto Mode module documentation
+- docs/index.html: Updated How It Works, marked Smart Routing as Live in Roadmap
 
 ### Migration
 - Existing users should run `/relentless.constitution` to upgrade templates
 - Manual `convert` command only needed for manual tasks.md edits
-- The workflow is now: specify → plan → tasks (auto-convert) → analyze → implement
+- New workflow: `specify → plan → tasks (auto-converts) → analyze → implement`
 
 ## [0.3.0] - 2026-01-14
 
