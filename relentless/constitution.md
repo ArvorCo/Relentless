@@ -1,8 +1,11 @@
+<!-- TEMPLATE_VERSION: 2.1.0 -->
+<!-- LAST_UPDATED: 2026-01-20 -->
+
 # Relentless Project Constitution
 
-**Version:** 2.0.0
+**Version:** 2.1.0
 **Ratified:** 2026-01-13
-**Last Amended:** 2026-01-13
+**Last Amended:** 2026-01-20
 
 ---
 
@@ -27,7 +30,25 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ## Part I: Foundational Principles
 
-### Principle 1: Test-Driven Development (TDD)
+### Principle 1: SpecKit Workflow
+
+**MUST:**
+- All features MUST follow the 6-step workflow: specify → plan → tasks → convert → analyze → implement
+- Each step MUST produce its corresponding artifact before proceeding
+- Artifacts MUST be validated with `/relentless.analyze` before implementation begins
+- Implementation MUST NOT start without: spec.md, plan.md, tasks.md, checklist.md, prd.json
+
+**SHOULD:**
+- Run analysis after any manual artifact edits
+- Keep artifacts in sync throughout development
+- Document deviations from plan in progress.txt
+- Review checklist.md before completing each story
+
+**Rationale:** The SpecKit workflow ensures thorough planning, prevents scope creep, and provides structured guidance for AI agents. Each artifact serves a specific purpose in the autonomous execution pipeline.
+
+---
+
+### Principle 2: Test-Driven Development (TDD)
 
 **MUST:**
 - All new features MUST have tests written BEFORE implementation begins
@@ -46,7 +67,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 2: Smart Model Routing
+### Principle 3: Smart Model Routing
 
 **MUST:**
 - Planning phase MUST evaluate task complexity before assigning models
@@ -66,7 +87,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 3: Parallel Execution with Git Worktrees
+### Principle 4: Parallel Execution with Git Worktrees
 
 **MUST:**
 - Parallel tasks MUST use git worktrees for clean isolation
@@ -86,7 +107,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 4: Queued Prompts (Mid-Run Input)
+### Principle 5: Queued Prompts (Mid-Run Input)
 
 **MUST:**
 - Implement file-based queue (.queue.txt) for mid-run user input
@@ -105,7 +126,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 5: Adaptive Final Review
+### Principle 6: Adaptive Final Review
 
 **MUST:**
 - Every feature MUST have a final review phase before completion
@@ -126,7 +147,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 6: Agent-Aware Best Practices
+### Principle 7: Agent-Aware Best Practices
 
 **MUST:**
 - Maintain up-to-date knowledge of each agent's capabilities
@@ -147,7 +168,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ## Part II: Code Quality Standards
 
-### Principle 7: Zero-Lint Policy
+### Principle 8: Zero-Lint Policy
 
 **MUST:**
 - All code MUST pass lint with zero warnings (not just errors)
@@ -165,7 +186,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 8: TypeScript Strictness
+### Principle 9: TypeScript Strictness
 
 **MUST:**
 - Use TypeScript strict mode throughout
@@ -184,7 +205,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 9: Minimal Dependencies
+### Principle 10: Minimal Dependencies
 
 **MUST NOT:**
 - Add dependencies without clear justification
@@ -207,7 +228,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ## Part III: Architecture Principles
 
-### Principle 10: Clean Architecture
+### Principle 11: Clean Architecture
 
 **MUST:**
 - Maintain clear separation of concerns
@@ -225,7 +246,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 11: Performance First
+### Principle 12: Performance First
 
 **MUST:**
 - Maintain fast startup time (<1s)
@@ -243,7 +264,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 12: Error Handling Excellence
+### Principle 13: Error Handling Excellence
 
 **MUST:**
 - Surface errors clearly - never hide failures
@@ -263,7 +284,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ## Part IV: Version Control & Documentation
 
-### Principle 13: Git Discipline
+### Principle 14: Git Discipline
 
 **MUST:**
 - Write clear, descriptive commit messages
@@ -282,7 +303,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ---
 
-### Principle 14: Documentation Standards
+### Principle 15: Documentation Standards
 
 **MUST:**
 - Document public APIs and interfaces
@@ -302,7 +323,7 @@ Our mission is to build one of the best AI orchestration tools in the world - si
 
 ## Part V: Security & Compliance
 
-### Principle 15: Security First
+### Principle 16: Security First
 
 **MUST:**
 - Never commit secrets to git
@@ -371,6 +392,7 @@ The following are strategic directions that guide future development:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.1.0 | 2026-01-20 | Added SpecKit Workflow principle, template version tracking, renumbered principles (now 16 total), improved artifact consistency requirements |
 | 2.0.0 | 2026-01-13 | Major revision: Added smart routing, parallel execution, queued prompts, adaptive review, TDD requirements, agent-aware practices |
 | 1.0.0 | Previous | Initial constitution |
 
