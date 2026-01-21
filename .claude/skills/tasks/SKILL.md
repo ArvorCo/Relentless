@@ -195,23 +195,30 @@ Check that:
 
 ## Step 8: Auto-Convert to prd.json
 
-After tasks.md is saved, automatically convert to prd.json with routing:
+**CRITICAL: You MUST execute the CLI command below. Do NOT generate prd.json manually.**
+
+After tasks.md is saved, run this command to convert to prd.json with routing:
 
 ```bash
 relentless convert relentless/features/NNN-feature/tasks.md --feature <feature-name>
 ```
 
-This will:
+**⚠️ IMPORTANT:** Execute this bash command using the Bash tool. Do NOT:
+- Generate the prd.json file yourself
+- Skip this step
+- Use any other method
+
+The CLI will:
 1. Parse tasks.md and validate structure
 2. Classify complexity for each story
 3. Route to optimal harness/model per story
 4. Generate prd.json with routing metadata
 5. Copy to prd.md for reference
 
-**Output Summary:**
-- Show routing table (story → complexity → harness/model → cost)
-- Show total estimated cost
-- Confirm prd.json saved
+**After running the command, report:**
+- The routing table from CLI output (story → complexity → harness/model → cost)
+- Total estimated cost
+- Confirm prd.json was created
 
 **Optional but Recommended:** `/relentless.checklist`
 - Generates validation checklist with quality gates
