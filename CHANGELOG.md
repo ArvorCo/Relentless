@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-01-21
+
 ### Fixed
 - **Registry**: Corrected Claude Sonnet 4.5 model ID from `claude-sonnet-4-5-20251020` to `claude-sonnet-4-5-20250929`
   - This was causing 404 errors when using the default model
+- **Skills**: Fixed `relentless.tasks` and `relentless.convert` to enforce CLI execution
+  - Skills now explicitly instruct to run `relentless convert` command via Bash
+  - Prevents LLM from generating prd.json manually instead of using the CLI
 
 ## [0.4.3] - 2026-01-20
 
