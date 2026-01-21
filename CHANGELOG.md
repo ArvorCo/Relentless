@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Registry**: Corrected Claude Sonnet 4.5 model ID from `claude-sonnet-4-5-20251020` to `claude-sonnet-4-5-20250929`
+  - This was causing 404 errors when using the default model
+
 ## [0.4.3] - 2026-01-20
 
 ### Fixed
