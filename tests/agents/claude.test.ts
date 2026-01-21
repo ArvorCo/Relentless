@@ -153,7 +153,7 @@ describe("Claude Adapter", () => {
         await claudeAdapter.invoke("test prompt", { model: "sonnet-4.5" });
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("claude-sonnet-4-5-20251020");
+        expect(capturedArgs).toContain("claude-sonnet-4-5-20250929");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
         Bun.spawn = originalSpawn;
@@ -386,7 +386,7 @@ describe("Claude Adapter", () => {
         }
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("claude-sonnet-4-5-20251020");
+        expect(capturedArgs).toContain("claude-sonnet-4-5-20250929");
         expect(capturedArgs).toContain("--dangerously-skip-permissions");
       } finally {
         // @ts-expect-error - restoring Bun.spawn

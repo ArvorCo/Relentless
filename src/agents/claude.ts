@@ -11,7 +11,7 @@
  *
  * **Supported models:**
  * - `opus-4.5` (claude-opus-4-5-20251101) - SOTA, best for code review and architecture
- * - `sonnet-4.5` (claude-sonnet-4-5-20251020) - Balanced, good for daily coding
+ * - `sonnet-4.5` (claude-sonnet-4-5-20250929) - Balanced, good for daily coding
  * - `haiku-4.5` (claude-haiku-4-5-20251001) - Fast and cheap, good for simple tasks
  *
  * These IDs map to the full Claude model identifiers in the CLI.

@@ -106,7 +106,7 @@ export const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["frontend", "refactoring", "daily_coding", "balanced"],
     limitations: [],
     cliFlag: "--model",
-    cliValue: "claude-sonnet-4-5-20251020",
+    cliValue: "claude-sonnet-4-5-20250929",
   },
   {
     id: "haiku-4.5",
