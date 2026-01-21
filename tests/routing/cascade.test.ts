@@ -89,7 +89,7 @@ function createTestEscalationConfig(
       "gpt-5.2-low": "gpt-5.2-medium",
       "gpt-5.2-medium": "gpt-5.2-high",
       "gpt-5.2-high": "gpt-5.2-xhigh",
-      "grok-code-fast-1": "claude-sonnet-4-5-20250929",
+      "grok-code-fast-1": "claude-sonnet-4-5",
       "gemini-3-flash": "gemini-3-pro",
     },
     ...overrides,
@@ -570,7 +570,7 @@ describe("Cascade/Escalation Logic", () => {
       const story = createTestStory();
       const config = createTestEscalationConfig({
         escalationPath: {
-          "grok-code-fast-1": "claude-sonnet-4-5-20250929", // OpenCode model to Claude model (cross-harness)
+          "grok-code-fast-1": "claude-sonnet-4-5", // OpenCode model to Claude model (cross-harness)
         },
       });
 
@@ -605,8 +605,8 @@ describe("Cascade/Escalation Logic", () => {
       expect(result.success).toBe(true);
       expect(result.escalations[0].harness).toBe("droid");
       expect(result.escalations[0].model).toBe("grok-code-fast-1");
-      // The second escalation should use the harness for claude-sonnet-4-5-20250929
-      expect(result.escalations[1].model).toBe("claude-sonnet-4-5-20250929");
+      // The second escalation should use the harness for claude-sonnet-4-5
+      expect(result.escalations[1].model).toBe("claude-sonnet-4-5");
     });
   });
 

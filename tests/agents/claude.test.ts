@@ -46,12 +46,12 @@ describe("Claude Adapter", () => {
 
         // Verify --model and model value are in args
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("claude-opus-4-5-20251101");
+        expect(capturedArgs).toContain("claude-opus-4-5");
 
         // Verify the order: claude, -p, --dangerously-skip-permissions (optional), --model, modelValue
         const modelIndex = capturedArgs.indexOf("--model");
         expect(modelIndex).toBeGreaterThan(0);
-        expect(capturedArgs[modelIndex + 1]).toBe("claude-opus-4-5-20251101");
+        expect(capturedArgs[modelIndex + 1]).toBe("claude-opus-4-5");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
         Bun.spawn = originalSpawn;
@@ -153,7 +153,7 @@ describe("Claude Adapter", () => {
         await claudeAdapter.invoke("test prompt", { model: "sonnet-4.5" });
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("claude-sonnet-4-5-20251020");
+        expect(capturedArgs).toContain("claude-sonnet-4-5");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
         Bun.spawn = originalSpawn;
@@ -187,7 +187,7 @@ describe("Claude Adapter", () => {
         await claudeAdapter.invoke("test prompt", { model: "haiku-4.5" });
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("claude-haiku-4-5-20251001");
+        expect(capturedArgs).toContain("claude-haiku-4-5");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
         Bun.spawn = originalSpawn;
@@ -224,7 +224,7 @@ describe("Claude Adapter", () => {
         });
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("claude-opus-4-5-20251101");
+        expect(capturedArgs).toContain("claude-opus-4-5");
         expect(capturedArgs).toContain("--dangerously-skip-permissions");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
@@ -304,9 +304,8 @@ describe("Claude Adapter", () => {
           chunks.push(value);
         }
 
-        // Verify --model and model value are in args
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("claude-opus-4-5-20251101");
+        expect(capturedArgs).toContain("claude-opus-4-5");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
         Bun.spawn = originalSpawn;
@@ -386,7 +385,7 @@ describe("Claude Adapter", () => {
         }
 
         expect(capturedArgs).toContain("--model");
-        expect(capturedArgs).toContain("claude-sonnet-4-5-20251020");
+        expect(capturedArgs).toContain("claude-sonnet-4-5");
         expect(capturedArgs).toContain("--dangerously-skip-permissions");
       } finally {
         // @ts-expect-error - restoring Bun.spawn
