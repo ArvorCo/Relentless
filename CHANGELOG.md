@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.5] - 2026-01-21
+## [0.4.5](https://github.com/ArvorCo/Relentless/releases/tag/v0.4.5) - 2026-01-21
 
 ### Fixed
 - **Registry**: Corrected Claude Sonnet 4.5 model ID from `claude-sonnet-4-5-20251020` to `claude-sonnet-4-5-20250929`
