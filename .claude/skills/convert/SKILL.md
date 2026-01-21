@@ -14,10 +14,12 @@ Convert user stories from tasks.md into prd.json format WITH automatic routing c
 
 ## The Job
 
+**⚠️ CRITICAL: This skill requires executing the `relentless convert` CLI command. Do NOT generate prd.json manually!**
+
 1. Locate tasks.md in the current feature directory
 2. Validate story structure, dependencies, and TDD compliance
 3. Preview conversion (show story count, dependency chain)
-4. Run the conversion with routing: `relentless convert tasks.md --feature <name>`
+4. **EXECUTE the CLI command:** `relentless convert relentless/features/NNN-feature/tasks.md --feature <feature-name>`
 5. Validate the generated prd.json HAS routing metadata
 6. Display routing summary (cost estimates per story)
 7. Report next step
@@ -90,11 +92,13 @@ Before conversion, validate the tasks.md file:
 
 ## Step 3: Run Conversion (with Routing)
 
-Execute the convert command:
+**⚠️ IMPORTANT: Execute this bash command using the Bash tool. Do NOT generate prd.json manually!**
 
 ```bash
-relentless convert relentless/features/<feature>/tasks.md --feature <feature-name>
+relentless convert relentless/features/NNN-feature/tasks.md --feature <feature-name>
 ```
+
+Replace `NNN-feature` with the actual feature directory name (e.g., `001-user-auth`).
 
 ### Options
 
