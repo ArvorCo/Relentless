@@ -64,6 +64,7 @@ program
   .option("--review-mode <mode>", `Review quality mode (${VALID_REVIEW_MODES.join(", ")})`)
   .option("--dry-run", "Show what would be executed without running", false)
   .option("--tui", "Use beautiful terminal UI interface", false)
+  .option("--tasks", "Enable Claude Code Tasks integration for cross-session coordination", false)
   .option("-d, --dir <path>", "Working directory", process.cwd())
   .action(async (options) => {
     // Load config first to get defaultAgent
@@ -200,6 +201,8 @@ program
       fallbackOrder,
       skipReview,
       reviewMode,
+      enableTasks: options.tasks,
+      featureName: options.feature,
     });
 
     if (result.success) {
@@ -743,6 +746,167 @@ queue
       console.log(chalk.green(`✓ ${result.message}`));
     } else {
       console.error(chalk.red(`Error: ${result.error}`));
+      process.exit(1);
+    }
+  });
+
+// Tasks commands - Claude Code Tasks integration
+const tasks = program.command("tasks").description("Manage Claude Code Tasks for cross-session coordination");
+
+tasks
+  .command("list")
+  .description("List tasks for a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (options) => {
+    const { generateTaskListId, loadTaskList, getTaskListSummary } = await import("../src/tasks");
+
+    const taskListId = generateTaskListId(options.feature);
+    const taskList = await loadTaskList(taskListId);
+
+    if (!taskList) {
+      console.log(chalk.dim(`\nNo task list found for feature: ${options.feature}`));
+      console.log(chalk.dim(`Run 'relentless run --feature ${options.feature} --tasks' to create one.\n`));
+      return;
+    }
+
+    const summary = await getTaskListSummary(taskListId);
+    if (!summary) {
+      console.log(chalk.dim(`\nNo task list found for feature: ${options.feature}\n`));
+      return;
+    }
+
+    console.log(chalk.bold(`\n📋 Tasks: ${options.feature}\n`));
+    console.log(chalk.dim(`TaskList ID: ${taskListId}`));
+    console.log(chalk.dim(`Progress: ${summary.completedTasks}/${summary.totalTasks} complete\n`));
+
+    for (const task of taskList.tasks) {
+      const status = task.status === "completed"
+        ? chalk.green("✓")
+        : task.status === "in_progress"
+          ? chalk.yellow("◐")
+          : chalk.dim("○");
+      const content = task.status === "completed"
+        ? chalk.strikethrough(chalk.dim(task.content))
+        : task.content;
+      console.log(`  ${status} ${content}`);
+    }
+    console.log("");
+  });
+
+tasks
+  .command("sync")
+  .description("Sync PRD stories with Claude Tasks")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (options) => {
+    const { bidirectionalSync } = await import("../src/tasks");
+
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    const featureDir = join(relentlessDir, "features", options.feature);
+    const prdPath = join(featureDir, "prd.json");
+
+    if (!existsSync(prdPath)) {
+      console.error(chalk.red(`Feature '${options.feature}' not found or has no prd.json`));
+      console.log(chalk.dim(`Available features: ${listFeatures(options.dir).join(", ") || "none"}`));
+      process.exit(1);
+    }
+
+    console.log(chalk.dim(`Syncing tasks for ${options.feature}...`));
+
+    const result = await bidirectionalSync(prdPath, options.feature);
+
+    if (result.success) {
+      console.log(chalk.green(`\n✓ Sync complete`));
+      if (result.added > 0) {
+        console.log(chalk.dim(`  Added: ${result.added} tasks`));
+      }
+      if (result.updated > 0) {
+        console.log(chalk.dim(`  Updated: ${result.updated} tasks`));
+      }
+      if (result.removed > 0) {
+        console.log(chalk.dim(`  Removed: ${result.removed} tasks`));
+      }
+    } else {
+      console.error(chalk.red(`\n❌ Sync failed`));
+      for (const error of result.errors) {
+        console.error(chalk.red(`  ${error}`));
+      }
+      process.exit(1);
+    }
+
+    for (const warning of result.warnings) {
+      console.log(chalk.yellow(`  ⚠️  ${warning}`));
+    }
+    console.log("");
+  });
+
+tasks
+  .command("import <taskListId>")
+  .description("Import Claude Tasks to create a new PRD")
+  .requiredOption("-f, --feature <name>", "Feature name for the new PRD")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (taskListId, options) => {
+    const { importTasksToPrd } = await import("../src/tasks");
+
+    const relentlessDir = findRelentlessDir(options.dir);
+    if (!relentlessDir) {
+      console.error(chalk.red("Relentless not initialized. Run: relentless init"));
+      process.exit(1);
+    }
+
+    // Create feature directory if it doesn't exist
+    const featureDir = join(relentlessDir, "features", options.feature);
+    if (!existsSync(featureDir)) {
+      mkdirSync(featureDir, { recursive: true });
+    }
+
+    console.log(chalk.dim(`Importing tasks from ${taskListId}...`));
+
+    const result = await importTasksToPrd(taskListId, options.feature, featureDir);
+
+    if (result.success) {
+      console.log(chalk.green(`\n✓ Import complete`));
+      console.log(chalk.dim(`  Created ${result.storiesCreated} stories`));
+      console.log(chalk.dim(`  PRD saved to: ${result.prdPath}`));
+      console.log(chalk.dim(`\nNext step:`));
+      console.log(chalk.cyan(`  relentless run --feature ${options.feature} --tasks`));
+    } else {
+      console.error(chalk.red(`\n❌ Import failed`));
+      for (const error of result.errors) {
+        console.error(chalk.red(`  ${error}`));
+      }
+      process.exit(1);
+    }
+    console.log("");
+  });
+
+tasks
+  .command("clear")
+  .description("Clear all tasks for a feature")
+  .requiredOption("-f, --feature <name>", "Feature name")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .action(async (options) => {
+    const { generateTaskListId, clearTaskList, taskListExists } = await import("../src/tasks");
+
+    const taskListId = generateTaskListId(options.feature);
+
+    if (!await taskListExists(taskListId)) {
+      console.log(chalk.dim(`\nNo task list found for feature: ${options.feature}\n`));
+      return;
+    }
+
+    const cleared = await clearTaskList(taskListId);
+
+    if (cleared) {
+      console.log(chalk.green(`\n✓ Cleared all tasks for ${options.feature}\n`));
+    } else {
+      console.error(chalk.red(`\n❌ Failed to clear tasks\n`));
       process.exit(1);
     }
   });

@@ -7,7 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0](https://github.com/ArvorCo/Relentless/releases/tag/v0.6.0) - 2026-01-23
+
+### Major Features
+
+#### Claude Code Tasks Integration - Cross-Session Coordination (#8)
+- **TaskList-Per-Feature**: Each feature gets its own TaskList ID (e.g., `relentless-auth`)
+- **Bidirectional Sync**: Convert PRD user stories ↔ Claude Tasks
+- **Cross-session sharing**: Multiple Claude instances coordinate via `CLAUDE_CODE_TASK_LIST_ID` env var
+- **New `--tasks` flag**: Enable Tasks integration with `relentless run --feature auth --tasks`
+
+#### New Tasks Module (`src/tasks/`)
+- `types.ts` - Task types and Zod schemas (`ClaudeTask`, `TaskList`, `SyncResult`, `ImportResult`)
+- `tasklist.ts` - TaskList CRUD operations (create, load, save, delete, addTask, updateTask, etc.)
+- `sync.ts` - Bidirectional sync: `syncPrdToTasks()`, `syncTasksToPrd()`, `importTasksToPrd()`, `bidirectionalSync()`
+- `index.ts` - Module exports
+
+#### New CLI Commands
+```bash
+# Run with Tasks integration
+relentless run --feature auth --tasks
+
+# Task management
+relentless tasks list -f <feature>    # List tasks for a feature
+relentless tasks sync -f <feature>    # Sync PRD ↔ Claude Tasks
+relentless tasks import <id> -f <feature>  # Import Claude Tasks to PRD
+relentless tasks clear -f <feature>   # Clear TaskList
+```
+
+### Added
+- `taskListId` option in `InvokeOptions` for agent adapters
+- `env` option in `RunCommandOptions` for passing environment variables
+- 38 new tests for Tasks module (types + tasklist CRUD)
+
 ### Fixed
+- **Rate Limit Detection**: Fixed false positive when Claude mentions "model" and "not_found_error" in conversation
+  - Previous pattern was too broad and matched normal Claude output
+  - Now uses specific pattern for actual API error responses
 - **Commands**: Use abstract `[skills_path]` pattern for cross-agent compatibility (#7)
   - Commands now reference `[skills_path]/skillname/SKILL.md` instead of hardcoded `.claude/skills/`
   - Each agent can resolve the path to their own skills directory
@@ -474,7 +510,9 @@ Relentless evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) 
 - **License**: MIT
 - **Inspiration**: [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) by Geoffrey Huntley
 
-[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ArvorCo/Relentless/compare/v0.5.3...v0.6.0
+[0.5.3]: https://github.com/ArvorCo/Relentless/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/ArvorCo/Relentless/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/ArvorCo/Relentless/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/ArvorCo/Relentless/compare/v0.4.5...v0.5.0

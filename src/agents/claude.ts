@@ -79,10 +79,17 @@ export const claudeAdapter: AgentAdapter = {
       }
     }
 
+    // Build environment variables
+    const env: Record<string, string> = {};
+    if (options?.taskListId) {
+      env.CLAUDE_CODE_TASK_LIST_ID = options.taskListId;
+    }
+
     const result = await runCommand(["claude", ...args], {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
       timeoutMs: options?.timeout,
+      env: Object.keys(env).length > 0 ? env : undefined,
     });
 
     const timeoutNote =
@@ -120,11 +127,20 @@ export const claudeAdapter: AgentAdapter = {
       }
     }
 
+    // Build environment variables for streaming
+    const streamEnv: Record<string, string> = {};
+    if (options?.taskListId) {
+      streamEnv.CLAUDE_CODE_TASK_LIST_ID = options.taskListId;
+    }
+
     const proc = Bun.spawn(["claude", ...args], {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
       stdout: "pipe",
       stderr: "pipe",
+      env: Object.keys(streamEnv).length > 0
+        ? { ...process.env, ...streamEnv }
+        : undefined,
     });
 
     const decoder = new TextDecoder();
@@ -178,7 +194,9 @@ export const claudeAdapter: AgentAdapter = {
       };
     }
 
-    if (/not_found_error/i.test(output) && /model/i.test(output)) {
+    // More specific pattern for actual API model not found errors
+    // Avoid matching if Claude just mentions "model" and "not_found_error" in conversation
+    if (/error.*model.*not[_\s]?found|model.*not[_\s]?found.*error|"type":\s*"not_found_error"/i.test(output)) {
       return {
         limited: true,
         message: "Claude model not found",

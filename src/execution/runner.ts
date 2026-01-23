@@ -42,6 +42,7 @@ import {
   logSkipRejectedToProgress,
   formatSkipMessage,
 } from "./commands";
+import { generateTaskListId, syncPrdToTasks, syncTasksToPrd } from "../tasks";
 
 export interface RunOptions {
   /** Agent to use (or "auto" for smart routing) */
@@ -66,6 +67,10 @@ export interface RunOptions {
   skipReview?: boolean;
   /** Review quality mode (can differ from execution mode) */
   reviewMode?: "free" | "cheap" | "good" | "genius";
+  /** Enable Claude Code Tasks integration for cross-session coordination */
+  enableTasks?: boolean;
+  /** Feature name (for TaskList ID generation) */
+  featureName?: string;
 }
 
 export interface RunResult {
@@ -479,6 +484,23 @@ export async function run(options: RunOptions): Promise<RunResult> {
     console.log(chalk.yellow("\n⚠️  Dry run mode - not executing\n"));
   }
 
+  // Generate TaskList ID if tasks integration is enabled
+  let taskListId: string | undefined;
+  if (options.enableTasks && options.featureName) {
+    taskListId = generateTaskListId(options.featureName);
+    console.log(`Tasks: ${chalk.green("enabled")} (${taskListId})`);
+
+    // Sync PRD to tasks at start
+    try {
+      const syncResult = await syncPrdToTasks(prd, options.featureName);
+      if (syncResult.added > 0 || syncResult.updated > 0) {
+        console.log(chalk.dim(`  Synced ${syncResult.added} new, ${syncResult.updated} updated tasks`));
+      }
+    } catch (syncError) {
+      console.warn(chalk.yellow(`  ⚠️  Failed to sync PRD to tasks: ${syncError}`));
+    }
+  }
+
   // Main loop
   for (let i = 1; i <= options.maxIterations; i++) {
     iterations = i;
@@ -737,6 +759,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,
           model: autoModeEnabled ? autoRoutingModel : options.config.agents[agent.name]?.model,
           timeout: options.config.execution.timeout,
+          taskListId,
         });
 
         // Check for rate limit during research phase
@@ -798,6 +821,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
         dangerouslyAllowAll: options.config.agents[agent.name]?.dangerouslyAllowAll ?? true,
         model: autoModeEnabled ? autoRoutingModel : options.config.agents[agent.name]?.model,
         timeout: options.config.execution.timeout,
+        taskListId,
       });
 
       // Check for rate limit
@@ -941,6 +965,18 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const finalPRD = await loadPRD(options.prdPath);
   const success = isComplete(finalPRD);
   const duration = Date.now() - startTime;
+
+  // Final sync tasks back to PRD
+  if (options.enableTasks && options.featureName) {
+    try {
+      const syncResult = await syncTasksToPrd(options.prdPath, options.featureName);
+      if (syncResult.updated > 0) {
+        console.log(chalk.dim(`  Synced ${syncResult.updated} task updates back to PRD`));
+      }
+    } catch (syncError) {
+      console.warn(chalk.yellow(`  ⚠️  Failed to sync tasks to PRD: ${syncError}`));
+    }
+  }
 
   if (!success) {
     console.log(chalk.yellow(`\n⚠️  Reached max iterations (${options.maxIterations}) without completing all stories.`));

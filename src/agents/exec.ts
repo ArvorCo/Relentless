@@ -6,6 +6,8 @@ export interface RunCommandOptions {
   cwd?: string;
   stdin?: Blob;
   timeoutMs?: number;
+  /** Environment variables to pass to the command */
+  env?: Record<string, string>;
 }
 
 export interface RunCommandResult {
@@ -48,11 +50,18 @@ export async function runCommand(
   options: RunCommandOptions = {}
 ): Promise<RunCommandResult> {
   const startTime = Date.now();
+
+  // Merge custom env vars with current process env
+  const env = options.env
+    ? { ...process.env, ...options.env }
+    : undefined;
+
   const proc = Bun.spawn(command, {
     cwd: options.cwd,
     stdin: options.stdin,
     stdout: "pipe",
     stderr: "pipe",
+    env,
   });
 
   let lastOutput = Date.now();

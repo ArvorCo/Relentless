@@ -16,6 +16,8 @@ export interface InvokeOptions {
   model?: string;
   /** Skip all permission prompts */
   dangerouslyAllowAll?: boolean;
+  /** Claude Code TaskList ID for cross-session coordination */
+  taskListId?: string;
 }
 
 /**
