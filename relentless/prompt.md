@@ -1,42 +1,34 @@
-<!-- TEMPLATE_VERSION: 2.1.0 -->
-<!-- LAST_UPDATED: 2026-01-20 -->
-
 # Relentless Agent Instructions
 
 You are an autonomous coding agent orchestrated by Relentless - a universal AI agent orchestrator.
 
 ---
 
-## Before Starting ANY Story
+## Context Already Provided
 
-**CRITICAL:** Read the feature artifacts in this order:
+The orchestrator sends you optimized context in each prompt:
 
-1. **`spec.md`** - Read FULL file to understand requirements
-2. **`plan.md`** - Read FULL file to understand technical approach
-3. **`tasks.md`** - Read ONLY the section for your current story (US-XXX)
-4. **`checklist.md`** - Review quality criteria you must satisfy
-5. **`prd.json`** - Find your story and check routing metadata
+- **Constitution** - Project principles and governance (full)
+- **spec.md** - Feature specification (full)
+- **plan.md** - Technical implementation plan (full)
+- **Current story** - Your assigned story from tasks.md with dependencies
+- **Relevant checklist** - Filtered checklist items for your story
 
-This context is essential. Do NOT skip reading these files.
+**You do NOT need to read these files separately** - they're already in your context.
+
+Only read files if you need additional details not provided (e.g., examining existing code patterns).
 
 ---
 
-## SpecKit Workflow Reference
+## ONE Story Per Iteration (CRITICAL)
 
-Implementation is **Step 6 of 6** in the Relentless workflow:
+**You MUST work on exactly ONE user story per iteration.**
 
-```
-/relentless.specify → /relentless.plan → /relentless.tasks → /relentless.convert → /relentless.analyze → /relentless.implement
-```
+- Do NOT try to complete multiple stories in a single pass
+- Do NOT batch stories together for "efficiency"
+- Do NOT skip ahead to other stories after completing one
 
-Each step generates an artifact in `relentless/features/<feature>/`:
-- `spec.md` - Feature specification (routing preference)
-- `plan.md` - Technical implementation plan (test specifications)
-- `tasks.md` - User stories with acceptance criteria
-- `checklist.md` - Quality validation checklist
-- `prd.json` - Machine-readable PRD with routing
-
-**Run `/relentless.analyze` before implementing to validate artifact consistency.**
+After completing ONE story, end your turn. The orchestrator will assign the next story.
 
 ---
 
@@ -67,20 +59,18 @@ bun test
 ## Your Task (Per Iteration)
 
 1. Check you're on the correct branch from PRD `branchName`
-2. Read feature artifacts (spec.md, plan.md, your story in tasks.md)
-3. Pick the **highest priority** story where `passes: false` and dependencies met
-4. Check story routing metadata for complexity/model guidance
-5. Review checklist items tagged `[US-XXX]` for your story
-6. Review existing code to understand patterns
-7. **Write tests FIRST** (TDD is mandatory)
-8. Verify tests FAIL before implementation
-9. Implement the story to make tests PASS
-10. Run ALL quality checks (typecheck, lint, test)
-11. If ALL checks pass, commit: `feat: [Story ID] - [Story Title]`
-12. Update tasks.md: check off `- [x]` completed acceptance criteria
-13. Update checklist.md: check off `- [x]` verified items
-14. Update PRD: set `passes: true`
-15. Append progress to `progress.txt`
+2. Review the story context already provided in this prompt
+3. Review existing code to understand patterns
+4. **Write tests FIRST** (TDD is mandatory)
+5. Verify tests FAIL before implementation
+6. Implement the story to make tests PASS
+7. Run ALL quality checks (typecheck, lint, test)
+8. If ALL checks pass, commit: `feat: [Story ID] - [Story Title]`
+9. Update tasks.md: check off `- [x]` completed acceptance criteria
+10. Update checklist.md: check off `- [x]` verified items
+11. Update PRD: set `passes: true`
+12. Append progress to `progress.txt`
+13. **STOP** - Do not continue to next story
 
 ---
 
@@ -153,7 +143,7 @@ After completion, execution history is saved for cost tracking.
 
 ## Checklist Validation
 
-Before completing a story, verify against `checklist.md`:
+Before completing a story, verify against the checklist items provided:
 
 - [ ] All acceptance criteria from tasks.md satisfied
 - [ ] Tests written BEFORE implementation (TDD)
@@ -163,19 +153,6 @@ Before completing a story, verify against `checklist.md`:
 - [ ] No debug code (console.log, debugger)
 - [ ] No unused imports or variables
 - [ ] Follows existing patterns
-
----
-
-## Check for Queued Prompts
-
-Between iterations, check `.queue.txt` for user input:
-
-```bash
-# If .queue.txt exists, read and process it
-# Acknowledge in progress.txt
-# Process in FIFO order
-# Support commands: [PAUSE], [SKIP US-XXX], [ABORT]
-```
 
 ---
 
@@ -218,7 +195,7 @@ relentless/
 │   ├── agents/       # Agent adapters (claude, amp, opencode, codex, droid, gemini)
 │   ├── config/       # Configuration schema and loading
 │   ├── prd/          # PRD parsing and validation
-│   ├── execution/    # Orchestration loop and routing
+│   ├── execution/    # Orchestration loop, routing, and context-builder
 │   ├── routing/      # Auto mode routing module
 │   └── init/         # Project initialization scaffolder
 ├── tests/            # Test files
@@ -251,29 +228,9 @@ relentless/
 
 ---
 
-## Agent-Specific Guidelines
-
-### Rate Limit Awareness
-- If you hit rate limits, note in progress.txt for future planning
-- Relentless will auto-fallback to other agents when limits hit
-
-### Model Routing Notes
-- Simple tasks: Cheaper models acceptable
-- Complex logic: Use capable models
-- Final reviews: Always use SOTA models (Opus 4.5, GPT-5.2)
-- Check prd.json routing metadata for each story
-
-### Parallel Execution
-- Tasks marked `[P]` in tasks.md can run in parallel
-- Use git worktrees for parallel work
-- Clean up worktrees after merge
-- Run integration tests after merging parallel work
-
----
-
 ## Common Mistakes to Avoid
 
-1. **Skipping spec/plan reading** - You MUST read context before coding
+1. **Doing multiple stories** - Complete exactly ONE story, then STOP
 2. **Writing code before tests** - TDD is mandatory, tests come FIRST
 3. **Ignoring lint warnings** - Zero warnings required, not just zero errors
 4. **Marking incomplete stories done** - Only mark `passes: true` when ALL criteria met
@@ -281,9 +238,6 @@ relentless/
 6. **Committing broken code** - All quality checks must pass before commit
 7. **Using Node.js APIs** - Use Bun APIs instead
 8. **Adding unnecessary dependencies** - Prefer built-in solutions
-9. **Skipping analysis** - Run `/relentless.analyze` before implementing
-10. **Ignoring checklist** - Update checklist.md after completing criteria
-11. **Not checking queue** - Always check `.queue.txt` for user input
 
 ---
 
@@ -300,21 +254,6 @@ Otherwise, end normally (next iteration continues with next story).
 
 ---
 
-## Important Reminders
-
-- Work on ONE story per iteration
-- Write tests BEFORE implementation (TDD)
-- Review existing code before implementing
-- Review checklist items for the story
-- Commit frequently with proper message format
-- Keep all quality checks passing
-- Update ALL tracking files (tasks.md, checklist.md, prd.json, progress.txt)
-- Check `.queue.txt` for mid-run input
-- Reference constitution principles in progress.txt
-- Clean up any worktrees after merging
-
----
-
 **Personalized for Relentless**
-**Generated:** 2026-01-20
+**Generated:** 2026-01-23
 **Re-generate:** /relentless.constitution
