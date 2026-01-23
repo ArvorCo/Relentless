@@ -5,6 +5,15 @@ All notable changes to Relentless will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1](https://github.com/ArvorCo/Relentless/releases/tag/v0.5.1) - 2026-01-23
+
+### Changed
+- **Model Registry**: Updated Claude model identifiers to use stable aliases instead of dated versions (#6 - thanks @aruj0!)
+  - `claude-sonnet-4-5-20250929` → `claude-sonnet-4-5-latest`
+  - `claude-opus-4-5-20251101` → `claude-opus-4-5-latest`
+  - `claude-haiku-4-5-20250810` → `claude-haiku-4-5-latest`
+  - This ensures compatibility as Anthropic updates model versions
+
 ## [0.5.0](https://github.com/ArvorCo/Relentless/releases/tag/v0.5.0) - 2026-01-23
 
 ### Major Features
@@ -446,7 +455,8 @@ Relentless evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) 
 - **License**: MIT
 - **Inspiration**: [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) by Geoffrey Huntley
 
-[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/ArvorCo/Relentless/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/ArvorCo/Relentless/compare/v0.4.5...v0.5.0
 [0.4.5]: https://github.com/ArvorCo/Relentless/compare/v0.4.3...v0.4.5
 [0.4.3]: https://github.com/ArvorCo/Relentless/compare/v0.4.2...v0.4.3
