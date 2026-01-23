@@ -7,7 +7,7 @@ handoffs:
     send: true
 ---
 
-Load the analyze skill and validate cross-artifact consistency.
+Load the analyze skill (`[skills_path]/analyze/SKILL.md`) and validate cross-artifact consistency.
 
 **Context:** $ARGUMENTS
 

@@ -2,7 +2,7 @@
 description: Execute implementation workflow for a feature manually, story by story.
 ---
 
-Load the implement skill and begin systematic implementation.
+Load the implement skill (`[skills_path]/implement/SKILL.md`) and begin systematic implementation.
 
 **Usage:** `/relentless.implement [story-id]`
 

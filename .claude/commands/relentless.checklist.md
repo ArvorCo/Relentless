@@ -2,7 +2,7 @@
 description: Generate quality validation checklist from feature artifacts.
 ---
 
-Load the checklist skill and generate quality validation checklist.
+Load the checklist skill (`[skills_path]/checklist/SKILL.md`) and generate quality validation checklist.
 
 **Context:** $ARGUMENTS
 

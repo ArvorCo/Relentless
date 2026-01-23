@@ -2,7 +2,7 @@
 description: Convert user stories to GitHub issues.
 ---
 
-Load the taskstoissues skill and create GitHub issues from user stories.
+Load the taskstoissues skill (`[skills_path]/taskstoissues/SKILL.md`) and create GitHub issues from user stories.
 
 **Context:** $ARGUMENTS
 

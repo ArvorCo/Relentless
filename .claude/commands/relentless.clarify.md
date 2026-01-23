@@ -6,7 +6,7 @@ handoffs:
     prompt: Create technical plan with clarifications
 ---
 
-Load the clarify skill and resolve specification ambiguities.
+Load the clarify skill (`[skills_path]/clarify/SKILL.md`) and resolve specification ambiguities.
 
 **Context:** $ARGUMENTS
 

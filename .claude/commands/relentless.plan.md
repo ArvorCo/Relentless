@@ -11,7 +11,7 @@ handoffs:
     send: true
 ---
 
-Load the plan skill and create technical implementation plan.
+Load the plan skill (`[skills_path]/plan/SKILL.md`) and create technical implementation plan.
 
 **Context:** $ARGUMENTS
 

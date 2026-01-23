@@ -11,7 +11,7 @@ handoffs:
     send: true
 ---
 
-Load the convert skill and convert tasks.md to prd.json with routing.
+Load the convert skill (`[skills_path]/convert/SKILL.md`) and convert tasks.md to prd.json with routing.
 
 **Context:** $ARGUMENTS
 

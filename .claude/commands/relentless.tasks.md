@@ -11,7 +11,7 @@ handoffs:
     send: true
 ---
 
-Load the tasks skill and generate user stories and implementation tasks.
+Load the tasks skill (`[skills_path]/tasks/SKILL.md`) and generate user stories and implementation tasks.
 
 **Context:** $ARGUMENTS
 

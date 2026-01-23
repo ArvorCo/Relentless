@@ -10,7 +10,7 @@ Load the constitution skill and create or update the project constitution at `re
 
 **Context:** $ARGUMENTS
 
-The constitution skill (`.claude/skills/constitution/SKILL.md`) will guide you through:
+The constitution skill (`[skills_path]/constitution/SKILL.md`) will guide you through:
 
 ## Process
 
@@ -22,7 +22,7 @@ The constitution skill (`.claude/skills/constitution/SKILL.md`) will guide you t
    - Version control (branches, commits, CI/CD)
 
 2. **Generate Constitution**: Create personalized governance document
-   - Load template from `.claude/skills/constitution/templates/constitution.md`
+   - Load template from `[skills_path]/constitution/templates/constitution.md`
    - Replace all placeholders with concrete values from user answers
    - Ensure MUST/SHOULD rules are clear and testable
    - Set version 1.0.0 for new, increment semantically for updates

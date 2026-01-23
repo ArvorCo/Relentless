@@ -14,20 +14,20 @@ Load the specify skill and create a feature specification in `relentless/feature
 
 **Feature Description:** $ARGUMENTS
 
-The specify skill (`.claude/skills/specify/SKILL.md`) will guide you through:
+The specify skill (`[skills_path]/specify/SKILL.md`) will guide you through:
 
 ## Process
 
 1. **Create Feature Structure**
    - Generate short name (2-4 words) from description
    - Check existing branches to find next number
-   - Run `.claude/skills/specify/scripts/bash/create-new-feature.sh --json "FEATURE_DESCRIPTION"`
+   - Run `[skills_path]/specify/scripts/bash/create-new-feature.sh --json "FEATURE_DESCRIPTION"`
    - Parse JSON output for BRANCH_NAME, SPEC_FILE, FEATURE_DIR
 
 2. **Load Context**
    - Read `relentless/constitution.md` for governance rules
    - Note MUST/SHOULD requirements for specifications
-   - Load spec template from `.claude/skills/specify/templates/spec.md`
+   - Load spec template from `[skills_path]/specify/templates/spec.md`
 
 3. **Generate Specification**
    - Extract key concepts: actors, actions, data, constraints
