@@ -339,13 +339,22 @@ describe("US-026: PRD.json Schema Extension for Routing Metadata", () => {
       expect(result.success).toBe(true);
     });
 
-    it("should reject attempts less than 1", () => {
-      const invalidHistory = {
-        attempts: 0, // invalid
+    it("should allow attempts of 0 (partial execution state)", () => {
+      const partialHistory = {
+        attempts: 0,
         escalations: [],
         actualCost: 0,
-        actualHarness: "claude",
-        actualModel: "sonnet-4.5",
+      };
+
+      const result = ExecutionHistorySchema.safeParse(partialHistory);
+      expect(result.success).toBe(true);
+    });
+
+    it("should reject negative attempts", () => {
+      const invalidHistory = {
+        attempts: -1, // invalid
+        escalations: [],
+        actualCost: 0,
       };
 
       const result = ExecutionHistorySchema.safeParse(invalidHistory);

@@ -107,15 +107,15 @@ export type EscalationAttempt = z.infer<typeof EscalationAttemptSchema>;
  */
 export const ExecutionHistorySchema = z.object({
   /** Total number of attempts made */
-  attempts: z.number().int().min(1),
+  attempts: z.number().int().min(0).default(0),
   /** Array of escalation attempts with details */
-  escalations: z.array(EscalationAttemptSchema),
+  escalations: z.array(EscalationAttemptSchema).default([]),
   /** Total actual cost across all attempts in USD */
-  actualCost: z.number().nonnegative(),
-  /** Final harness that successfully completed the story */
-  actualHarness: HarnessNameSchema,
-  /** Final model that successfully completed the story */
-  actualModel: z.string(),
+  actualCost: z.number().nonnegative().default(0),
+  /** Final harness that successfully completed the story (optional until completion) */
+  actualHarness: HarnessNameSchema.optional(),
+  /** Final model that successfully completed the story (optional until completion) */
+  actualModel: z.string().optional(),
   /** Total input tokens used across all attempts (optional) */
   inputTokens: z.number().nonnegative().optional(),
   /** Total output tokens used across all attempts (optional) */
