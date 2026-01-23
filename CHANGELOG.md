@@ -5,6 +5,34 @@ All notable changes to Relentless will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0](https://github.com/ArvorCo/Relentless/releases/tag/v0.5.0) - 2026-01-23
+
+### Major Features
+
+#### Optimized Context Builder - Save ~40% Tokens Per Iteration
+- **Task-specific context extraction**: Instead of sending entire files, now extracts only relevant content
+  - `tasks.md`: Only current story + dependency sections (~84% reduction)
+  - `checklist.md`: Only story-specific + Constitution + general items (~80% reduction)
+- **New module**: `src/execution/context-builder.ts` with extraction functions:
+  - `extractStoryFromTasks()` - Extract current story and dependencies
+  - `filterChecklistForStory()` - Filter checklist by story ID
+  - `extractStoryMetadata()` - Extract story metadata from PRD
+  - `buildProgressSummary()` - Build concise progress summary
+  - `formatStoryContext()` / `formatFilteredChecklist()` - Formatters for prompt
+- **Token savings**: ~40% reduction in prompt size (from ~7,600 to ~4,500 tokens)
+- **Backward compatible**: Falls back to full file loading when no story context available
+
+### Changed
+- **prompt.md template v2.1.0**: Updated to reflect optimized context delivery
+  - Added "Context Already Provided" section explaining what's sent in prompts
+  - Added "ONE Story Per Iteration" critical rule to prevent over-eager agents
+  - Removed redundant "read these files" instructions (context is pre-loaded)
+  - Updated task workflow to emphasize STOP after one story
+
+### Added
+- 23 new unit tests for context-builder module
+- Integration with existing runner for seamless optimization
+
 ## [0.4.5](https://github.com/ArvorCo/Relentless/releases/tag/v0.4.5) - 2026-01-21
 
 ### Fixed
@@ -418,7 +446,9 @@ Relentless evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) 
 - **License**: MIT
 - **Inspiration**: [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) by Geoffrey Huntley
 
-[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/ArvorCo/Relentless/compare/v0.4.5...v0.5.0
+[0.4.5]: https://github.com/ArvorCo/Relentless/compare/v0.4.3...v0.4.5
 [0.4.3]: https://github.com/ArvorCo/Relentless/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/ArvorCo/Relentless/compare/v0.4.0...v0.4.2
 [0.4.0]: https://github.com/ArvorCo/Relentless/compare/v0.3.0...v0.4.0

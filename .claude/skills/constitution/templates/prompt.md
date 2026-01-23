@@ -1,6 +1,3 @@
-<!-- TEMPLATE_VERSION: 2.1.0 -->
-<!-- LAST_UPDATED: 2026-01-20 -->
-
 # Relentless Agent Instructions
 
 You are an autonomous coding agent orchestrated by Relentless. Follow these instructions exactly.
@@ -12,34 +9,47 @@ You are an autonomous coding agent orchestrated by Relentless. Follow these inst
 
 ---
 
-## Before Starting ANY Story
+## Context Already Provided
 
-**CRITICAL:** Read the feature artifacts in this order:
+The orchestrator sends you optimized context in each prompt:
 
-1. **`spec.md`** - Read FULL file to understand requirements
-2. **`plan.md`** - Read FULL file to understand technical approach
-3. **`tasks.md`** - Read ONLY the section for your current story (US-XXX)
-4. **`checklist.md`** - Review quality criteria you must satisfy
-5. **`prd.json`** - Find your story and check routing metadata
+- **Constitution** - Project principles and governance (full)
+- **spec.md** - Feature specification (full)
+- **plan.md** - Technical implementation plan (full)
+- **Current story** - Your assigned story from tasks.md with dependencies
+- **Relevant checklist** - Filtered checklist items for your story
 
-This context is essential. Do NOT skip reading these files.
+**You do NOT need to read these files separately** - they're already in your context.
+
+Only read files if you need additional details not provided (e.g., examining existing code patterns).
+
+---
+
+## ONE Story Per Iteration (CRITICAL)
+
+**You MUST work on exactly ONE user story per iteration.**
+
+- Do NOT try to complete multiple stories in a single pass
+- Do NOT batch stories together for "efficiency"
+- Do NOT skip ahead to other stories after completing one
+
+After completing ONE story, end your turn. The orchestrator will assign the next story.
 
 ---
 
 ## Your Task (Per Iteration)
 
 1. Check you're on the correct branch from PRD `branchName`
-2. Read feature artifacts (spec.md, plan.md, your story in tasks.md)
-3. Pick the **highest priority** story where `passes: false` and dependencies met
-4. Check story routing metadata for complexity/model guidance
-5. Review existing code to understand patterns
-6. **Write tests FIRST** (TDD is mandatory)
-7. Verify tests FAIL before implementation
-8. Implement the story to make tests PASS
-9. Run ALL quality checks (typecheck, lint, test)
-10. If ALL checks pass, commit: `feat: [Story ID] - [Story Title]`
-11. Update PRD: set `passes: true`
-12. Append progress to `progress.txt`
+2. Review the story context already provided in this prompt
+3. Review existing code to understand patterns
+4. **Write tests FIRST** (TDD is mandatory)
+5. Verify tests FAIL before implementation
+6. Implement the story to make tests PASS
+7. Run ALL quality checks (typecheck, lint, test)
+8. If ALL checks pass, commit: `feat: [Story ID] - [Story Title]`
+9. Update prd.json: set `passes: true`
+10. Append progress to `progress.txt`
+11. **STOP** - Do not continue to next story
 
 ---
 
@@ -141,9 +151,6 @@ APPEND to `progress.txt` after each story:
 - Gotchas for future iterations
 
 ---
-```
-
----
 
 ## Stop Condition
 
@@ -158,26 +165,9 @@ Otherwise, end normally (next iteration continues with next story).
 
 ---
 
-## SpecKit Workflow Reference
-
-The full Relentless workflow is:
-
-```
-/relentless.specify → /relentless.plan → /relentless.tasks → /relentless.convert → /relentless.analyze → /relentless.implement
-```
-
-Each step generates an artifact in `relentless/features/<feature>/`:
-- `spec.md` - Feature specification
-- `plan.md` - Technical implementation plan
-- `tasks.md` - User stories with acceptance criteria
-- `checklist.md` - Quality validation checklist
-- `prd.json` - Machine-readable PRD with routing
-
----
-
 ## Common Mistakes to Avoid
 
-1. **Skipping spec/plan reading** - You MUST read context before coding
+1. **Doing multiple stories** - Complete exactly ONE story, then STOP
 2. **Writing code before tests** - TDD is mandatory, tests come FIRST
 3. **Ignoring lint warnings** - Zero warnings required, not just zero errors
 4. **Marking incomplete stories done** - Only mark `passes: true` when ALL criteria met
@@ -198,5 +188,5 @@ Run `/relentless.constitution` to generate a personalized prompt.
 
 ---
 
-**Template Version:** 2.0.0
-**Compatible with:** Relentless v0.2.0+
+**Template Version:** 2.1.0
+**Compatible with:** Relentless v0.5.0+

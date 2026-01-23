@@ -58,16 +58,27 @@ If tasks.md doesn't exist, suggest running `/relentless.tasks` first.
 
 ## Step 2: Validate tasks.md Structure
 
-Before conversion, validate the tasks.md file:
+The CLI now **automatically validates** tasks.md before conversion. You can also validate manually:
 
-### Required Elements
+```bash
+relentless validate relentless/features/NNN-feature/tasks.md
+```
 
+### Validation Checks
+
+The validator checks for:
 - [ ] Each story has unique ID (US-XXX format)
-- [ ] Each story has acceptance criteria
-- [ ] **TDD criteria included** (tests must be mentioned in acceptance criteria)
-- [ ] Dependencies reference valid story IDs
+- [ ] Each story has acceptance criteria (after filtering)
+- [ ] Dependencies reference existing stories
 - [ ] No circular dependencies
-- [ ] Routing Preference line present (recommended)
+- [ ] No underscore format in dependencies (US_001 should be US-001)
+
+### Automatic Filtering (with Warnings)
+
+The following criteria are automatically filtered during conversion:
+- **Standalone file paths**: `` `src/file.ts` `` → Add context: "`src/file.ts` contains X"
+- **Section markers**: `**Files:**` → Move outside acceptance criteria section
+- **Short text**: Less than 3 characters
 
 ### Example Valid Story
 
@@ -80,12 +91,27 @@ Before conversion, validate the tasks.md file:
 - [ ] POST /api/register endpoint exists
 - [ ] Email validation works
 - [ ] Password is hashed
+- [ ] `src/auth/register.ts` contains the registration handler
 - [ ] Unit tests pass
 - [ ] Integration test passes
 
 **Dependencies:** None
 **Phase:** Foundation
 **Priority:** 1
+```
+
+### Example Validation Output
+
+```
+Validating tasks.md...
+
+⚠️  2 validation warning(s):
+  [FILTERED_CRITERIA]
+    2 acceptance criteria will be filtered during conversion
+
+  📝 2 criteria will be filtered during conversion
+     US-003: "`src/queue/types.ts`"
+     US-004: "**"
 ```
 
 ---
@@ -232,6 +258,25 @@ The conversion was run with `--skip-routing`. Re-run:
 relentless convert relentless/features/<feature>/tasks.md --feature <feature-name>
 ```
 
+### "Validation failed"
+
+The tasks.md has format issues. Run validation to see details:
+```bash
+relentless validate relentless/features/<feature>/tasks.md
+```
+
+Common issues:
+- **DUPLICATE_STORY_ID**: Two stories have the same ID
+- **MISSING_DEPENDENCY**: A story depends on non-existent story ID
+- **CIRCULAR_DEPENDENCY**: Stories form a dependency loop
+
+### "Criteria will be filtered"
+
+Some acceptance criteria don't meet format requirements. Fix by:
+- Adding context to file paths: `` `src/file.ts` `` → "`src/file.ts` contains X"
+- Moving section markers outside acceptance criteria
+- Writing longer, more descriptive criteria
+
 ### "Invalid dependency"
 
 A story references a non-existent story ID. Check the `Dependencies:` line.
@@ -239,6 +284,10 @@ A story references a non-existent story ID. Check the `Dependencies:` line.
 ### "Circular dependency detected"
 
 Stories reference each other in a cycle. Example: US-001 depends on US-002, and US-002 depends on US-001.
+
+### "Dependency uses underscore format"
+
+Use dashes in story IDs: `US-001` not `US_001`.
 
 ---
 

@@ -220,6 +220,7 @@ program
   .option("--auto-number", "Auto-number the feature directory (e.g., 001-feature-name)", false)
   .option("--with-checklist", "Merge checklist items into acceptance criteria", false)
   .option("--skip-routing", "Skip automatic routing classification (not recommended)", false)
+  .option("--skip-validation", "Skip validation before conversion (advanced users only)", false)
   .option("--mode <mode>", `Cost optimization mode for routing (${VALID_MODES.join(", ")})`, "good")
   .action(async (tasksMd, options) => {
     if (!existsSync(tasksMd)) {
@@ -231,6 +232,62 @@ program
     if (!relentlessDir) {
       console.error(chalk.red("Relentless not initialized. Run: relentless init"));
       process.exit(1);
+    }
+
+    // Read tasks.md content first (needed for validation)
+    const tasksContent = await Bun.file(tasksMd).text();
+
+    // VALIDATION PHASE (unless --skip-validation is set)
+    if (!options.skipValidation) {
+      const { validateTasksMarkdown } = await import("../src/prd/validator");
+
+      console.log(chalk.dim(`Validating ${tasksMd}...`));
+      const validationResult = validateTasksMarkdown(tasksContent);
+
+      // Show validation errors and abort if any
+      if (validationResult.errors.length > 0) {
+        console.log(chalk.red("\n❌ Validation failed:\n"));
+        for (const error of validationResult.errors) {
+          const location = error.line ? ` (line ${error.line})` : "";
+          console.log(chalk.red(`  [${error.code}]${location}`));
+          console.log(chalk.red(`    ${error.message}`));
+          if (error.suggestion) {
+            console.log(chalk.dim(`    💡 ${error.suggestion}`));
+          }
+        }
+        console.log("");
+        console.log(chalk.dim("Fix the errors above and try again."));
+        console.log(chalk.dim("Use --skip-validation to bypass (not recommended)."));
+        process.exit(1);
+      }
+
+      // Show warnings but continue
+      if (validationResult.warnings.length > 0) {
+        console.log(chalk.yellow(`\n⚠️  ${validationResult.warnings.length} validation warning(s):`));
+        for (const warning of validationResult.warnings) {
+          const location = warning.line ? ` (line ${warning.line})` : "";
+          console.log(chalk.yellow(`  [${warning.code}]${location}`));
+          console.log(chalk.dim(`    ${warning.message}`));
+        }
+        console.log("");
+      }
+
+      // Show filtered criteria summary
+      if (validationResult.filteredCriteria.length > 0) {
+        console.log(chalk.dim(`  📝 ${validationResult.filteredCriteria.length} criteria will be filtered during conversion`));
+        if (validationResult.filteredCriteria.length <= 5) {
+          for (const fc of validationResult.filteredCriteria) {
+            console.log(chalk.dim(`     ${fc.storyId}: "${fc.text.substring(0, 50)}${fc.text.length > 50 ? "..." : ""}"`));
+          }
+        }
+        console.log("");
+      }
+
+      // Show stories with no criteria warning
+      if (validationResult.summary.storiesWithNoCriteria.length > 0) {
+        console.log(chalk.yellow(`  ⚠️  Stories with no valid criteria: ${validationResult.summary.storiesWithNoCriteria.join(", ")}`));
+        console.log("");
+      }
     }
 
     // Determine final feature name (with auto-number if requested)
@@ -261,8 +318,7 @@ program
 
     console.log(chalk.dim(`Converting ${tasksMd}...`));
 
-    // Read tasks.md (primary source)
-    const tasksContent = await Bun.file(tasksMd).text();
+    // Parse the markdown (content already read above)
     const parsed = parsePRDMarkdown(tasksContent);
 
     // Optionally merge checklist items
@@ -723,6 +779,72 @@ program
     } else {
       console.log(chalk.green("\n✅ No critical issues or warnings found!\n"));
     }
+  });
+
+// Validate command - validate tasks.md before conversion
+program
+  .command("validate <tasksMd>")
+  .description("Validate tasks.md file before conversion to prd.json")
+  .option("-d, --dir <path>", "Project directory", process.cwd())
+  .option("--json", "Output validation results as JSON", false)
+  .option("--strict", "Treat warnings as errors", false)
+  .option("--verbose", "Show all filtered criteria details", false)
+  .action(async (tasksMd, options) => {
+    const { validateTasksMarkdown, formatValidationResult, formatValidationResultJSON } = await import("../src/prd/validator");
+
+    if (!existsSync(tasksMd)) {
+      console.error(chalk.red(`File not found: ${tasksMd}`));
+      process.exit(1);
+    }
+
+    const content = await Bun.file(tasksMd).text();
+    const result = validateTasksMarkdown(content);
+
+    // Check strict mode
+    const hasIssues = result.errors.length > 0 || (options.strict && result.warnings.length > 0);
+
+    if (options.json) {
+      console.log(formatValidationResultJSON(result));
+    } else {
+      console.log(chalk.bold("\n📋 Tasks.md Validation\n"));
+      console.log(chalk.dim(`File: ${tasksMd}`));
+      console.log("");
+
+      console.log(formatValidationResult(result));
+
+      // Show verbose filtered criteria if requested
+      if (options.verbose && result.filteredCriteria.length > 10) {
+        console.log("ALL FILTERED CRITERIA:");
+        for (const fc of result.filteredCriteria) {
+          const location = fc.line ? ` (line ${fc.line})` : "";
+          console.log(`  ${fc.storyId}${location}: "${fc.text}"`);
+          console.log(`    Reason: ${fc.reason}`);
+          if (fc.suggestion) {
+            console.log(`    💡 ${fc.suggestion}`);
+          }
+        }
+        console.log("");
+      }
+
+      // Final summary
+      if (hasIssues) {
+        if (options.strict && result.warnings.length > 0 && result.errors.length === 0) {
+          console.log(chalk.red(`❌ Validation failed (strict mode: ${result.warnings.length} warnings treated as errors)\n`));
+        } else {
+          console.log(chalk.red(`❌ Validation failed with ${result.errors.length} error(s)\n`));
+        }
+        console.log(chalk.dim("Fix the errors above before running: relentless convert"));
+      } else if (result.warnings.length > 0) {
+        console.log(chalk.yellow(`⚠️  Validation passed with ${result.warnings.length} warning(s)\n`));
+        console.log(chalk.dim("Warnings won't block conversion, but consider addressing them."));
+        console.log(chalk.dim("Next step: relentless convert " + tasksMd + " --feature <name>"));
+      } else {
+        console.log(chalk.green("✅ Validation passed - ready to convert\n"));
+        console.log(chalk.dim("Next step: relentless convert " + tasksMd + " --feature <name>"));
+      }
+    }
+
+    process.exit(hasIssues ? 1 : 0);
   });
 
 // Issues command

@@ -17,6 +17,13 @@ import { loadProgress, updateProgressMetadata, syncPatternsFromContent, appendPr
 import { routeTask, type RoutingDecision } from "../routing/router";
 import { getModelForHarnessAndMode, getFreeModeHarnesses } from "../routing/fallback";
 import { buildStoryPromptAddition } from "./story-prompt";
+import {
+  extractStoryFromTasks,
+  filterChecklistForStory,
+  formatStoryContext,
+  formatFilteredChecklist,
+} from "./context-builder";
+import type { PRD } from "../prd/types";
 import { processQueue } from "../queue";
 import type { QueueProcessResult } from "../queue/types";
 import {
@@ -184,12 +191,19 @@ export function formatQueueLogMessage(promptCount: number, commandCount: number)
 
 /**
  * Build the prompt for an iteration
+ *
+ * @param promptPath - Path to prompt.md
+ * @param workingDirectory - Working directory
+ * @param progressPath - Path to progress.txt
+ * @param story - Current story (optional)
+ * @param prd - PRD object for optimized context extraction (optional)
  */
 async function buildPrompt(
   promptPath: string,
   workingDirectory: string,
   progressPath: string,
-  story?: UserStory
+  story?: UserStory,
+  prd?: PRD
 ): Promise<string> {
   if (!existsSync(promptPath)) {
     throw new Error(`Prompt file not found: ${promptPath}`);
@@ -243,25 +257,56 @@ async function buildPrompt(
     prompt += planContent;
   }
 
-  // Load and append tasks.md if available
+  // Load tasks.md - optimized extraction when story and PRD are available
   const tasksPath = join(dirname(progressPath), "tasks.md");
   if (existsSync(tasksPath)) {
-    const tasksContent = await Bun.file(tasksPath).text();
-    prompt += `\n\n## User Stories and Tasks\n\n`;
-    prompt += `The following tasks file contains all user stories with their acceptance criteria.\n`;
-    prompt += `**IMPORTANT:** Update the checkboxes in this file as you complete each criterion.\n`;
-    prompt += `Change \`- [ ]\` to \`- [x]\` for completed items.\n\n`;
-    prompt += tasksContent;
+    if (story && prd) {
+      // OPTIMIZED: Extract only current story and dependencies (~84% token savings)
+      const storyContext = await extractStoryFromTasks(tasksPath, story.id, prd);
+      if (storyContext.currentStory) {
+        prompt += `\n\n## User Stories and Tasks (Optimized Context)\n\n`;
+        prompt += `${storyContext.progressSummary}\n\n`;
+        prompt += `**IMPORTANT:** Update the checkboxes in tasks.md as you complete each criterion.\n`;
+        prompt += `Change \`- [ ]\` to \`- [x]\` for completed items.\n\n`;
+        prompt += formatStoryContext(storyContext);
+      }
+    } else {
+      // FALLBACK: Load full tasks.md when no story/PRD context available
+      const tasksContent = await Bun.file(tasksPath).text();
+      prompt += `\n\n## User Stories and Tasks\n\n`;
+      prompt += `The following tasks file contains all user stories with their acceptance criteria.\n`;
+      prompt += `**IMPORTANT:** Update the checkboxes in this file as you complete each criterion.\n`;
+      prompt += `Change \`- [ ]\` to \`- [x]\` for completed items.\n\n`;
+      prompt += tasksContent;
+    }
   }
 
-  // Load and append checklist.md if available
+  // Load checklist.md - optimized filtering when story is available
   const checklistPath = join(dirname(progressPath), "checklist.md");
   if (existsSync(checklistPath)) {
-    const checklistContent = await Bun.file(checklistPath).text();
-    prompt += `\n\n## Quality Checklist\n\n`;
-    prompt += `The following quality checks must be validated before marking stories as complete:\n\n`;
-    prompt += checklistContent;
-    prompt += `\n\nIMPORTANT: Review this checklist after implementing each story and verify all applicable items.\n`;
+    if (story) {
+      // OPTIMIZED: Filter to story-specific items only (~80% token savings)
+      const filteredChecklist = await filterChecklistForStory(checklistPath, story.id);
+      const hasRelevantItems =
+        filteredChecklist.storyItems.length > 0 ||
+        filteredChecklist.constitutionItems.length > 0 ||
+        filteredChecklist.generalItems.length > 0;
+
+      if (hasRelevantItems) {
+        prompt += `\n\n## Quality Checklist (Filtered for ${story.id})\n\n`;
+        prompt += `Showing relevant items from ${filteredChecklist.totalItemCount} total checklist items.\n`;
+        prompt += `Verify these items as you implement. Update checklist.md to mark items as checked.\n`;
+        prompt += formatFilteredChecklist(filteredChecklist, story.id);
+        prompt += `\nIMPORTANT: Review these checklist items and verify all applicable ones.\n`;
+      }
+    } else {
+      // FALLBACK: Load full checklist.md when no story context available
+      const checklistContent = await Bun.file(checklistPath).text();
+      prompt += `\n\n## Quality Checklist\n\n`;
+      prompt += `The following quality checks must be validated before marking stories as complete:\n\n`;
+      prompt += checklistContent;
+      prompt += `\n\nIMPORTANT: Review this checklist after implementing each story and verify all applicable items.\n`;
+    }
   }
 
   // Load and append research findings if available
@@ -680,7 +725,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
           mkdirSync(researchDir, { recursive: true });
         }
 
-        let researchPrompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+        let researchPrompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story, currentPRD);
 
         // Inject queue prompts into research phase too
         if (queuePrompts.length > 0) {
@@ -737,7 +782,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
         console.log(chalk.cyan("  🔨 Implementation phase - applying research findings..."));
       }
 
-      let prompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story);
+      let prompt = await buildPrompt(options.promptPath, options.workingDirectory, progressPath, story, currentPRD);
 
       // Inject queue prompts if any
       if (queuePrompts.length > 0) {

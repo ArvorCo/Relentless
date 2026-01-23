@@ -182,6 +182,32 @@ Check that:
 
 ---
 
+## Step 6.5: Pre-Conversion Validation
+
+Before saving and converting, validate the format manually:
+
+**Story ID Format:**
+- [ ] Every story uses `US-XXX` format (e.g., `US-001`, not `Story 1`)
+- [ ] Story IDs are unique and sequential
+
+**Acceptance Criteria Format:**
+- [ ] Criteria are full sentences, not just file paths
+- [ ] File paths include context (e.g., "`src/queue/types.ts` contains Zod schemas")
+- [ ] No standalone file paths like `` `src/file.ts` ``
+
+**Dependencies Format:**
+- [ ] Dependencies use `US-XXX` with dashes, not underscores
+- [ ] Example: `**Dependencies:** US-001, US-002` (correct)
+- [ ] Example: `**Dependencies:** US_001` (incorrect - will warn)
+
+**Common Mistakes to Avoid:**
+- ❌ `- [ ] \`src/file.ts\`` (file path only - will be filtered)
+- ✅ `- [ ] \`src/file.ts\` contains the queue interface`
+- ❌ `**Files:**` inside acceptance criteria (will end criteria parsing)
+- ✅ Put **Files:** section after acceptance criteria
+
+---
+
 ## Step 7: Save & Report
 
 1. Save to `relentless/features/NNN-feature/tasks.md`

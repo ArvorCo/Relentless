@@ -6,24 +6,37 @@
 
 import { PRDSchema, type PRD, type UserStory, type ExecutionHistory, type EscalationAttempt } from "./types";
 import type { Mode, HarnessName } from "../config/schema";
+import { validateCriterion, type FilteredCriterion } from "./validator";
+
+/**
+ * Parse warning for filtered criteria
+ */
+export interface ParseWarning {
+  type: "filtered_criterion" | "format_normalized" | "dependency_format";
+  storyId: string;
+  text: string;
+  reason: string;
+  suggestion?: string;
+  line?: number;
+}
+
+/**
+ * Extended parse result with warnings
+ */
+export interface ParseResult {
+  prd: Partial<PRD>;
+  warnings: ParseWarning[];
+  filteredCriteria: FilteredCriterion[];
+}
 
 /**
  * Check if a criterion line is valid (not a file path, divider, etc.)
+ *
+ * Now uses the validator module for consistent filtering logic.
  */
 function isValidCriterion(text: string): boolean {
-  // Skip if it looks like a file path
-  if (text.match(/^`[^`]+\.(ts|tsx|js|jsx|css|json|md)`$/)) {
-    return false;
-  }
-  // Skip if it's just a section marker
-  if (text.startsWith("**")) {
-    return false;
-  }
-  // Skip if it's empty or too short
-  if (text.length < 3) {
-    return false;
-  }
-  return true;
+  const result = validateCriterion(text);
+  return result.valid;
 }
 
 /**
@@ -246,6 +259,285 @@ export function parsePRDMarkdown(content: string): Partial<PRD> {
   }
 
   return prd;
+}
+
+/**
+ * Parse a PRD markdown file with detailed warnings about filtered content
+ *
+ * This version tracks all filtering decisions and provides actionable feedback.
+ */
+export function parsePRDMarkdownWithWarnings(content: string): ParseResult {
+  const lines = content.split("\n");
+  const prd: Partial<PRD> = {
+    userStories: [],
+  };
+  const warnings: ParseWarning[] = [];
+  const filteredCriteria: FilteredCriterion[] = [];
+
+  let currentSection = "";
+  let currentStory: Partial<UserStory> | null = null;
+  let currentStoryId = "";
+  let storyCount = 0;
+  let inAcceptanceCriteria = false;
+  let descriptionLines: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    const lineNum = i + 1;
+
+    // Parse title (# PRD: Title or # Title)
+    if (trimmed.startsWith("# ") && !trimmed.startsWith("## ") && !trimmed.startsWith("### ")) {
+      prd.project = trimmed.replace(/^#\s*(PRD:\s*)?/, "").trim();
+      continue;
+    }
+
+    // Parse routing preference line
+    if (trimmed.match(/^(\*\*Routing Preference\*\*|Routing Preference):/i)) {
+      const raw = trimmed.replace(/^(\*\*Routing Preference\*\*|Routing Preference):/i, "").trim();
+      const lower = raw.toLowerCase();
+      const modeMatch = lower.match(/\b(free|cheap|good|genius)\b/);
+      const allowFreeMatch = lower.match(/allow\s+free:\s*(yes|no)/);
+      const harnessMatch = lower.match(/\b(claude|amp|opencode|codex|droid|gemini)\b/);
+      const modelMatch = raw.match(/\/([^\s]+)/);
+
+      prd.routingPreference = {
+        raw,
+        type: lower.includes("auto") ? "auto" : harnessMatch ? "harness" : undefined,
+        mode: modeMatch ? (modeMatch[1] as Mode) : undefined,
+        allowFree: allowFreeMatch ? allowFreeMatch[1] === "yes" : undefined,
+        harness: harnessMatch ? (harnessMatch[1] as HarnessName) : undefined,
+        model: modelMatch ? modelMatch[1].replace(/[,)]$/, "") : undefined,
+      };
+      continue;
+    }
+
+    // Parse section headers (## Section)
+    if (trimmed.startsWith("## ")) {
+      if (currentStory && currentStory.id) {
+        if (descriptionLines.length > 0 && !currentStory.description) {
+          currentStory.description = descriptionLines.join(" ").trim();
+        }
+        prd.userStories!.push(currentStory as UserStory);
+        currentStory = null;
+        descriptionLines = [];
+      }
+      currentSection = trimmed.replace("## ", "").toLowerCase();
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse user stories
+    const storyMatch = trimmed.match(/^###\s+(?:US-(\d+)|Story\s+(\d+)|(\d+)\.?)\s*:?\s*(.*)$/i);
+    if (storyMatch) {
+      if (currentStory && currentStory.id) {
+        if (descriptionLines.length > 0 && !currentStory.description) {
+          currentStory.description = descriptionLines.join(" ").trim();
+        }
+        prd.userStories!.push(currentStory as UserStory);
+      }
+
+      storyCount++;
+      const storyNum = storyMatch[1] || storyMatch[2] || storyMatch[3] || String(storyCount);
+      currentStoryId = `US-${storyNum.padStart(3, "0")}`;
+
+      // Track format normalization
+      if (storyMatch[2]) {
+        warnings.push({
+          type: "format_normalized",
+          storyId: currentStoryId,
+          text: trimmed,
+          reason: `"Story ${storyMatch[2]}" format normalized to "${currentStoryId}"`,
+          line: lineNum,
+        });
+      } else if (storyMatch[3]) {
+        warnings.push({
+          type: "format_normalized",
+          storyId: currentStoryId,
+          text: trimmed,
+          reason: `Numbered format normalized to "${currentStoryId}"`,
+          line: lineNum,
+        });
+      }
+
+      currentStory = {
+        id: currentStoryId,
+        title: storyMatch[4]?.trim() || "",
+        description: "",
+        acceptanceCriteria: [],
+        priority: storyCount,
+        passes: false,
+        notes: "",
+        dependencies: undefined,
+        parallel: undefined,
+        phase: undefined,
+      };
+      inAcceptanceCriteria = false;
+      descriptionLines = [];
+      continue;
+    }
+
+    // Check for acceptance criteria section header
+    if (currentStory && trimmed.match(/^\*\*Acceptance Criteria:?\*\*$/i)) {
+      inAcceptanceCriteria = true;
+      continue;
+    }
+
+    // Parse story description
+    if (currentStory && trimmed.startsWith("**Description:**")) {
+      currentStory.description = trimmed.replace("**Description:**", "").trim();
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse dependencies with format warnings
+    if (currentStory && trimmed.match(/^\*\*Dependencies:?\*\*/i)) {
+      const depsText = trimmed.replace(/^\*\*Dependencies:?\*\*/i, "").trim();
+      const deps = depsText
+        .split(/[,;]/)
+        .map((d) => {
+          // Check for underscore format and warn
+          const underscoreMatch = d.match(/US_(\d+)/i);
+          if (underscoreMatch) {
+            const normalized = `US-${underscoreMatch[1].padStart(3, "0")}`;
+            warnings.push({
+              type: "dependency_format",
+              storyId: currentStoryId,
+              text: d.trim(),
+              reason: `Dependency uses underscore format instead of dash`,
+              suggestion: `Use "${normalized}" instead of "${d.trim()}"`,
+              line: lineNum,
+            });
+          }
+
+          const match = d.match(/US[-_]?(\d+)/i);
+          return match ? `US-${match[1].padStart(3, "0")}` : null;
+        })
+        .filter((d): d is string => d !== null);
+      if (deps.length > 0) {
+        currentStory.dependencies = deps;
+      }
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse parallel flag
+    if (currentStory && trimmed.match(/^\*\*Parallel:?\*\*/i)) {
+      const value = trimmed.replace(/^\*\*Parallel:?\*\*/i, "").trim().toLowerCase();
+      currentStory.parallel = value === "true" || value === "yes";
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse phase
+    if (currentStory && trimmed.match(/^\*\*Phase:?\*\*/i)) {
+      const phase = trimmed.replace(/^\*\*Phase:?\*\*/i, "").trim();
+      if (phase) {
+        currentStory.phase = phase;
+      }
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse research flag
+    if (currentStory && trimmed.match(/^\*\*Research:?\*\*/i)) {
+      const value = trimmed.replace(/^\*\*Research:?\*\*/i, "").trim().toLowerCase();
+      currentStory.research = value === "true" || value === "yes";
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Check for section headers that end acceptance criteria
+    if (currentStory && trimmed.match(/^\*\*(Files|Note|Technical|Design)/i)) {
+      inAcceptanceCriteria = false;
+      continue;
+    }
+
+    // Parse acceptance criteria with filtering feedback
+    if (currentStory && trimmed.startsWith("-")) {
+      if (trimmed.match(/^-+$/)) {
+        inAcceptanceCriteria = false;
+        continue;
+      }
+
+      if (trimmed.match(/^-\s*\[.\]/)) {
+        const criterion = trimmed.replace(/^-\s*\[.\]\s*/, "").trim();
+        if (criterion) {
+          const validation = validateCriterion(criterion);
+          if (validation.valid) {
+            currentStory.acceptanceCriteria!.push(criterion);
+          } else {
+            filteredCriteria.push({
+              storyId: currentStoryId,
+              text: criterion,
+              reason: validation.reason!,
+              line: lineNum,
+              suggestion: validation.suggestion,
+            });
+            warnings.push({
+              type: "filtered_criterion",
+              storyId: currentStoryId,
+              text: criterion,
+              reason: validation.reason!,
+              suggestion: validation.suggestion,
+              line: lineNum,
+            });
+          }
+        }
+        inAcceptanceCriteria = true;
+        continue;
+      }
+
+      if (inAcceptanceCriteria) {
+        const criterion = trimmed.replace(/^-\s*/, "").trim();
+        if (criterion) {
+          const validation = validateCriterion(criterion);
+          if (validation.valid) {
+            currentStory.acceptanceCriteria!.push(criterion);
+          } else {
+            filteredCriteria.push({
+              storyId: currentStoryId,
+              text: criterion,
+              reason: validation.reason!,
+              line: lineNum,
+              suggestion: validation.suggestion,
+            });
+            warnings.push({
+              type: "filtered_criterion",
+              storyId: currentStoryId,
+              text: criterion,
+              reason: validation.reason!,
+              suggestion: validation.suggestion,
+              line: lineNum,
+            });
+          }
+        }
+        continue;
+      }
+    }
+
+    // Collect description lines
+    if (currentStory && !inAcceptanceCriteria && trimmed && !trimmed.startsWith("**") && !trimmed.startsWith("#")) {
+      descriptionLines.push(trimmed);
+    }
+
+    // Parse description if in introduction/overview section
+    if ((currentSection === "introduction" || currentSection === "overview") && !currentStory) {
+      if (trimmed && !prd.description && !trimmed.startsWith("**")) {
+        prd.description = trimmed;
+      }
+    }
+  }
+
+  // Save last story
+  if (currentStory && currentStory.id) {
+    if (descriptionLines.length > 0 && !currentStory.description) {
+      currentStory.description = descriptionLines.join(" ").trim();
+    }
+    prd.userStories!.push(currentStory as UserStory);
+  }
+
+  return { prd, warnings, filteredCriteria };
 }
 
 /**

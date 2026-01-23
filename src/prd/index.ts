@@ -9,3 +9,4 @@ export * from "./parser";
 export * from "./progress";
 export * from "./analyzer";
 export * from "./issues";
+export * from "./validator";
