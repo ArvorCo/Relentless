@@ -99,14 +99,14 @@ describe("Droid Adapter", () => {
       }
     });
 
-    it("includes -m with claude-sonnet-4-5-20250929 model", async () => {
+    it("includes -m with claude-sonnet-4-5 model", async () => {
       const mock = mockBunSpawn();
 
       try {
-        await droidAdapter.invoke("test prompt", { model: "claude-sonnet-4-5-20250929" });
+        await droidAdapter.invoke("test prompt", { model: "claude-sonnet-4-5" });
 
         expect(mock.capturedArgs).toContain("-m");
-        expect(mock.capturedArgs).toContain("claude-sonnet-4-5-20250929");
+        expect(mock.capturedArgs).toContain("claude-sonnet-4-5");
       } finally {
         mock.restore();
       }

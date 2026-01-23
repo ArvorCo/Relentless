@@ -93,7 +93,7 @@ export const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["code_review", "architecture", "debugging", "final_review", "complex_reasoning"],
     limitations: ["expensive", "slower_start"],
     cliFlag: "--model",
-    cliValue: "claude-opus-4-5-20251101",
+    cliValue: "claude-opus-4-5",
   },
   {
     id: "sonnet-4.5",
@@ -106,7 +106,7 @@ export const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["frontend", "refactoring", "daily_coding", "balanced"],
     limitations: [],
     cliFlag: "--model",
-    cliValue: "claude-sonnet-4-5-20250929",
+    cliValue: "claude-sonnet-4-5",
   },
   {
     id: "haiku-4.5",
@@ -121,7 +121,7 @@ export const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["prototyping", "scaffolding", "simple_tasks", "fast"],
     limitations: ["less_reasoning"],
     cliFlag: "--model",
-    cliValue: "claude-haiku-4-5-20251001",
+    cliValue: "claude-haiku-4-5",
   },
 
   // ============== Codex (OpenAI) Models ==============
@@ -196,7 +196,7 @@ export const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["architecture", "debugging", "complex_reasoning"],
     limitations: ["expensive"],
     cliFlag: "-m",
-    cliValue: "claude-opus-4-5-20251101",
+    cliValue: "claude-opus-4-5",
   },
   {
     id: "claude-sonnet-4-5-20250929",
@@ -209,7 +209,7 @@ export const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["balanced", "daily_coding"],
     limitations: [],
     cliFlag: "-m",
-    cliValue: "claude-sonnet-4-5-20250929",
+    cliValue: "claude-sonnet-4-5",
   },
   {
     id: "claude-haiku-4-5-20251001",
@@ -222,7 +222,7 @@ export const MODEL_REGISTRY: ModelProfile[] = [
     strengths: ["fast", "simple_tasks"],
     limitations: ["less_reasoning"],
     cliFlag: "-m",
-    cliValue: "claude-haiku-4-5-20251001",
+    cliValue: "claude-haiku-4-5",
   },
   {
     id: "gpt-5.2",
