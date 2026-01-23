@@ -56,7 +56,7 @@ program
   .command("run")
   .description("Run the orchestration loop for a feature")
   .requiredOption("-f, --feature <name>", "Feature name to run")
-  .option("-a, --agent <name>", "Agent to use (claude, amp, opencode, codex, droid, gemini, auto)", "auto")
+  .option("-a, --agent <name>", "Agent to use (claude, amp, opencode, codex, droid, gemini, auto)")
   .option("-m, --max-iterations <n>", "Maximum iterations", "20")
   .option("--mode <mode>", `Cost optimization mode (${VALID_MODES.join(", ")})`)
   .option("--fallback-order <harnesses>", `Harness fallback order (${VALID_HARNESSES.join(",")})`)
@@ -66,7 +66,13 @@ program
   .option("--tui", "Use beautiful terminal UI interface", false)
   .option("-d, --dir <path>", "Working directory", process.cwd())
   .action(async (options) => {
-    const agent = options.agent.toLowerCase();
+    // Load config first to get defaultAgent
+    const config = await loadConfig();
+
+    // Use CLI option if provided, otherwise use config.defaultAgent
+    const agentOption = options.agent?.toLowerCase() ?? config.defaultAgent;
+    const agent = agentOption.toLowerCase();
+
     if (agent !== "auto" && !isValidAgentName(agent)) {
       console.error(chalk.red(`Invalid agent: ${agent}`));
       console.log(`Valid agents: ${getAllAgentNames().join(", ")}, auto`);
@@ -129,7 +135,6 @@ program
       process.exit(1);
     }
 
-    const config = await loadConfig();
     const prd = await loadPRD(prdPath);
     const prdPreferredMode =
       prd.routingPreference?.type === "auto" ? prd.routingPreference.mode : undefined;
