@@ -5,6 +5,17 @@ All notable changes to Relentless will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Commands**: Use abstract `[skills_path]` pattern for cross-agent compatibility (#7)
+  - Commands now reference `[skills_path]/skillname/SKILL.md` instead of hardcoded `.claude/skills/`
+  - Each agent can resolve the path to their own skills directory
+  - Updated all 10 command files: plan, tasks, analyze, clarify, implement, checklist, convert, taskstoissues, specify, constitution
+- **Config**: CLI now respects `config.defaultAgent` when no `--agent` flag is provided (#2)
+  - Previously hardcoded to "auto", now reads from user configuration
+  - Allows users to set their preferred default agent in `relentless/config.json`
+
 ## [0.5.2](https://github.com/ArvorCo/Relentless/releases/tag/v0.5.2) - 2026-01-23
 
 ### Fixed
