@@ -171,7 +171,7 @@ export type FallbackConfig = z.infer<typeof FallbackConfigSchema>;
 export const ExecutionConfigSchema = z.object({
   maxIterations: z.number().int().positive().default(20),
   iterationDelay: z.number().int().nonnegative().default(2000),
-  timeout: z.number().int().positive().default(600000), // 10 minutes
+  timeout: z.number().int().positive().default(1800000), // 30 minutes
 });
 
 export type ExecutionConfig = z.infer<typeof ExecutionConfigSchema>;
@@ -232,7 +232,7 @@ export const DEFAULT_CONFIG: RelentlessConfig = {
   execution: {
     maxIterations: 20,
     iterationDelay: 2000,
-    timeout: 600000,
+    timeout: 1800000, // 30 minutes
   },
   prompt: {
     path: "prompt.md",

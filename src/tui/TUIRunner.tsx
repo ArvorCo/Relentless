@@ -86,12 +86,24 @@ function TUIRunnerComponent({
     deleteMode: false,
     confirmClearActive: false,
     statusMessage: undefined,
+    // New fields for enhanced TUI
+    messages: [],
+    layoutMode: "vertical",
+    outputMode: "normal",
+    totalElapsedSeconds: 0,
+    startTime: new Date(),
   });
 
   // Queue file watcher ref
   const queueWatcherRef = React.useRef<FSWatcher | null>(null);
   const featurePathRef = React.useRef<string>("");
   const lastOutputAtRef = React.useRef<number>(Date.now());
+
+  // Skip iteration - AbortController to kill the running process
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+
+  // Idle warning threshold (5 minutes)
+  const IDLE_WARNING_THRESHOLD_SECONDS = 300;
 
   // Load queue items function
   const loadQueueItems = useCallback(async () => {
@@ -134,9 +146,29 @@ function TUIRunnerComponent({
     };
   }, [prdPath, loadQueueItems]);
 
-  // Handle keyboard input for queue
+  // Handle keyboard input for queue and skip
   useInput((input, key) => {
-    const keyString = key.escape ? "escape" : key.return ? "return" : key.backspace ? "backspace" : key.tab ? "tab" : input;
+    // Detect backspace: key.backspace flag OR delete/backspace character codes
+    const isBackspace = key.backspace || key.delete || input === "\x7f" || input === "\b";
+    const keyString = key.escape ? "escape" : key.return ? "return" : isBackspace ? "backspace" : key.tab ? "tab" : input;
+
+    // Handle 's' key to skip current iteration when idle
+    if (input === "s" && !state.queueInputActive && !state.deleteMode && !state.confirmClearActive) {
+      if (state.isRunning && state.idleSeconds >= IDLE_WARNING_THRESHOLD_SECONDS) {
+        // Abort the current agent process
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        setState((prev) => ({
+          ...prev,
+          statusMessage: "Killing agent and skipping to next iteration...",
+        }));
+        setTimeout(() => {
+          setState((prev) => ({ ...prev, statusMessage: undefined }));
+        }, 2000);
+        return;
+      }
+    }
 
     // First check deletion handling (d/D keys, numbers in delete mode, y/n in confirm mode)
     const deletionState = {
@@ -270,6 +302,9 @@ function TUIRunnerComponent({
         ...prev,
         elapsedSeconds: prev.elapsedSeconds + 1,
         idleSeconds: Math.floor((now - lastOutputAtRef.current) / 1000),
+        totalElapsedSeconds: prev.startTime
+          ? Math.floor((now - prev.startTime.getTime()) / 1000)
+          : prev.totalElapsedSeconds + 1,
       }));
     }, 1000);
 
@@ -360,6 +395,8 @@ function TUIRunnerComponent({
 
         // Main loop
         for (let i = 1; i <= maxIterations && !cancelled; i++) {
+          // Create new AbortController for this iteration
+          abortControllerRef.current = new AbortController();
           setState((prev) => ({ ...prev, iteration: i }));
 
           // Reload PRD
@@ -514,11 +551,19 @@ function TUIRunnerComponent({
               dangerouslyAllowAll: config.agents[agent.name]?.dangerouslyAllowAll ?? true,
               model: autoModeEnabled ? autoRoutingModel : config.agents[agent.name]?.model,
               timeout: config.execution.timeout,
+              signal: abortControllerRef.current?.signal,
             });
 
             let result;
+            let aborted = false;
             for await (const chunk of stream) {
               if (cancelled) break;
+              // Check if aborted (user pressed 's' to skip)
+              if (abortControllerRef.current?.signal.aborted) {
+                addOutput("⏭️ Agent killed - skipping to next iteration...");
+                aborted = true;
+                break;
+              }
               // Split chunk into lines and add each
               const lines = chunk.split("\n");
               for (const line of lines) {
@@ -527,6 +572,12 @@ function TUIRunnerComponent({
                 }
               }
               result = chunk; // Will be overwritten by return value
+            }
+
+            // If aborted, continue to next iteration
+            if (aborted) {
+              await sleep(500); // Brief delay before next iteration
+              continue;
             }
 
             // Get the final result
@@ -571,7 +622,15 @@ function TUIRunnerComponent({
               dangerouslyAllowAll: config.agents[agent.name]?.dangerouslyAllowAll ?? true,
               model: autoModeEnabled ? autoRoutingModel : config.agents[agent.name]?.model,
               timeout: config.execution.timeout,
+              signal: abortControllerRef.current?.signal,
             });
+
+            // Check if aborted (user pressed 's' to skip)
+            if (abortControllerRef.current?.signal.aborted) {
+              addOutput("⏭️ Agent killed - skipping to next iteration...");
+              await sleep(500);
+              continue;
+            }
 
             // Add output preview
             const lines = result.output.split("\n").slice(0, 10);
@@ -632,8 +691,13 @@ function TUIRunnerComponent({
           const counts = countStories(updatedPRD);
           addOutput(`Progress: ${counts.completed}/${counts.total} complete`);
 
-          // Delay between iterations
-          await sleep(config.execution.iterationDelay);
+          // Delay between iterations (interruptible by abort)
+          const delayMs = config.execution.iterationDelay;
+          const delaySteps = Math.ceil(delayMs / 100);
+          for (let step = 0; step < delaySteps; step++) {
+            if (abortControllerRef.current?.signal.aborted || cancelled) break;
+            await sleep(Math.min(100, delayMs - step * 100));
+          }
         }
 
         // Final state

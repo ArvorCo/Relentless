@@ -18,6 +18,8 @@ export interface InvokeOptions {
   dangerouslyAllowAll?: boolean;
   /** Claude Code TaskList ID for cross-session coordination */
   taskListId?: string;
+  /** AbortSignal for cancelling the agent execution */
+  signal?: AbortSignal;
 }
 
 /**

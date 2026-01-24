@@ -81,6 +81,7 @@ export const opencodeAdapter: AgentAdapter = {
     const result = await runCommand(args, {
       cwd: options?.workingDirectory,
       timeoutMs: options?.timeout,
+      signal: options?.signal,
     });
 
     const timeoutNote =
@@ -237,12 +238,8 @@ export const opencodeAdapter: AgentAdapter = {
   },
 
   detectRateLimit(output: string): RateLimitInfo {
-    if (output.includes("[Relentless] Idle timeout")) {
-      return {
-        limited: true,
-        message: "OpenCode idle timeout",
-      };
-    }
+    // NOTE: Idle timeout is NOT a rate limit - it just means the agent stopped
+    // producing output for a while, which is normal behavior for complex tasks.
 
     // OpenCode rate limit patterns
     const patterns = [

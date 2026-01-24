@@ -15,6 +15,10 @@ export interface Story {
   criteriaCount: number;
   research?: boolean;
   phase?: string;
+  /** Dependencies that must complete first */
+  dependencies?: string[];
+  /** Whether blocked by unfinished dependencies */
+  blocked?: boolean;
 }
 
 export interface AgentState {
@@ -24,6 +28,46 @@ export interface AgentState {
   rateLimited: boolean;
   resetTime?: Date;
 }
+
+/** Token usage tracking */
+export interface TokenUsage {
+  /** Input tokens used */
+  inputTokens: number;
+  /** Output tokens used */
+  outputTokens: number;
+  /** Total tokens used */
+  totalTokens: number;
+}
+
+/** Cost tracking data */
+export interface CostData {
+  /** Actual cost incurred so far (in dollars) */
+  actual: number;
+  /** Estimated total cost (in dollars) */
+  estimated: number;
+  /** Token usage breakdown */
+  tokens: TokenUsage;
+  /** Cost per story */
+  perStory: number;
+}
+
+/** Message in the queue panel */
+export interface MessageItem {
+  /** Unique identifier */
+  id: string;
+  /** Timestamp when added */
+  timestamp: Date;
+  /** Message content */
+  content: string;
+  /** Message type for color coding */
+  type: "command" | "prompt" | "system" | "info" | "error" | "success";
+}
+
+/** Layout mode for responsive design */
+export type LayoutMode = "three-column" | "compressed" | "vertical";
+
+/** Output panel display mode */
+export type OutputMode = "normal" | "fullscreen";
 
 export interface TUIState {
   /** Feature name */
@@ -75,6 +119,23 @@ export interface TUIState {
   confirmClearActive: boolean;
   /** Status message to display (e.g., "Queue already empty") */
   statusMessage?: string;
+
+  // Enhanced state for new TUI
+
+  /** Cost and token tracking data */
+  costData?: CostData;
+  /** Messages in the queue panel (mIRC-style) */
+  messages: MessageItem[];
+  /** Current layout mode */
+  layoutMode: LayoutMode;
+  /** Output panel display mode */
+  outputMode: OutputMode;
+  /** Total elapsed time since start (seconds) */
+  totalElapsedSeconds: number;
+  /** Start time of current session */
+  startTime?: Date;
+  /** Savings compared to SOTA (percentage) */
+  savingsPercent?: number;
 }
 
 export interface TUIActions {
@@ -100,4 +161,38 @@ export interface TUIActions {
   setComplete: (complete: boolean) => void;
   /** Set error */
   setError: (error: string | undefined) => void;
+  /** Add a message to the queue panel */
+  addMessage: (message: Omit<MessageItem, "id" | "timestamp">) => void;
+  /** Update cost tracking data */
+  updateCostData: (data: Partial<CostData>) => void;
+  /** Toggle output fullscreen mode */
+  toggleOutputMode: () => void;
+  /** Set layout mode */
+  setLayoutMode: (mode: LayoutMode) => void;
+}
+
+/** Props for panel components */
+export interface PanelProps {
+  /** Panel title */
+  title?: string;
+  /** Panel width (percentage or absolute) */
+  width?: string | number;
+  /** Panel height (lines) */
+  height?: number;
+  /** Border color */
+  borderColor?: string;
+  /** Whether panel is active/focused */
+  active?: boolean;
+}
+
+/** Props for status bar sections */
+export interface StatusSectionProps {
+  /** Section label */
+  label?: string;
+  /** Section value */
+  value: string;
+  /** Value color */
+  color?: string;
+  /** Whether to show separator after */
+  separator?: boolean;
 }

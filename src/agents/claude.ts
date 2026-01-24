@@ -90,6 +90,7 @@ export const claudeAdapter: AgentAdapter = {
       stdin: new Blob([prompt]),
       timeoutMs: options?.timeout,
       env: Object.keys(env).length > 0 ? env : undefined,
+      signal: options?.signal,
     });
 
     const timeoutNote =
@@ -195,13 +196,9 @@ export const claudeAdapter: AgentAdapter = {
       }
     };
 
-    if (output.includes("[Relentless] Idle timeout")) {
-      debugRateLimit("idle_timeout", "Claude idle timeout");
-      return {
-        limited: true,
-        message: "Claude idle timeout",
-      };
-    }
+    // NOTE: Idle timeout is NOT a rate limit - it just means the agent stopped
+    // producing output for a while, which is normal behavior for complex tasks.
+    // We should NOT switch agents on idle timeout.
 
     if (/(?:operation not permitted|permission denied|\beperm\b).*(?:\/\.claude|\.claude)/i.test(output)) {
       debugRateLimit("permission_error", "Claude unavailable due to permission error");

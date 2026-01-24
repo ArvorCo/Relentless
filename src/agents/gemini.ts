@@ -83,6 +83,7 @@ export const geminiAdapter: AgentAdapter = {
     const result = await runCommand(["gemini", ...args], {
       cwd: options?.workingDirectory,
       timeoutMs: options?.timeout,
+      signal: options?.signal,
     });
 
     const timeoutNote =
@@ -105,12 +106,8 @@ export const geminiAdapter: AgentAdapter = {
   },
 
   detectRateLimit(output: string): RateLimitInfo {
-    if (output.includes("[Relentless] Idle timeout")) {
-      return {
-        limited: true,
-        message: "Gemini idle timeout",
-      };
-    }
+    // NOTE: Idle timeout is NOT a rate limit - it just means the agent stopped
+    // producing output for a while, which is normal behavior for complex tasks.
 
     // Gemini rate limit patterns
     const patterns = [

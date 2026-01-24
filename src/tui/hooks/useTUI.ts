@@ -5,7 +5,7 @@
  */
 
 import { useState, useCallback } from "react";
-import type { TUIState, TUIActions, Story, AgentState } from "../types.js";
+import type { TUIState, TUIActions, Story, AgentState, MessageItem, CostData, LayoutMode } from "../types.js";
 import type { AgentName } from "../../agents/types.js";
 
 interface UseTUIOptions {
@@ -21,6 +21,8 @@ interface UseTUIReturn {
   state: TUIState;
   actions: TUIActions;
 }
+
+let messageIdCounter = 0;
 
 export function useTUI(options: UseTUIOptions): UseTUIReturn {
   const [state, setState] = useState<TUIState>({
@@ -45,6 +47,12 @@ export function useTUI(options: UseTUIOptions): UseTUIReturn {
     deleteMode: false,
     confirmClearActive: false,
     statusMessage: undefined,
+    // New fields for enhanced TUI
+    messages: [],
+    layoutMode: "vertical",
+    outputMode: "normal",
+    totalElapsedSeconds: 0,
+    startTime: new Date(),
   });
 
   const addOutput = useCallback((line: string) => {
@@ -136,6 +144,50 @@ export function useTUI(options: UseTUIOptions): UseTUIReturn {
     }));
   }, []);
 
+  // New actions for enhanced TUI
+
+  const addMessage = useCallback((message: Omit<MessageItem, "id" | "timestamp">) => {
+    messageIdCounter += 1;
+    const newMessage: MessageItem = {
+      ...message,
+      id: `msg-${messageIdCounter}`,
+      timestamp: new Date(),
+    };
+    setState((prev) => ({
+      ...prev,
+      messages: [...prev.messages, newMessage].slice(-100), // Keep last 100 messages
+    }));
+  }, []);
+
+  const updateCostData = useCallback((data: Partial<CostData>) => {
+    setState((prev) => ({
+      ...prev,
+      costData: prev.costData
+        ? { ...prev.costData, ...data }
+        : {
+            actual: 0,
+            estimated: 0,
+            tokens: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+            perStory: 0,
+            ...data,
+          },
+    }));
+  }, []);
+
+  const toggleOutputMode = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      outputMode: prev.outputMode === "normal" ? "fullscreen" : "normal",
+    }));
+  }, []);
+
+  const setLayoutMode = useCallback((mode: LayoutMode) => {
+    setState((prev) => ({
+      ...prev,
+      layoutMode: mode,
+    }));
+  }, []);
+
   const actions: TUIActions = {
     addOutput,
     clearOutput,
@@ -148,6 +200,10 @@ export function useTUI(options: UseTUIOptions): UseTUIReturn {
     setRunning,
     setComplete,
     setError,
+    addMessage,
+    updateCostData,
+    toggleOutputMode,
+    setLayoutMode,
   };
 
   return { state, actions };

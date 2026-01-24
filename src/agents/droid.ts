@@ -87,6 +87,7 @@ export const droidAdapter: AgentAdapter = {
       cwd: options?.workingDirectory,
       stdin: new Blob([prompt]),
       timeoutMs: options?.timeout,
+      signal: options?.signal,
     });
 
     const timeoutNote =
@@ -109,12 +110,8 @@ export const droidAdapter: AgentAdapter = {
   },
 
   detectRateLimit(output: string): RateLimitInfo {
-    if (output.includes("[Relentless] Idle timeout")) {
-      return {
-        limited: true,
-        message: "Droid idle timeout",
-      };
-    }
+    // NOTE: Idle timeout is NOT a rate limit - it just means the agent stopped
+    // producing output for a while, which is normal behavior for complex tasks.
 
     if (/mcp start failed/i.test(output) || /error reloading mcp servers/i.test(output)) {
       return {

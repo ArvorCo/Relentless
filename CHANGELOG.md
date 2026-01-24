@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0](https://github.com/ArvorCo/Relentless/releases/tag/v0.7.0) - 2026-01-24
+
+### Major Features
+
+#### Enhanced TUI with mIRC-Inspired 3-Column Layout
+- **Responsive layout system**: Automatic switching between layouts based on terminal width
+  - Full 3-column (≥120 cols): Tasks | Output | Queue
+  - Compressed 3-column (≥100 cols): Narrower panels
+  - Vertical layout (<100 cols): Stacked panels for narrow terminals
+- **New layout components**: `ThreeColumnLayout`, `VerticalLayout`, `LayoutSwitcher`
+- **Task Panel (Left)**: Scrollable task list with status indicators and pulse animation for active tasks
+- **Output Panel (Center)**: Enhanced output display with context header and code block detection
+- **Message Queue Panel (Right)**: mIRC-style message display with timestamps
+
+#### Real-Time Metrics Display
+- **Cost Badge**: Real-time cost tracking display
+- **Token Counter**: Input/output token usage visualization
+- **Rate Limit Indicator**: Countdown timer when rate limited
+- **Status Bar**: Comprehensive bottom bar with all metrics
+
+#### Skip Iteration with Process Kill
+- **Idle warning**: Shows warning after 5 minutes of agent inactivity
+- **Press 's' to skip**: Kills the running agent process and moves to next iteration
+- **AbortController integration**: Clean process termination via SIGTERM (with SIGKILL fallback)
+- **AbortSignal support**: Added to all 6 agent adapters (Claude, Amp, OpenCode, Codex, Droid, Gemini)
+
+### Added
+- `src/tui/layouts/` - New layout system with responsive switching
+- `src/tui/components/TaskItem.tsx` - Individual task display with animations
+- `src/tui/components/TaskPanel.tsx` - Left panel with scrollable task list
+- `src/tui/components/OutputPanel.tsx` - Enhanced center output panel
+- `src/tui/components/MessageItem.tsx` - mIRC-style message component
+- `src/tui/components/MessageQueuePanel.tsx` - Right panel queue display
+- `src/tui/components/CostBadge.tsx` - Real-time cost display
+- `src/tui/components/TokenCounter.tsx` - Token usage display
+- `src/tui/components/RateLimitIndicator.tsx` - Rate limit countdown
+- `src/tui/components/StatusBar.tsx` - Bottom metrics bar
+- `src/tui/hooks/useResponsiveLayout.ts` - Terminal size detection with breakpoints
+- `src/tui/hooks/useAnimation.ts` - Pulse, typing, blinking effects
+- `src/tui/hooks/useCostTracking.ts` - Cost and token aggregation
+- `signal` option in `InvokeOptions` for agent cancellation
+- `aborted` flag in `RunCommandResult` to detect cancelled commands
+
+### Changed
+- **Default timeout**: Increased from 10 minutes to 30 minutes (1800000ms)
+- **Idle timeout behavior**: No longer kills process automatically, just shows warning
+- **Theme extended**: Added panel colors, animation constants, badges to `theme.ts`
+- **Types extended**: Added `TokenUsage`, `CostData`, `MessageItem`, `LayoutMode`, `OutputMode` interfaces
+
+### Fixed
+- **Idle timeout no longer detected as rate limit**: Removed idle timeout from rate limit detection in all 6 agents
+- **Process cleanup**: Skip functionality now properly kills the agent process instead of leaving it running
+
+## [0.6.1](https://github.com/ArvorCo/Relentless/releases/tag/v0.6.1) - 2026-01-23
+
+### Fixed
+- **Rate Limit Detection**: Added debug logging to help diagnose false positive rate limit detection
+
 ## [0.6.0](https://github.com/ArvorCo/Relentless/releases/tag/v0.6.0) - 2026-01-23
 
 ### Major Features

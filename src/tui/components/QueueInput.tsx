@@ -138,23 +138,40 @@ interface QueueInputProps {
 /**
  * Queue Input Component
  *
- * Displays an input field at the bottom of the TUI for adding items to the queue.
- * Only visible when active is true.
+ * Displays a full-width input field at the bottom of the TUI for adding items to the queue.
+ * Styled like Claude Code's input area with horizontal borders.
  */
 export function QueueInput({ active, value }: QueueInputProps): React.ReactElement | null {
   if (!active) {
-    return null;
+    // Show hint when not active
+    return (
+      <Box flexDirection="column" width="100%">
+        <Box width="100%">
+          <Text color={colors.dim}>{"─".repeat(80)}</Text>
+        </Box>
+        <Box paddingX={1}>
+          <Text color={colors.dim}>Press 'q' to add to queue, 'd' to delete, 'D' to clear</Text>
+        </Box>
+        <Box width="100%">
+          <Text color={colors.dim}>{"─".repeat(80)}</Text>
+        </Box>
+      </Box>
+    );
   }
 
-  const formatted = formatQueueInput(value);
-
   return (
-    <Box paddingX={1}>
-      <Text color={colors.accent} bold>
-        {formatted.prompt}{" "}
-      </Text>
-      <Text>{formatted.value}</Text>
-      <Text color={colors.dim}>{formatted.cursor}</Text>
+    <Box flexDirection="column" width="100%">
+      <Box width="100%">
+        <Text color={colors.accent}>{"─".repeat(80)}</Text>
+      </Box>
+      <Box paddingX={1} width="100%">
+        <Text color={colors.accent} bold>❯ </Text>
+        <Text>{value}</Text>
+        <Text color={colors.accent}>█</Text>
+      </Box>
+      <Box width="100%">
+        <Text color={colors.accent}>{"─".repeat(80)}</Text>
+      </Box>
     </Box>
   );
 }
