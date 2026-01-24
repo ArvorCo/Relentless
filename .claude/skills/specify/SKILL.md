@@ -195,10 +195,16 @@ If validation fails, revise and re-check (max 3 iterations).
 
 ---
 
-## Step 6: Save & Report
+## Step 6: Save & Validate
 
 1. Write complete specification to `SPEC_FILE` from JSON output
-2. Create progress.txt if it doesn't exist (note that markdown frontmatter must be properly formatted YAML):
+2. **Run the validator to ensure spec.md is correctly formatted:**
+   ```bash
+   .claude/skills/validators/scripts/validate-spec.sh "$SPEC_FILE"
+   ```
+   - If validation fails, fix the errors and re-run
+   - Warnings are acceptable but should be reviewed
+3. Create progress.txt if it doesn't exist (note that markdown frontmatter must be properly formatted YAML):
    ```markdown
    ---
    feature: FEATURE_NAME
@@ -211,7 +217,7 @@ If validation fails, revise and re-check (max 3 iterations).
    # Progress Log: FEATURE_NAME
    ```
 
-3. Report to user:
+4. Report to user:
    - Branch created: `BRANCH_NAME`
    - Spec saved: `SPEC_FILE`
    - Quality validation: PASSED/FAILED

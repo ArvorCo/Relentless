@@ -208,14 +208,21 @@ Before saving and converting, validate the format manually:
 
 ---
 
-## Step 7: Save & Report
+## Step 7: Save & Validate
 
 1. Save to `relentless/features/NNN-feature/tasks.md`
-2. Update progress.txt
-3. Report:
+2. **Run the validator to ensure tasks.md is correctly formatted:**
+   ```bash
+   .claude/skills/validators/scripts/validate-tasks.sh "relentless/features/NNN-feature/tasks.md"
+   ```
+   - If validation fails (especially PRD-convertible format), fix errors and re-run
+   - Warnings are acceptable but should be reviewed
+3. Update progress.txt
+4. Report:
    - Total user stories: N
    - Dependency order: [list]
    - Parallel opportunities: N
+   - Validation: PASS/FAIL
 
 ---
 

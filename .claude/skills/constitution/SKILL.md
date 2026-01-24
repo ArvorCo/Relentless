@@ -222,6 +222,17 @@ Save both files:
 - `relentless/constitution.md`
 - `relentless/prompt.md`
 
+**Run the validators to ensure both files are correctly formatted:**
+```bash
+# Validate constitution.md
+.claude/skills/validators/scripts/validate-constitution.sh "relentless/constitution.md"
+
+# Validate prompt.md
+.claude/skills/validators/scripts/validate-prompt.sh "relentless/prompt.md"
+```
+- If validation fails, fix the errors and re-run
+- Warnings are acceptable but should be reviewed
+
 ---
 
 ## Step 6: Report

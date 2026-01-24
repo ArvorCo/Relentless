@@ -161,15 +161,22 @@ If plan generates any doubts, interview the user about them with insightful ques
 
 ---
 
-## Step 6: Save & Report
+## Step 6: Save & Validate
 
 1. Save plan to `relentless/features/NNN-feature/plan.md`
-2. Update progress.txt with plan creation timestamp and routing info
-3. Report:
+2. **Run the validator to ensure plan.md is correctly formatted:**
+   ```bash
+   .claude/skills/validators/scripts/validate-plan.sh "relentless/features/NNN-feature/plan.md"
+   ```
+   - If validation fails, fix the errors and re-run
+   - Warnings are acceptable but should be reviewed
+3. Update progress.txt with plan creation timestamp and routing info
+4. Report:
    - Plan location
    - Key technical decisions
    - Test specifications summary
    - Constitution compliance: PASS/FAIL
+   - Validation: PASS/FAIL
    - Routing preference: [carried value]
    - Next step: `/relentless.tasks`
 

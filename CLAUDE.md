@@ -32,6 +32,7 @@ This is the Relentless codebase - a universal AI agent orchestrator that works w
 4. **Completion Signal**: `<promise>COMPLETE</promise>` indicates all stories done
 5. **Progress Log**: `progress.txt` accumulates learnings across iterations
 6. **Multi-Tier Agent Support**: Full skills support (Claude/Amp/OpenCode), Extensions (Gemini), Manual (Droid/Codex)
+7. **Learning System**: Capture learnings from completed features to improve future runs via `/relentless.learn`
 
 ### Development Commands
 
@@ -214,6 +215,36 @@ The Auto Mode feature provides intelligent task-to-model routing:
 - Integration tests: `tests/integration/auto-mode.test.ts` (33 tests)
 - Use `createMockAdapter()` for deterministic testing
 - Use `createTestPRD()` fixture for mixed complexity tasks
+
+### Learning System (`/relentless.learn`)
+
+The Learning System captures insights from completed features and proposes amendments to `constitution.md` or `prompt.md`.
+
+**Philosophy**: "Loop Ralph" - Create a feedback loop where each feature execution improves the system for future features.
+
+**Workflow:**
+1. Complete a feature (all stories pass)
+2. Run `/relentless.learn <feature-name>` to extract learnings
+3. CLI scripts extract patterns, costs, failures, errors (token-efficient)
+4. Classify learnings: Constitutional (governance) vs Tactical (tech-specific)
+5. Generate proposals for human approval
+6. Apply approved amendments (version bumped)
+
+**Files:**
+- `.claude/skills/learn/SKILL.md` - Skill definition and workflow
+- `.claude/skills/learn/scripts/` - CLI extraction scripts (jq, grep, awk)
+- `.claude/skills/learn/templates/` - Proposal and stats templates
+- `.claude/commands/relentless.learn.md` - Command wrapper
+
+**Outputs:**
+- `constitution.md` - Updated with approved MUST/SHOULD rules
+- `prompt.md` - Updated with approved patterns/tips
+- `relentless/features/<feature>/learnings.md` - Learning log
+- `relentless/stats.md` - Aggregate statistics
+
+**Version Bumping:**
+- MUST rules: Bump MINOR version (e.g., 2.0.0 → 2.1.0)
+- SHOULD rules: Bump PATCH version (e.g., 2.0.0 → 2.0.1)
 
 ### Documentation Guidelines
 

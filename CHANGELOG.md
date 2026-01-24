@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0](https://github.com/ArvorCo/Relentless/releases/tag/v0.8.0) - 2026-01-24
+
+### Major Features
+
+#### Document Validators - Ensure Artifact Quality
+- **New validators module**: `.claude/skills/validators/` with comprehensive validation scripts
+- **6 document validators**:
+  - `validate-spec.sh` - Feature specification validation
+  - `validate-plan.sh` - Technical plan validation
+  - `validate-tasks.sh` - Implementation tasks validation (PRD-convertible format)
+  - `validate-checklist.sh` - Quality checklist validation
+  - `validate-constitution.sh` - Project constitution validation
+  - `validate-prompt.sh` - Agent instructions validation
+- **Main orchestrator**: `validate.sh` validates all docs in a feature directory
+- **Shared utilities**: `common.sh` with color output, pattern counting, placeholder detection
+- **Auto-detect document type**: From filename or content analysis
+
+#### Learning System (`/relentless.learn`) - Feedback Loop
+- **New skill**: Distill learnings from completed features and propose amendments
+- **Script-based extraction**: CLI tools (jq, grep, awk) extract data without context bloat
+- **Dual-target amendments**: Constitutional (MUST/SHOULD) vs Tactical (prompt.md)
+- **Human approval workflow**: Proposals require explicit approval before applying
+- **Stats aggregation**: `relentless/stats.md` tracks costs, tokens, and patterns across features
+- **Runner integration**: Recommends `/relentless.learn` after feature completion
+
+### Added
+- `.claude/skills/validators/` - Complete validation framework
+- `.claude/skills/validators/scripts/common.sh` - Shared utilities
+- `.claude/skills/validators/scripts/validate-*.sh` - Individual validators
+- `.claude/skills/validators/SKILL.md` - Validator documentation
+- `.claude/skills/learn/` - Learning skill implementation
+- `.claude/skills/learn/scripts/` - Extraction scripts
+- `.claude/commands/relentless.learn.md` - Command wrapper
+
+### Changed
+- **All skills now include validation steps**: specify, plan, tasks, checklist, constitution
+  - Each skill runs the appropriate validator after generating its artifact
+  - Validation failures must be fixed before proceeding
+- **Constitution skill**: Now validates both `constitution.md` and `prompt.md`
+- **Removed XML comment tags**: Cleaned up `<!-- TEMPLATE_VERSION: -->` from constitution templates
+- **Validators are flexible**: Support both old and new document formats
+
+### Fixed
+- **Bash arithmetic with `set -e`**: Fixed `((PASSED++))` causing exit code 1 when PASSED=0
+- **Pattern counting**: Fixed `count_pattern` returning "0\n0" due to grep exit codes
+- **Warning handling**: `check_section_warn` now returns 0 (warnings don't fail validation)
+- **grep option parsing**: Added `--` to prevent patterns like `- [ ]` being parsed as options
+- **Octal interpretation**: Fixed bash interpreting 008/009 as invalid octal (use `10#$num`)
+
 ## [0.7.0](https://github.com/ArvorCo/Relentless/releases/tag/v0.7.0) - 2026-01-24
 
 ### Major Features
@@ -569,7 +618,10 @@ Relentless evolved from the [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) 
 - **License**: MIT
 - **Inspiration**: [Ralph Wiggum Pattern](https://ghuntley.com/ralph/) by Geoffrey Huntley
 
-[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/ArvorCo/Relentless/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/ArvorCo/Relentless/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/ArvorCo/Relentless/compare/v0.6.1...v0.7.0
+[0.6.1]: https://github.com/ArvorCo/Relentless/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/ArvorCo/Relentless/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/ArvorCo/Relentless/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/ArvorCo/Relentless/compare/v0.5.1...v0.5.2

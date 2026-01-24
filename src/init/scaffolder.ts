@@ -437,6 +437,7 @@ export async function initProject(
     "analyze",
     "implement",
     "taskstoissues",
+    "learn",
   ];
 
   if (existsSync(sourceSkillsDir) && !isRelentlessProject) {
@@ -645,6 +646,7 @@ export async function initProject(
     "relentless.constitution.md",
     "relentless.convert.md",
     "relentless.implement.md",
+    "relentless.learn.md",
     "relentless.plan.md",
     "relentless.specify.md",
     "relentless.tasks.md",

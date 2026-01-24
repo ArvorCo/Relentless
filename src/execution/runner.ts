@@ -981,6 +981,10 @@ export async function run(options: RunOptions): Promise<RunResult> {
   if (!success) {
     console.log(chalk.yellow(`\n⚠️  Reached max iterations (${options.maxIterations}) without completing all stories.`));
     console.log(chalk.dim(`Check progress.txt for status.`));
+  } else {
+    // Recommend learning capture for completed features
+    console.log(chalk.cyan(`\n💡 Want to capture learnings for future features?`));
+    console.log(chalk.dim(`   Run: /relentless.learn ${options.featureName ?? ""}`));
   }
 
   return { success, iterations, storiesCompleted, duration };

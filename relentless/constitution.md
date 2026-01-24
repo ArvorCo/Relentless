@@ -1,6 +1,3 @@
-<!-- TEMPLATE_VERSION: 2.1.0 -->
-<!-- LAST_UPDATED: 2026-01-20 -->
-
 # Relentless Project Constitution
 
 **Version:** 2.1.0
