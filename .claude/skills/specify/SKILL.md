@@ -198,14 +198,14 @@ If validation fails, revise and re-check (max 3 iterations).
 ## Step 6: Save & Report
 
 1. Write complete specification to `SPEC_FILE` from JSON output
-2. Create progress.txt if it doesn't exist:
+2. Create progress.txt if it doesn't exist (note that markdown frontmatter must be properly formatted YAML):
    ```markdown
    ---
    feature: FEATURE_NAME
    started: DATE
    last_updated: DATE
    stories_completed: 0
-   routing_preference: [auto: mode | allow free: yes/no]
+   routing_preference: "[auto: mode | allow free: yes/no]"
    ---
 
    # Progress Log: FEATURE_NAME
