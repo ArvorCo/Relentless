@@ -59,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Idle timeout no longer detected as rate limit**: Removed idle timeout from rate limit detection in all 6 agents
 - **Process cleanup**: Skip functionality now properly kills the agent process instead of leaving it running
+- **YAML parsing error for routing_preference** (#9): Fixed template quoting to prevent YAML parser errors when routing_preference contains colons (thanks @namick!)
 
 ## [0.6.1](https://github.com/ArvorCo/Relentless/releases/tag/v0.6.1) - 2026-01-23
 
