@@ -180,7 +180,23 @@ export const claudeAdapter: AgentAdapter = {
   },
 
   detectRateLimit(output: string): RateLimitInfo {
+    // Debug: Log to file when rate limit is detected
+    const debugRateLimit = (pattern: string, message: string) => {
+      if (process.env.RELENTLESS_DEBUG) {
+        const debugInfo = {
+          timestamp: new Date().toISOString(),
+          pattern,
+          message,
+          outputLength: output.length,
+          outputSample: output.slice(0, 500),
+          outputEnd: output.slice(-500),
+        };
+        console.error(`[RELENTLESS_DEBUG] Rate limit detected: ${JSON.stringify(debugInfo, null, 2)}`);
+      }
+    };
+
     if (output.includes("[Relentless] Idle timeout")) {
+      debugRateLimit("idle_timeout", "Claude idle timeout");
       return {
         limited: true,
         message: "Claude idle timeout",
@@ -188,6 +204,7 @@ export const claudeAdapter: AgentAdapter = {
     }
 
     if (/(?:operation not permitted|permission denied|\beperm\b).*(?:\/\.claude|\.claude)/i.test(output)) {
+      debugRateLimit("permission_error", "Claude unavailable due to permission error");
       return {
         limited: true,
         message: "Claude unavailable due to permission error",
@@ -195,8 +212,10 @@ export const claudeAdapter: AgentAdapter = {
     }
 
     // More specific pattern for actual API model not found errors
-    // Avoid matching if Claude just mentions "model" and "not_found_error" in conversation
-    if (/error.*model.*not[_\s]?found|model.*not[_\s]?found.*error|"type":\s*"not_found_error"/i.test(output)) {
+    // Only match JSON API error responses, not conversational mentions
+    const modelNotFoundPattern = /"type":\s*"not_found_error".*"model"/i;
+    if (modelNotFoundPattern.test(output)) {
+      debugRateLimit("model_not_found", "Claude model not found");
       return {
         limited: true,
         message: "Claude model not found",
@@ -225,6 +244,7 @@ export const claudeAdapter: AgentAdapter = {
         }
       }
 
+      debugRateLimit("hit_your_limit", "Claude Code rate limit exceeded");
       return {
         limited: true,
         resetTime,
