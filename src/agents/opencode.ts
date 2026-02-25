@@ -44,13 +44,45 @@ export const opencodeAdapter: AgentAdapter = {
   },
 
   async getExecutablePath(): Promise<string | null> {
+    // Prefer Bun's built-in which (cross-platform) and fall back to common install locations.
     try {
-      const proc = Bun.spawn(["which", "opencode"], { stdout: "pipe" });
-      const output = await new Response(proc.stdout).text();
-      const exitCode = await proc.exited;
-      if (exitCode === 0 && output.trim()) {
-        return output.trim();
+      // 1) Search PATH
+      const direct = Bun.which("opencode") ?? Bun.which("open-code");
+      if (direct) return direct;
+
+      // 2) npm global prefix fallback (users often have npm global bin not on PATH)
+      //    npm bin -g was removed in newer npm versions, so use `npm prefix -g`.
+      const prefixes: string[] = [];
+      try {
+        const proc = Bun.spawn(["npm", "prefix", "-g"], { stdout: "pipe", stderr: "ignore" });
+        const out = (await new Response(proc.stdout).text()).trim();
+        const code = await proc.exited;
+        if (code === 0 && out) prefixes.push(out);
+      } catch {
+        // ignore
       }
+
+      // 3) bun global bin fallback
+      //    On many systems, OpenCode is installed via bun and lives in ~/.bun/bin.
+      const home = Bun.env.HOME;
+      if (home) prefixes.push(`${home}/.bun`);
+
+      const candidates: string[] = [];
+      for (const prefix of prefixes) {
+        // npm global binaries
+        candidates.push(`${prefix}/bin/opencode`, `${prefix}/bin/open-code`);
+        // bun: prefix might be ~/.bun
+        candidates.push(`${prefix}/bin/opencode`, `${prefix}/bin/open-code`);
+      }
+
+      for (const p of candidates) {
+        try {
+          if (await Bun.file(p).exists()) return p;
+        } catch {
+          // ignore
+        }
+      }
+
       return null;
     } catch {
       return null;

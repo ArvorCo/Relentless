@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1](https://github.com/ArvorCo/Relentless/releases/tag/v0.8.1) - 2026-02-25
+
+### Fixed
+- **OpenCode discovery:** improved detection to work cross-platform and across install methods (PATH via `Bun.which`, npm global prefix fallback, and common bun install path).
+
 ## [0.8.0](https://github.com/ArvorCo/Relentless/releases/tag/v0.8.0) - 2026-01-24
 
 ### Major Features
