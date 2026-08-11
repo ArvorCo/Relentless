@@ -1,3 +1,5 @@
+
+
 # Relentless
 
 <div align="center">
@@ -443,6 +445,7 @@ relentless features create <name>            # Create feature
 relentless features create <name> --auto-number  # 001-name, 002-name...
 relentless features list                     # List all features
 relentless convert <file> --feature <name>   # Convert to JSON
+relentless convert <file> --feature <name> --with-checklist # Merge checklist criteria
 ```
 
 ### Analysis & Integration
